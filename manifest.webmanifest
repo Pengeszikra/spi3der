@@ -1,6 +1,6 @@
 {
-  "name": "spi3Der",
-  "short_name": "spi3Der",
+  "name": "spi3der",
+  "short_name": "spi3der",
   "description": "A 3D scene builder: fly, place, cut and paint low-poly models.",
   "start_url": "./",
   "scope": "./",
