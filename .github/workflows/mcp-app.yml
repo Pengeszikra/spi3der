@@ -1,0 +1,24 @@
+name: spi3der MCP App
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  mcp-widget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package.json
+      - name: Validate JavaScript syntax
+        run: |
+          node --check api/mcp.mjs
+          node --check mcp/workshop-app.js
+          node --check mcp/workshop-widget.js
+          node --check tests/mcp-app.mjs
+      - name: Test ChatGPT widget MCP contract
+        run: npm run test:mcp-app
