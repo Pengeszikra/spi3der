@@ -5277,9 +5277,11 @@
         if (!res.ok) throw new Error(res.status);
         helpDoc.innerHTML = md(await res.text());
         const helpBrand = document.createElement('img');
-        helpBrand.src = 'favicon.svg';
-        helpBrand.alt = 'spi3der';
-        helpBrand.style.cssText = 'display:block;width:min(100%,240px);height:auto;margin:0 auto 20px;border-radius:16px';
+        helpBrand.src = 'media/spi3der-brand.png';
+        helpBrand.alt = 'spi3der — full spider artwork';
+        helpBrand.decoding = 'async';
+        helpBrand.style.cssText = 'display:block;width:100%;max-width:720px;aspect-ratio:1;height:auto;object-fit:contain;margin:0 auto 24px;border-radius:16px';
+        helpBrand.onerror = () => { helpBrand.src = 'favicon.svg'; };
         helpDoc.prepend(helpBrand);
         helpLoaded = true;
       } catch (err) {
