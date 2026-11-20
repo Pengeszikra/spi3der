@@ -14,6 +14,15 @@ spi3der is the interactive 3D workshop and eyes for AI agents: a bidirectional b
 - Preserve the current clean, sharp-edged rendering approach. Texture-heavy/PBR pipelines are not a prerequisite.
 - Prefer plain browser ES modules, no bundler, and minimal runtime dependencies. Keep code and docs in English; user-facing discussions may be Hungarian.
 
+## ChatGPT-native Workshop — primary product direction
+- The standalone `workshop.html` / `npm run workshop` UI was rejected by the owner: do not extend or promote it as the product. Keep legacy prototype only for diagnostics until deliberately removed.
+- The **primary** spi3der workshop is an MCP App widget rendered *inside the ChatGPT conversation*, not another browser tab.
+- An MCP `open_workshop` / `build_model` tool returns a UI resource using `_meta.ui.resourceUri` (with `openai/outputTemplate` compatibility), MIME type `text/html;profile=mcp-app`.
+- The embedded UI is the **3D viewport only**: orbit, zoom, and natural object interaction. Do not recreate chatbot controls or a full editor toolbar. The conversation is the command surface.
+- The plugin MCP layer is separate from the reusable headless 3Draft core. Widget-specific presentation metadata belongs in spi3der.
+- Initial MVP must demonstrate the widget rendered in ChatGPT and model changes reflected in it; avoid claiming a working live two-way persistent session until host callbacks, state transport, and tests prove it.
+- Plan for N participants with independent cameras, and for a nonblocking instruction queue, but build these on the shared session layer incrementally.
+
 ## Multi-participant and interruptible-work principles
 - No privileged world origin: (0,0,0) is not a special user or AI seat. A scene may serve N participants, including humans and AI agents.
 - Each participant owns their camera/viewport, selection and navigation mode. Camera control is opt-in (free / follow / directed), following the Lark build replay camera switch. Do not let one agent unexpectedly move another participant's camera.
