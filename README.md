@@ -4,6 +4,16 @@ Interactive 3D creation and exploration, powered by **3Draft**. Based on the 202
 
 The editor opens with **no scene** and **does not request VR** until you choose Enter XR. WebXR/Meta Quest and ViRtuSH hand interactions remain available. The scene picker offers **Globe**, **Deep Sky** and **Fifth Percent VR (LARK + Deep Sky)**. Model-format tooling is retained.
 
+## ChatGPT-native MCP App Workshop (current direction)
+
+The **primary** spi3der workshop is a 3D viewport rendered **inside the ChatGPT conversation**, via the MCP Apps resource `ui://spi3der/workshop-v1.html` (`text/html;profile=mcp-app`). The `open_workshop` tool attaches `_meta.ui.resourceUri` and the ChatGPT compatibility key `openai/outputTemplate`; its output includes the scene geometry in `structuredContent`. No second editor or chatbot sidebar is required.
+
+The embedded widget initially provides a simple shaded mesh view, orbit and zoom; camera state stays local to the widget. The agent generates/edit models with the 3Draft `build_model` operations and can call `open_workshop` with a sequence of steps and `from` pointing to an earlier model. The model currently travels in the MCP tool result, **not** through a persistent live multiplayer session. In-widget geometry manipulation and automatic bidirectional sync are not implemented yet.
+
+Server: `api/mcp.mjs`, adapter: `mcp/workshop-app.js`, widget: `mcp/workshop-widget.js`, contract test: `npm run test:mcp-app`. For ChatGPT the remote MCP endpoint must be deployed and reconnected/refreshed as a custom plugin. Source commits alone do not enable the widget in a running ChatGPT conversation.
+
+The earlier `workshop.html` / `npm run workshop` prototype is *legacy diagnostics*, not the product direction. Do not rebuild or polish its extra UI.
+
 ## Run locally
 
 ```sh
@@ -36,7 +46,7 @@ The package name is `spi3der`, with a CLI that hosts the app locally. The packag
 Original source: https://github.com/Pengeszikra/five-percent
 
 
-## Workshop 002 — first interactive local workshop
+## Legacy local Workshop 002 (diagnostics only)
 
 ```sh
 npm install
