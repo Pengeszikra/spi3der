@@ -1,4 +1,4 @@
-// The public MCP endpoint: https://spider-paint.vercel.app/api/mcp (Streamable HTTP, stateless, no auth).
+// spi3der MCP endpoint: /api/mcp (Streamable HTTP, stateless for model results).
 // A Vercel Node function around mcp/http.js (synced from 3Draft). Static files it reads (sky.md, the Deep Sky
 // catalogue) are fetched from the site itself.
 import { handleHttp } from '../mcp/http.js';
@@ -17,7 +17,7 @@ const readBody = (req) => new Promise((resolve, reject) => {
 
 export default async function handler(req, res) {
   const proto = String(req.headers['x-forwarded-proto'] ?? 'https').split(',')[0];
-  const host = String(req.headers['x-forwarded-host'] ?? req.headers.host ?? 'spider-paint.vercel.app').split(',')[0];
+  const host = String(req.headers['x-forwarded-host'] ?? req.headers.host ?? 'localhost').split(',')[0];
   const origin = `${proto}://${host}`;
   const fetchText = async (path) => {
     const r = await fetch(origin + path);
