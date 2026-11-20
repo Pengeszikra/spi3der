@@ -14,6 +14,15 @@ spi3der is the interactive 3D workshop and eyes for AI agents: a bidirectional b
 - Preserve the current clean, sharp-edged rendering approach. Texture-heavy/PBR pipelines are not a prerequisite.
 - Prefer plain browser ES modules, no bundler, and minimal runtime dependencies. Keep code and docs in English; user-facing discussions may be Hungarian.
 
+## Multi-participant and interruptible-work principles
+- No privileged world origin: (0,0,0) is not a special user or AI seat. A scene may serve N participants, including humans and AI agents.
+- Each participant owns their camera/viewport, selection and navigation mode. Camera control is opt-in (free / follow / directed), following the Lark build replay camera switch. Do not let one agent unexpectedly move another participant's camera.
+- The scene model is shared. Participant-presence and camera state belong to the workshop/session layer, not the 3Draft geometry engine.
+- Agents must remain **addressable and interruptible** while carrying out tasks. Accept additional human instructions without losing the current scene, and check the instruction inbox at safe operation boundaries.
+- Treat `workshop_messages` as a queue of instructions, not a self-running AI service; `workshop_reply` acknowledges an instruction. Never claim that simply queuing a message automatically makes a remote language model read it.
+- Distinguish `append instruction`, `pause/interrupt`, and `ask while working`. A full task coordinator is a future capability; the first workshop implements only message collection/acknowledgement.
+- Multiple simultaneous editors will eventually require concurrency control, revisions and conflict detection. Do not equate N viewers with conflict-free N writers.
+
 ## Versioning — mandatory
 Use the exact same date-based npm-compatible scheme as 3Draft (see `Pengeszikra/3Draft/scripts/bump.js`):
 
