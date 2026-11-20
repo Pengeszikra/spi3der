@@ -21,7 +21,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     return answer(id,{contents:[{uri:RESOURCE_URI,mimeType:'text/html;profile=mcp-app',text:widgetHTML}]});
   }
   if(method==='initialize'){
-    return answer(id,{protocolVersion:params.protocolVersion||'2025-06-18',capabilities:{tools:{},resources:{listChanged:false}},serverInfo:{name:'spi3der',title:'spi3der',version:'26.11.20004'},instructions:'spi3der is a ChatGPT-native 3D workshop. Use open_workshop to render the scene inline, not links to another browser tab. The headless 3Draft engine supplies geometries.'});
+    return answer(id,{protocolVersion:params.protocolVersion||'2025-06-18',capabilities:{tools:{},resources:{listChanged:false}},serverInfo:{name:'spi3der',title:'spi3der',version:'26.11.20005'},instructions:'spi3der is a ChatGPT-native 3D workshop. Use open_workshop to render the scene inline, not links to another browser tab. The headless 3Draft engine supplies geometries.'});
   }
   if(method==='tools/call'&&params.name==='open_workshop'){
     try{
