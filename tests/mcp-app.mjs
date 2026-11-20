@@ -18,4 +18,34 @@ assert.ok(!result.result.isError,JSON.stringify(result.result));
 assert.equal(result.result.structuredContent.scene.objects[0].name,'cube');
 assert.ok(result.result.structuredContent.open_url.includes('#scene='));
 assert.equal(result.result._meta.ui.resourceUri,RESOURCE_URI);
-console.log('spi3der inline MCP widget contract: OK');
+
+// Debug traces must be correlated with the successful modelling result.
+const traceId=result.result.structuredContent.trace_id;
+assert.match(traceId,/^[0-9a-f-]{36}$/);
+const before=await call(5,'tools/call',{name:'debug_trace',arguments:{trace_id:traceId}});
+const info=JSON.parse(before.result.content[0].text);
+assert.equal(info.status,'server_complete');
+assert.ok(info.events.some(e=>e.phase==='model_started'));
+assert.ok(info.events.some(e=>e.phase==='model_finished'));
+assert.ok(info.events.some(e=>e.phase==='scene_unpacked'));
+assert.ok(info.events.some(e=>e.phase==='response_ready'));
+assert.ok(info.events.find(e=>e.phase==='response_ready').payloadBytes>100);
+const feedback=await call(6,'tools/call',{name:'report_widget_event',arguments:{trace_id:traceId,phase:'widget_rendered',widgetObjects:1,widgetFaces:6}});
+assert.equal(JSON.parse(feedback.result.content[0].text).accepted,true);
+const after=await call(7,'tools/call',{name:'debug_trace',arguments:{trace_id:traceId}});
+const finalTrace=JSON.parse(after.result.content[0].text);
+assert.equal(finalTrace.status,'widget_rendered');
+assert.equal(finalTrace.events.at(-1).widgetFaces,6);
+const missing=await call(8,'tools/call',{name:'debug_trace',arguments:{trace_id:'invalid'}});
+assert.equal(JSON.parse(missing.result.content[0].text).status,'not_found_or_expired');
+const rejected=await call(9,'tools/call',{name:'report_widget_event',arguments:{trace_id:traceId,phase:'arbitrary',widgetObjects:1}});
+assert.equal(JSON.parse(rejected.result.content[0].text).accepted,false);
+const broken=await call(10,'tools/call',{name:'open_workshop',arguments:{steps:[{tool:'unknown_model_operation',args:{}}]}});
+assert.equal(broken.result.isError,true);
+const failure=JSON.parse(broken.result.content[0].text);
+assert.ok(failure.trace_id);
+const failedTrace=await call(11,'tools/call',{name:'debug_trace',arguments:{trace_id:failure.trace_id}});
+assert.equal(JSON.parse(failedTrace.result.content[0].text).status,'server_error');
+assert.ok(widgetHTML.includes('report_widget_event'));
+
+console.log('spi3der inline MCP widget contract and diagnostics: OK');
