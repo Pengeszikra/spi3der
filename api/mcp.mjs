@@ -36,7 +36,21 @@ export default async function handler(req, res) {
     }catch(e){if(out===undefined && e instanceof SyntaxError) { /* hand malformed input to standard transport */ } else if(out===undefined)throw e;}
   }
   out??=await handleHttp({ method: req.method, body, origin, fetchText });
-  for (const [k, v] of Object.entries(out.headers ?? {})) res.setHeader(k, v);
+  // Expose a correlation ID for successful/failed workshop tool responses.
+  // It carries no prompts, meshes or other user data.
+  try {
+    const message=typeof out.body==='string'&&out.body?JSON.parse(out.body):null;
+    const traceId=message?.result?.structuredContent?.trace_id
+      || (message?.result?.isError && JSON.parse(message.result.content?.[0]?.text||'null')?.trace_id);
+    if(traceId && /^[0-9a-f-]{36}$/.test(traceId)) {
+      res.setHeader('x-spi3der-trace-id',traceId);
+      res.setHeader('access-control-expose-headers','mcp-protocol-version, x-spi3der-trace-id');
+    }
+  } catch { /* never let observability change MCP transport behavior */ }
+  for (const [k, v] of Object.entries(out.headers ?? {})) {
+    if(k.toLowerCase()==='access-control-expose-headers' && res.hasHeader('access-control-expose-headers')) continue;
+    res.setHeader(k, v);
+  }
   res.statusCode = out.status;
   res.end(out.body ?? '');
 }
