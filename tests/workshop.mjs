@@ -9,7 +9,7 @@ const child = spawn(process.execPath, ['bin/workshop.mjs', String(port)], { cwd:
 const ctl = new AbortController();
 const json = async (url, body) => {
   const res = await fetch(base + url, { ...(body ? { method:'POST', headers:{'content-type':'application/json'},body:JSON.stringify(body)} : {}), signal:ctl.signal });
-  assert.equal(res.ok,true,await res.text().catch(()=>'')); return res.json();
+  if (!res.ok) throw new Error('HTTP '+res.status+': '+await res.text()); return res.json();
 };
 try {
   let ready = false;
