@@ -66,6 +66,11 @@ const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     const path = url.pathname;
+    if (req.method === 'GET' && path === '/api/version') {
+      const pkg=JSON.parse(await readFile(resolve(root,'package.json'),'utf8'));
+      const [y,m,packed]=pkg.version.split('.').map(Number);
+      return sendJson(res,200,{version:pkg.version,display:[y,m,Math.floor(packed/1000),packed%1000].map((n,i)=>String(n).padStart(i===3?3:2,'0')).join('.')});
+    }
     if (req.method === 'GET' && path === '/api/inbox') return sendJson(res,200,{messages:inbox,latest:messageId});
     if (req.method === 'POST' && path === '/api/inbox') {
       const data=await postBody(req);
