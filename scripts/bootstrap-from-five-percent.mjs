@@ -31,7 +31,7 @@ writeFileSync('index.html',s.slice(0,start)+`          <option value="">+ scene<
 `+s.slice(finish));
 // The phone quick-scene list must not offer models removed above.
 const s2=readFileSync('index.html','utf8');
-const updated=s2.replace(/for \(const name of \['empty', 'globe'[^\]]*\]\)/, "for (const name of ['empty', 'globe', 'deepsky'])");
+const updated=s2.replace("for (const name of ['empty', 'bridge', 'globe', 'deepsky', 'betterman'])", "for (const name of ['empty', 'globe', 'deepsky'])");
 if(updated===s2)throw new Error('Phone scene list changed');
 writeFileSync('index.html',updated);
 // New cache namespace, and only existing assets in the offline shell.
