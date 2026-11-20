@@ -139,5 +139,5 @@ The package name is \`spi3der\`, with a CLI that hosts the app locally. The pack
 - Desktop starts empty; use **Enter XR** to enter VR manually.
 
 Original source: https://github.com/Pengeszikra/five-percent
-\`);
+`);
 console.log('spi3Der bootstrap complete; retained models:',[...retain].join(', '));
