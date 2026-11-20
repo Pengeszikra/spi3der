@@ -118,7 +118,7 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'GET' && path === '/mcp') return sendJson(res,200,{name:'spi3der-workshop',transport:'JSON-RPC POST /mcp',note:'Local experimental HTTP MCP; not a full Streamable HTTP implementation'});
     if (req.method !== 'GET' && req.method !== 'HEAD') return res.writeHead(405).end();
-    const relative = decodeURIComponent(path === '/' ? '/workshop.html' : path).replace(/^\\/+/, '');
+    const relative = decodeURIComponent(path === '/' ? '/workshop.html' : path).replace(/^\/+/, '');
     const file = resolve(root,relative);
     if (!file.startsWith(root+sep)) return res.writeHead(403).end();
     // Never expose private repository files, environment/config, or arbitrary sources.
