@@ -6,7 +6,10 @@ import { readFileSync, writeFileSync, readdirSync, rmSync, existsSync, mkdirSync
 import { join } from 'node:path';
 const run=(cmd,args)=>execFileSync(cmd,args,{stdio:'inherit'});
 const source='/tmp/spi3der-five-percent-source';
+const spider='/tmp/spi3der-spider-paint-source';
 run('git',['clone','--depth','1','https://github.com/Pengeszikra/five-percent.git',source]);
+run('git',['clone','--depth','1','https://github.com/Pengeszikra/Spider-Paint.git',spider]);
+run('rsync',['-a',spider+'/mcp/','./mcp/']);
 run('rsync',['-a','--exclude=.git','--exclude=.github','--exclude=README.md','--exclude=package.json','--exclude=package-lock.json','--exclude=.gitignore',source+'/','./']);
 // Retain precisely the chosen scenes and the editor's reusable model-format tools.
 const retain=new Set(['deepsky.scene.json','globe.scene.json','deepsky-lark.scene.json','lark-4.scene.json','lark.game.json','spider-build-v2.mjs','spider-build-v2.md','spider-build-v2.schema.json']);
@@ -46,7 +49,7 @@ const pkg={
   name:'spi3der',version:'0.1.0',description:'Browser-native 3D scene building, WebXR and ViRtuSH, based on 3Draft',
   license:'UNLICENSED',type:'module',bin:{spi3der:'./bin/spi3der.mjs'},
   scripts:{start:'node bin/spi3der.mjs',test:'node tests/math.mjs && node tests/smoke.mjs'},
-  files:['api/','bin/','engine/','icons/','media/','models/','src/','index.html','player.html','emulator.html','sky.html','xr-test.html','xr-compare.html','sky.md','help.md','PLAYER.md','APP.md','MCP.md','favicon.svg','manifest.webmanifest','sw.js','Dockerfile','nginx.conf','README.md'],
+  files:['api/','mcp/','bin/','engine/','icons/','media/','models/','src/','index.html','player.html','emulator.html','sky.html','xr-test.html','xr-compare.html','sky.md','help.md','PLAYER.md','APP.md','MCP.md','favicon.svg','manifest.webmanifest','sw.js','Dockerfile','nginx.conf','README.md'],
   dependencies:{'@vercel/blob':'^2.3.0'},
   engines:{node:'>=18'}
 };
