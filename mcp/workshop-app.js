@@ -1,12 +1,11 @@
 // ChatGPT/MCP Apps adapter. Lives in spi3der, not in the headless 3Draft kernel.
 import { publicTools, unpack } from './http.js';
-import { createScene } from './scene.js';
 import { widgetHTML } from './workshop-widget.js';
 export const RESOURCE_URI='ui://spi3der/workshop-v1.html';
 const displayTool={
   name:'open_workshop',
   description:'Open a 3D model directly inside the conversation as an interactive orbitable spi3der workshop. Accept the modelling steps used by build_model; continue a previous model with from.',
-  inputSchema:{type:'object',properties:{steps:{type:'array',items:{type:'object',properties:{tool:{type:'string'},args:{type:'object'}},required:['tool']}},from:{type:'string',description:'Previous build_model open_url or open_workshop open_url'}},annotations:{readOnlyHint:false,openWorldHint:false},
+  inputSchema:{type:'object',properties:{steps:{type:'array',items:{type:'object',properties:{tool:{type:'string'},args:{type:'object'}},required:['tool']}},from:{type:'string',description:'Previous build_model open_url or open_workshop open_url'}}},annotations:{readOnlyHint:false,openWorldHint:false},
   _meta:{ui:{resourceUri:RESOURCE_URI},'openai/outputTemplate':RESOURCE_URI}
 };
 const err=(id,code,message)=>({jsonrpc:'2.0',id,error:{code,message}});
