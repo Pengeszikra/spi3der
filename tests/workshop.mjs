@@ -25,6 +25,22 @@ try {
   const observed=await json('/mcp',{jsonrpc:'2.0',id:2,method:'tools/call',params:{name:'list',arguments:{}}});
   assert.match(observed.result.content[0].text,/agent-cube/);
   assert.equal((await json('/api/scene')).objects[0].mesh.positions.some(p=>p[0]>2),true);
+  // Human instruction arrives independently of the ongoing modelling task.
+  const queued=await json('/api/inbox',{text:'Add a second wheel',participant:'human-test'});
+  assert.equal(queued.message.status,'pending');
+  const messages=await json('/mcp',{jsonrpc:'2.0',id:3,method:'tools/call',params:{name:'workshop_messages',arguments:{after:0}}});
+  assert.match(messages.result.content[0].text,/Add a second wheel/);
+  const ack=await json('/mcp',{jsonrpc:'2.0',id:4,method:'tools/call',params:{name:'workshop_reply',arguments:{id:queued.message.id,status:'acknowledged',reply:'Will do'}}});
+  assert.match(ack.result.content[0].text,/Will do/);
+  assert.equal((await json('/api/inbox')).messages[0].status,'acknowledged');
+  // Multiple viewers can be present without storing their personal cameras in scene.
+  await json('/api/presence',{id:'participant-A',label:'Human'});
+  await json('/api/presence',{id:'participant-B',label:'AI'});
+  const people=await json('/api/participants');
+  assert.equal(people.participants.length,2);
+  const version=await json('/api/version');assert.match(version.display,/^\\d{2}\\.\\d{2}\\.\\d{2}\\.\\d{3}$/);
   const page=await fetch(base+'/workshop.html');assert.ok(page.ok);assert.match(await page.text(),/WORKSHOP 001/);
-  console.log('Workshop integration passed: HTTP MCP ↔ scene ↔ browser tool');
+  const code=await fetch(base+'/src/workshop-view.js');assert.ok(code.ok);assert.match(await code.text(),/class WorkshopView/);
+  const denied=await fetch(base+'/AGENTS.md');assert.equal(denied.status,404);
+  console.log('Workshop integration passed: MCP ↔ shared scene ↔ browser, messages, participants');
 } finally {ctl.abort();child.kill('SIGTERM')}
