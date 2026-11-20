@@ -25,7 +25,7 @@ const postBody = async (req) => {
   return JSON.parse(text || '{}');
 };
 const broadcast = () => {
-  const event = 'event: scene\\ndata: ' + JSON.stringify({ rev: scene.data().rev, objects: scene.data().objects.map(o => o.name) }) + '\\n\\n';
+  const event = 'event: scene\ndata: ' + JSON.stringify({ rev: scene.data().rev, objects: scene.data().objects.map(o => o.name) }) + '\n\n';
   for (const res of clients) res.write(event);
 };
 scene.subscribe(broadcast);
@@ -63,7 +63,7 @@ const server = createServer(async (req, res) => {
     }
     if (req.method === 'GET' && path === '/api/events') {
       res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','Connection':'keep-alive','X-Accel-Buffering':'no'});
-      clients.add(res);res.write('retry: 1000\\n\\n');broadcast();
+      clients.add(res);res.write('retry: 1000\n\n');res.write('event: scene\ndata: '+JSON.stringify({rev:scene.data().rev})+'\n\n');
       req.on('close',()=>clients.delete(res));return;
     }
     if (req.method === 'POST' && path === '/api/tool') {
@@ -89,6 +89,6 @@ const server = createServer(async (req, res) => {
     sendJson(res,e instanceof SyntaxError?400:500,{error:e.message});
   }
 });
-const heartbeat=setInterval(()=>{ for (const c of clients) c.write(': heartbeat\\n\\n'); },20000);
+const heartbeat=setInterval(()=>{ for (const c of clients) c.write(': heartbeat\n\n'); },20000);
 heartbeat.unref();
 server.listen(port,'127.0.0.1',()=>console.log('spi3der Workshop: http://localhost:'+port+'/workshop.html'));
