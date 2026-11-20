@@ -1,4 +1,7 @@
-# Help
+# spi3der · Help
+
+Powered by **3Draft**. The `spider-paint`, `spi3der` and `3Draft` repositories remain independent projects.
+
 
 A minimal 3D scene builder. Fly through a scene, build with solid prisms, and edit them like a woodworker: saw, move, scale, extrude. This page is `help.md`; edit that file and the panel follows.
 
