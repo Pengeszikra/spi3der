@@ -16,6 +16,24 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
 (()=>{
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 let scene=window.openai?.toolOutput?.scene || {objects:[]};
+let activeTrace=null, reportedRender=false;
+// The ChatGPT host may not expose callTool to an embedded MCP App.
+// If unavailable, retain console milestones; server traces explicitly show
+// that widget confirmation was not received (not that rendering failed).
+function report(phase, counts={}){
+ const id=activeTrace;
+ if(!id)return;
+ console.debug('[spi3der widget]',id,phase,counts);
+ try {
+   const send=window.openai?.callTool;
+   if(typeof send==='function'){
+     Promise.resolve(send.call(window.openai,'report_widget_event',{
+       trace_id:id,phase,widgetObjects:counts.objects||0,widgetFaces:counts.faces||0
+     })).catch(()=>{});
+   }
+ }catch(_ignored){}
+}
+
 let yaw=.65,pitch=.36,zoom=1,pan=[0,0,0],initial=true;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const color=s=>/^#[0-9a-f]{3,8}$/i.test(s||'')?s:'#789aa5';
@@ -30,6 +48,7 @@ function geometry(){
  return {center,r:Math.max(1,Math.hypot(...high.map((n,i)=>n-low[i])))};
 }
 function draw(){
+ try{
  const box=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2);
  canvas.width=Math.max(1,Math.round(box.width*dpr));canvas.height=Math.max(1,Math.round(box.height*dpr));
  ctx.setTransform(dpr,0,0,dpr,0,0);const w=box.width,h=box.height;
@@ -51,6 +70,14 @@ function draw(){
  ctx.lineJoin='round';
  for(const p of polygons){ctx.beginPath();p.v.forEach((v,i)=>i?ctx.lineTo(v[0],v[1]):ctx.moveTo(v[0],v[1]));ctx.closePath();ctx.fillStyle=p.c;ctx.fill();ctx.strokeStyle='#11191f';ctx.lineWidth=Math.max(.65,1/zoom);ctx.stroke()}
  if(!polygons.length){ctx.textAlign='center';ctx.fillStyle='#829aa6';ctx.fillText('Empty 3D scene',w/2,h/2)}
+ if(activeTrace&&!reportedRender){
+   reportedRender=true;
+   report(polygons.length?'widget_rendered':'widget_empty',{objects:all().length,faces:polygons.length});
+ }
+ }catch(e){
+   report('widget_error');
+   console.error('[spi3der widget render]',e);
+ }
 }
 let last=null;
 canvas.addEventListener('pointerdown',e=>{last=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId)});
@@ -60,8 +87,13 @@ canvas.addEventListener('pointercancel',()=>last=null);
 canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=clamp(zoom*Math.exp(e.deltaY*.001),.12,20);draw()},{passive:false});
 new ResizeObserver(draw).observe(document.getElementById('viewport'));
 const newScene=()=>{
- const value=window.openai?.toolOutput?.scene;
- if(value){scene=value;draw()}
+ const output=window.openai?.toolOutput || window.openai?.toolResponse?.structuredContent;
+ const value=output?.scene;
+ if(value){
+   const nextTrace=output?.trace_id||null;
+   if(nextTrace!==activeTrace){activeTrace=nextTrace;reportedRender=false;report('widget_loaded')}
+   scene=value;draw();
+ }
 };
 window.addEventListener('openai:set_globals',newScene);
 newScene();draw();
