@@ -11,7 +11,8 @@
     "start": "node bin/spi3der.mjs",
     "test": "node tests/math.mjs && node tests/smoke.mjs",
     "bump": "node scripts/bump.mjs",
-    "workshop": "node bin/workshop.mjs"
+    "workshop": "node bin/workshop.mjs",
+    "test:workshop": "node tests/workshop.mjs"
   },
   "files": [
     "api/",
