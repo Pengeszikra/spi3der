@@ -35,13 +35,22 @@ Open http://localhost:5173. No application build system is needed.
 
 The product name is always lowercase **spi3der**. The app header can retain **3Draft** as a quiet engine attribution.
 
-## Cloud Run (static)
+## Cloud Run (browser app + MCP)
+
+The Dockerfile now starts `bin/cloud-run.mjs` with Node.js on the Cloud Run `PORT`.
+One origin serves the browser application, `POST /mcp` and the compatible `POST /api/mcp` endpoint.
+It does **not** require a Vercel deployment. The legacy scene-store API is not hosted here.
 
 ```sh
+# Authenticate with the Google Cloud project that owns spi3der before deploying:
 gcloud run deploy spi3der --source . --region europe-west1 --allow-unauthenticated
+# Check the actual Cloud Run service URL; do not guess the hostname:
+gcloud run services describe spi3der --region europe-west1 --format='value(status.url)'
 ```
 
-The Dockerfile serves the browser application from nginx on port 8080, with correct ES module MIME types. **Note:** the nginx Cloud Run container is static: it does not execute Node API functions under `api/` (the scene store and MCP endpoint). Provide a separate Node API server or a Cloud Run service configured to serve them; do not rely on a Vercel deployment for spi3der.
+Use the returned service URL plus `/mcp` as the ChatGPT custom MCP server URL.
+Test locally with `PORT=8080 node bin/cloud-run.mjs` and `node tests/cloud-run.mjs`.
+A GitHub push alone does not deploy Cloud Run unless the project has configured its own deployment trigger.
 
 ## npm
 
