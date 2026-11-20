@@ -9,7 +9,7 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
 .info{position:absolute;left:12px;bottom:10px;pointer-events:none;color:#a0b3bb;text-shadow:0 1px 2px #000}
 #name{position:absolute;top:10px;left:12px;color:#ddecef;pointer-events:none}
 </style></head><body><div id="viewport">
-<canvas id="c"></canvas><span id="name">spi3der · 3D workshop</span>
+<canvas id="c"></canvas><span id="name">spi3der · 3Draft workshop</span>
 <div class="info">Drag to orbit · Scroll to zoom · Independent camera</div>
 </div>
 <script>
