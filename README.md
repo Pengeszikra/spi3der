@@ -86,7 +86,17 @@ node tests/cloud-run.mjs
 
 ## npm
 
-The package name is `spi3der`, with a CLI that hosts the app locally. The package is configured for `npm pack` / `npm publish` but is **not automatically published**. The project is licensed under MIT (see LICENSE).
+The package name is `spi3der`, with a CLI that hosts the app locally. The project uses its existing date-based `YY.M.DNNN` version scheme (`scripts/bump.mjs`) for npm releases as well.
+
+```sh
+npm run release -- --dry-run   # preview next date-based version, no changes
+npm run release               # bump package.json, then npm publish
+git add package.json
+git commit -m "Release spi3der"
+git push
+```
+
+Run `npm run release` instead of `npm publish`: direct publishing is guarded against accidentally reusing an existing version. The bump happens **before** npm constructs the tarball; npm's `prepublishOnly` hook runs too late to change the version npm has already chosen. Publication still requires your npm authentication and is not automatically triggered by a GitHub push. The project is licensed under MIT (see LICENSE).
 
 ## Compatibility
 
