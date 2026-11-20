@@ -5277,7 +5277,7 @@
         if (!res.ok) throw new Error(res.status);
         helpDoc.innerHTML = md(await res.text());
         const helpBrand = document.createElement('img');
-        helpBrand.src = 'media/spi3der-brand.png';
+        helpBrand.src = 'media/spi3der-brand.svg';
         helpBrand.alt = 'spi3der — full spider artwork';
         helpBrand.decoding = 'async';
         helpBrand.style.cssText = 'display:block;width:100%;max-width:720px;aspect-ratio:1;height:auto;object-fit:contain;margin:0 auto 24px;border-radius:16px';
