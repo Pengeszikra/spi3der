@@ -1,6 +1,6 @@
 # spi3der
 
-![spi3der spider emblem](favicon.svg)
+![spi3der spider artwork](media/spi3der-brand.svg)
 
 Interactive 3D creation and exploration, powered by **3Draft**. Based on the 2026 Fifth Percent competition sprint.
 
