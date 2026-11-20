@@ -52,6 +52,38 @@ Use the returned service URL plus `/mcp` as the ChatGPT custom MCP server URL.
 Test locally with `PORT=8080 node bin/cloud-run.mjs` and `node tests/cloud-run.mjs`.
 A GitHub push alone does not deploy Cloud Run unless the project has configured its own deployment trigger.
 
+## MCP debugging and timeout correlation
+
+The `open_workshop` response returns a random `trace_id` in `structuredContent`
+and in the textual tool result; the HTTP response also supplies `x-spi3der-trace-id`.
+Use the MCP tool `debug_trace({trace_id})` to inspect a **recent** request.
+Milestones include `request_received`, `model_started`, `model_finished`,
+`scene_unpacked`, `response_ready` and `request_failed`.
+Each event has elapsed milliseconds; the successful response records payload size
+and scene object/vertex/face counts. Raw prompts, scenes, URLs and request bodies
+are **not logged**.
+
+The embedded widget optionally reports `widget_loaded`, `widget_rendered`,
+`widget_empty`, or `widget_error` via `window.openai.callTool` when supported
+by the host. **No widget feedback is not proof of a crash:** host sandboxes may
+disallow callbacks, or rendering can time out before telemetry is delivered.
+If the host times out before returning the response, inspect Cloud Run
+structured logs for `component=spi3der-mcp` around the failure time instead.
+Correlate using the `traceId` field (Cloud Run may have multiple instances).
+
+Traces are deliberately metadata-only, kept **in memory for at most 15 minutes**
+and limited to 128 per instance. `debug_trace` requires the unguessable trace ID;
+there is no public endpoint listing other users' requests. For durable debugging,
+use private Google Cloud Logging access. This cannot observe ChatGPT's internal
+timeouts, only the stages that the server or widget actually reports.
+
+To smoke-test locally:
+
+```sh
+npm run test:mcp-app
+node tests/cloud-run.mjs
+```
+
 ## npm
 
 The package name is `spi3der`, with a CLI that hosts the app locally. The package is configured for `npm pack` / `npm publish` but is **not automatically published**. The project is licensed under MIT (see LICENSE).
