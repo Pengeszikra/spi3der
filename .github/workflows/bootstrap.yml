@@ -1,0 +1,41 @@
+name: Bootstrap spi3Der from Fifth Percent
+on:
+  push:
+    paths:
+      - 'scripts/bootstrap-from-five-percent.mjs'
+      - '.github/workflows/bootstrap.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Copy and configure Fifth Percent
+        run: node scripts/bootstrap-from-five-percent.mjs
+      - name: Verify JavaScript, packages and scene selection
+        run: |
+          node --check bin/spi3der.mjs
+          node --check src/emulator/xr.js
+          node --check tests/serve.mjs
+          node --test tests/math.mjs
+          npm pack --dry-run --ignore-scripts
+          ! grep -q "addExample('game:lark')" index.html
+          grep -q "const XR_AUTO = new URLSearchParams(location.search).has('autovr')" index.html
+          test ! -e models/bridge.scene.json
+          test -e models/deepsky.scene.json
+          test -e models/globe.scene.json
+          test -e models/lark.game.json
+      - name: Commit imported application
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Import Fifth Percent as spi3Der: opt-in VR, curated scenes, Cloud Run and npm" || exit 0
+          git push origin HEAD:main
