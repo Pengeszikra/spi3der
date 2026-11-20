@@ -1,4 +1,4 @@
-# spi3Der
+# spi3der
 
 Interactive 3D creation and exploration, powered by **3Draft**. Based on the 2026 Fifth Percent competition sprint.
 
@@ -25,13 +25,21 @@ npx spi3der
 
 Open http://localhost:5173. No application build system is needed.
 
+## Project boundaries and deployments
+
+- **spider-paint** (`Pengeszikra/Spider-Paint`) is the separate legacy project, deployed independently to Vercel and Cloud Run.
+- **spi3der** (`Pengeszikra/spi3der`) is deployed to Cloud Run only, at `spi3der.run.app`, and has the `spi3der` npm package. There is no spi3der Vercel deployment.
+- **3Draft** (`Pengeszikra/3Draft`) is the separate 3D engine repository and npm module.
+
+The product name is always lowercase **spi3der**. The app header can retain **3Draft** as a quiet engine attribution.
+
 ## Cloud Run (static)
 
 ```sh
 gcloud run deploy spi3der --source . --region europe-west1 --allow-unauthenticated
 ```
 
-The Dockerfile serves the browser application from nginx on port 8080, with correct ES module MIME types. **Note:** this static Cloud Run container does not execute Vercel API functions under `api/` (the scene store and MCP endpoint); deploy those functions separately, or provide a Node API server, if you need them on the same origin.
+The Dockerfile serves the browser application from nginx on port 8080, with correct ES module MIME types. **Note:** the nginx Cloud Run container is static: it does not execute Node API functions under `api/` (the scene store and MCP endpoint). Provide a separate Node API server or a Cloud Run service configured to serve them; do not rely on a Vercel deployment for spi3der.
 
 ## npm
 
