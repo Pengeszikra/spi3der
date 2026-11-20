@@ -36,29 +36,44 @@ The package name is `spi3der`, with a CLI that hosts the app locally. The packag
 Original source: https://github.com/Pengeszikra/five-percent
 
 
-## Workshop 001 — local AI ↔ Human ↔ 3D scene
-
-Run:
+## Workshop 002 — first interactive local workshop
 
 ```sh
 npm install
 npm run workshop
+# open http://localhost:5173/workshop.html
 ```
 
-Open **http://localhost:5173/workshop.html**. This is an independent, local-first workshop prototype; it does not replace the existing `npm start` editor.
+This is a **local-first** shared scene with the existing 3Draft geometry kernel, not a second model format.
 
-- **Human:** add named boxes, move/rotate/remove objects, inspect the deterministic 3Draft SVG render (perspective, front, side, top, four views), export the current scene JSON.
-- **AI:** invoke any existing `mcp/scene.js` modelling tool through the local JSON-RPC MCP endpoint `http://localhost:5173/mcp` (POST), or call `POST /api/tool`.
-- **Shared scene:** both routes use *one in-memory scene instance*. `GET /api/scene` returns it; `GET /api/events` sends Server-Sent Events after every successful edit so all open workshop tabs update.
-- **Limits:** there is no authenticated remote cloud session, real-time reverse control of the original WebGL editor, import UI, persistence across restarts, or host-embedded ChatGPT canvas in this prototype. The viewer is a deterministic SVG preview, not the original interactive WebGL viewport. Only loopback (`127.0.0.1`) is served. The MCP endpoint is minimal JSON-RPC over HTTP and is **not** a complete Streamable HTTP MCP implementation. Do not expose it publicly.
+**Human in browser**: WebGL2 scene (drag to orbit, scroll to zoom, click to select), add/transform/rotate/remove named meshes, inspect deterministic SVG views, export JSON, and queue new instructions **while an agent is working**. The WebGL camera is *local to each browser*, not part of shared geometry.
 
-Example browser/agent request:
+**Agent in another terminal**: connect an MCP client to the same running Workshop instance through:
 
-```sh
-curl -s http://localhost:5173/mcp -H 'Content-Type: application/json' \\
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"add_box","arguments":{"name":"ai-box","size":[1,1,1],"at":[2,0.5,0],"color":"#22cbd5"}}}'
+```json
+{
+  "mcpServers": {
+    "spi3der-workshop": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/spi3der/bin/workshop-mcp.mjs"]
+    }
+  }
+}
 ```
 
-The human sees the new object without refreshing. A human move is also immediately visible to the AI through `GET /api/scene` or the `list` MCP tool.
+This stdio proxy forwards all MCP calls into the **one** running HTTP workshop process. There is no second scene. On the same machine: `npm run mcp:workshop`. The proxy accepts `SPI3DER_WORKSHOP_URL` if the HTTP endpoint is not on port 5173.
 
-For more architecture detail see `AGENTS.md`, and for legacy MCP viewer functionality see `MCP.md`.
+The agent should invoke ordinary 3Draft tools (`add_box`, `transform`, `render`, `inspect`, `list`, etc.) and periodically call **`workshop_messages`** to read new human instructions; **`workshop_reply`** acknowledges/responds to them. The browser's instruction box can take additional messages immediately, without cancelling scene operations. These messages are **not** auto-executed by a model: the connected agent has to poll them explicitly.
+
+HTTP interface:
+- `GET /api/scene`: scene state with monotonic revision
+- `POST /api/tool`: execute a 3Draft tool against that scene
+- `GET /api/events`: SSE changes to the shared scene and instruction queue
+- `GET /api/version`, `GET /api/inbox`, `POST /api/inbox`, `POST /api/presence`, `GET /api/participants`
+- `POST /mcp`: minimal JSON-RPC over HTTP, **not a complete Streamable HTTP MCP** transport; use the stdio bridge for MCP clients.
+
+**Test:** `npm run test:workshop` exercises MCP → scene → browser API, instruction acknowledgments, participant presence and static-file protection.
+
+**Current boundaries:** one process / one in-memory shared scene, no persistence across restart; no realtime editing link to the legacy full Spider Paint WebGL editor; no multi-user permission or concurrent edit locks; no agent background execution, no pause/resume coordinator; the HTTP MCP endpoint is a local prototype and is not authenticated. Only bind to 127.0.0.1. A host ChatGPT UI may not support embedding this external live viewer. No npm publish is implied by a Git commit.
+
+Architecture and collaboration invariants live in `AGENTS.md`.
