@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <title>spi3der</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  
+  <link rel="apple-touch-icon" href="favicon.svg">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0b0b0a">
   <meta name="mobile-web-app-capable" content="yes">
@@ -5276,6 +5276,11 @@
         const res = await fetch('help.md');
         if (!res.ok) throw new Error(res.status);
         helpDoc.innerHTML = md(await res.text());
+        const helpBrand = document.createElement('img');
+        helpBrand.src = 'favicon.svg';
+        helpBrand.alt = 'spi3der';
+        helpBrand.style.cssText = 'display:block;width:min(100%,240px);height:auto;margin:0 auto 20px;border-radius:16px';
+        helpDoc.prepend(helpBrand);
         helpLoaded = true;
       } catch (err) {
         helpDoc.textContent = `The help page could not be loaded (${err.message}).`;
