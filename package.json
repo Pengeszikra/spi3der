@@ -1,0 +1,46 @@
+{
+  "name": "spi3der",
+  "version": "0.1.0",
+  "description": "Browser-native 3D scene building, WebXR and ViRtuSH, based on 3Draft",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "spi3der": "./bin/spi3der.mjs"
+  },
+  "scripts": {
+    "start": "node bin/spi3der.mjs",
+    "test": "node tests/math.mjs && node tests/smoke.mjs"
+  },
+  "files": [
+    "api/",
+    "bin/",
+    "engine/",
+    "icons/",
+    "media/",
+    "models/",
+    "src/",
+    "index.html",
+    "player.html",
+    "emulator.html",
+    "sky.html",
+    "xr-test.html",
+    "xr-compare.html",
+    "sky.md",
+    "help.md",
+    "PLAYER.md",
+    "APP.md",
+    "MCP.md",
+    "favicon.svg",
+    "manifest.webmanifest",
+    "sw.js",
+    "Dockerfile",
+    "nginx.conf",
+    "README.md"
+  ],
+  "dependencies": {
+    "@vercel/blob": "^2.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
