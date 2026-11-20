@@ -28,7 +28,7 @@ async function updateInbox(){try{const result=await(await fetch('/api/inbox')).j
 const sendMessage=async()=>{const text=$('message').value.trim();if(!text)return;const response=await fetch('/api/inbox',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,participant})});if(!response.ok){$('messageStatus').textContent='Send failed';return}$('message').value='';$('messageStatus').textContent='Instruction queued';updateInbox()};
 $('sendMessage').onclick=sendMessage;
 $('message').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();sendMessage()}});
-fetch('/package.json').then(r=>r.ok?r.json():null).then(p=>{if(p)$('version').textContent=p.version}).catch(()=>{});
+fetch('/api/version').then(r=>r.ok?r.json():null).then(p=>{if(p)$('version').textContent=p.display}).catch(()=>{});
 
 let selected=null,revision=-1;
 const xyz=(x,y,z)=>[x,y,z].map(k=>Number($(k).value));
