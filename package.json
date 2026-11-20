@@ -1,8 +1,8 @@
 {
   "name": "spi3der",
-  "version": "26.11.20001",
+  "version": "26.11.20002",
   "description": "Browser-native 3D scene building, WebXR and ViRtuSH, based on 3Draft",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "spi3der": "./bin/spi3der.mjs"
@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node bin/spi3der.mjs",
     "test": "node tests/math.mjs && node tests/smoke.mjs",
-    "bump": "node scripts/bump.mjs"
+    "bump": "node scripts/bump.mjs",
+    "workshop": "node bin/workshop.mjs"
   },
   "files": [
     "api/",
@@ -37,7 +38,9 @@
     "sw.js",
     "Dockerfile",
     "nginx.conf",
-    "README.md"
+    "README.md",
+    "workshop.html",
+    "LICENSE"
   ],
   "dependencies": {
     "@vercel/blob": "^2.3.0"
