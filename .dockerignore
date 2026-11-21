@@ -1,7 +1,12 @@
-# Preserve Git metadata in the Docker build context to capture the exact source HEAD.
-# The builder strips it before producing the runtime image.
+# The deploy workflow supplies SPI3DER_GIT_SHA as a runtime environment variable.
+# Never copy short-lived GitHub OIDC credentials into a container image.
 .github
 node_modules
 tests
 scripts
 package-lock.json
+
+# Google GitHub Actions auth creates these at checkout root.
+gha-creds-*.json
+.env
+.env.*
