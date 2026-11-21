@@ -8,8 +8,15 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101518;col
 canvas{width:100%;height:100%;display:block;touch-action:none}
 .info{position:absolute;left:12px;bottom:10px;pointer-events:none;color:#a0b3bb;text-shadow:0 1px 2px #000}
 #name{position:absolute;top:10px;left:12px;color:#ddecef;pointer-events:none}
+#debug{position:absolute;right:10px;top:8px;z-index:5;max-width:min(350px,80%);font:11px/1.5 ui-monospace,SFMono-Regular,monospace;color:#bed5d9;background:#131b21e8;border:1px solid #41535a;border-radius:7px}
+#debug summary{cursor:pointer;padding:5px 9px;color:#64c7da;font-weight:700;user-select:none}
+#debug[open] summary{border-bottom:1px solid #35464d}
+#debug pre{margin:0;padding:9px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto}
+#debug .hint{padding:0 9px 8px;color:#859ca3}
+
 </style></head><body><div id="viewport">
 <canvas id="c"></canvas><span id="name">spi3der · 3Draft workshop</span>
+<details id="debug"><summary>DEBUG</summary><pre id="debug-data">waiting for scene...</pre><div class="hint">Server timing: MCP debug_trace(trace_id). Widget events are best effort.</div></details>
 <div class="info">Drag to orbit · Scroll to zoom · Independent camera</div>
 </div>
 <script>
@@ -17,6 +24,14 @@ canvas{width:100%;height:100%;display:block;touch-action:none}
 const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 let scene=window.openai?.toolOutput?.scene || {objects:[]};
 let activeTrace=null, reportedRender=false;
+const debugData=document.getElementById('debug-data');
+let debugState={status:'awaiting host output',trace_id:'—',objects:0,faces:0,host_callTool:'unknown'};
+function updateDebug(patch={}){
+ debugState=Object.assign(debugState,patch);
+ debugData.textContent=Object.entries(debugState).map(([key,value])=>key+': '+value).join('\\n');
+}
+updateDebug({host_callTool:typeof window.openai?.callTool==='function'?'available':'unavailable'});
+
 // The ChatGPT host may not expose callTool to an embedded MCP App.
 // If unavailable, retain console milestones; server traces explicitly show
 // that widget confirmation was not received (not that rendering failed).
@@ -24,6 +39,7 @@ function report(phase, counts={}){
  const id=activeTrace;
  if(!id)return;
  console.debug('[spi3der widget]',id,phase,counts);
+ updateDebug({status:phase,trace_id:id,objects:counts.objects??debugState.objects,faces:counts.faces??debugState.faces});
  try {
    const send=window.openai?.callTool;
    if(typeof send==='function'){
@@ -75,6 +91,7 @@ function draw(){
    report(polygons.length?'widget_rendered':'widget_empty',{objects:all().length,faces:polygons.length});
  }
  }catch(e){
+   updateDebug({status:'widget_error: '+String(e?.name||'Error')});
    report('widget_error');
    console.error('[spi3der widget render]',e);
  }
@@ -91,8 +108,8 @@ const newScene=()=>{
  const value=output?.scene;
  if(value){
    const nextTrace=output?.trace_id||null;
-   if(nextTrace!==activeTrace){activeTrace=nextTrace;reportedRender=false;report('widget_loaded')}
-   scene=value;draw();
+   if(nextTrace!==activeTrace){activeTrace=nextTrace;reportedRender=false;updateDebug({status:'widget_loaded',trace_id:nextTrace||'unavailable'});report('widget_loaded')}
+   scene=value;updateDebug({objects:scene.objects?.length||0});draw();
  }
 };
 window.addEventListener('openai:set_globals',newScene);
