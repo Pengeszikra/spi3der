@@ -11,7 +11,7 @@ import { widgetHTML } from './workshop-widget.js';
 import { WORKSHOP_TOOLS } from './workshop-client.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
 
-export const RESOURCE_URI='ui://spi3der/workshop-v1.html';
+export const RESOURCE_URI='ui://spi3der/workshop-v2.html';
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000;
 const displayTool={
@@ -77,7 +77,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(method==='resources/list')return answer(id,{resources:[{uri:RESOURCE_URI,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Browser-local 3D modeling and WebGL2 viewport embedded in the conversation'}]});
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI)return err(id,-32002,'resource not found');
-    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v1',payloadBytes:Buffer.byteLength(widgetHTML)}));
+    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v2',payloadBytes:Buffer.byteLength(widgetHTML)}));
     return answer(id,{contents:[{uri:RESOURCE_URI,mimeType:'text/html;profile=mcp-app',text:widgetHTML}]});
   }
   if(method==='initialize')return answer(id,{
