@@ -14,16 +14,27 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0d151a;col
 canvas{display:block;width:100%;height:100%;touch-action:none}
 #brand{position:absolute;top:12px;left:13px;pointer-events:none;color:#e4f0f3;letter-spacing:.04em}
 #status{position:absolute;left:13px;bottom:13px;color:#9db5bf;pointer-events:none}
-#fit{position:absolute;right:14px;bottom:12px;padding:6px 10px;background:#23343d;border:1px solid #45606d;border-radius:5px;color:#e7f3f7;cursor:pointer}
-#debug{position:absolute;right:12px;top:10px;z-index:5;max-width:min(380px,80vw);background:#111d23ee;color:#cce7e9;border:1px solid #445d64;border-radius:6px;font:11px/1.5 ui-monospace,SFMono-Regular,monospace}
+#ui-toggle{position:absolute;top:10px;right:12px;z-index:6;padding:6px 12px;border:1px solid #45606d;border-radius:5px;background:#23343d;color:#e7f3f7;cursor:pointer}
+#ui-toggle[aria-expanded="true"]{border-color:#7bdbe5;color:#7bdbe5}
+#ui-panel{position:absolute;top:46px;right:12px;z-index:5;width:min(300px,85vw);max-height:calc(100% - 60px);overflow:auto;background:#111d23f2;border:1px solid #445d64;border-radius:6px;padding:10px;box-sizing:border-box;box-shadow:0 8px 25px #0008}
+#ui-panel[hidden]{display:none}
+#ui-panel button{padding:6px 10px;background:#23343d;border:1px solid #45606d;border-radius:5px;color:#e7f3f7;cursor:pointer}
+#ui-actions{display:flex;gap:7px;margin-bottom:9px}
+#object-list{color:#9db5bf;max-height:80px;overflow:auto;overflow-wrap:anywhere;margin-bottom:9px}
+#debug{color:#cce7e9;border:1px solid #445d64;border-radius:6px;font:11px/1.5 ui-monospace,SFMono-Regular,monospace}
 #debug summary{cursor:pointer;padding:5px 10px;color:#7bdbe5;font-weight:700}
 #debug pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow:auto;padding:9px;margin:0;border-top:1px solid #2f4751}
 #error{position:absolute;left:13px;top:39px;color:#ff9e8f;max-width:75%;white-space:pre-wrap;pointer-events:none}
 </style></head><body>
 <div id="viewport"><canvas id="scene" aria-label="Interactive 3D scene, drag to orbit, wheel to zoom"></canvas>
 <span id="brand">spi3der ${buildInfo.label} · workshop</span><span id="status">Waiting for ChatGPT scene…</span>
-<span id="error"></span><button id="fit" type="button">Fit</button>
+<span id="error"></span>
+<button id="ui-toggle" type="button" aria-expanded="false" aria-controls="ui-panel">UI</button>
+<aside id="ui-panel" hidden aria-label="Workshop controls">
+<div id="ui-actions"><button id="fit" type="button">Fit</button><button id="reset-view" type="button">Reset view</button></div>
+<div id="object-list" aria-live="polite">No scene yet</div>
 <details id="debug"><summary>DEBUG</summary><pre id="debug-data">Awaiting scene…</pre></details>
+</aside>
 </div>
 <script>
 ${modelSource}
@@ -32,6 +43,8 @@ ${viewSource}
 'use strict';
 const canvas=document.getElementById('scene'),status=document.getElementById('status');
 const errorNode=document.getElementById('error'),debugData=document.getElementById('debug-data');
+const uiToggle=document.getElementById('ui-toggle'),uiPanel=document.getElementById('ui-panel'),objectList=document.getElementById('object-list');
+uiToggle.onclick=()=>{uiPanel.hidden=!uiPanel.hidden;uiToggle.setAttribute('aria-expanded',String(!uiPanel.hidden));};
 let activeTrace=null,hasReported=false,currentModel=null;
 let bridgeOutput=null,bridgeInput=null,bridgeReady=false;
 const debug={status:'awaiting host output',build:${JSON.stringify(buildInfo.label)},git_hash:${JSON.stringify(buildInfo.gitHash || 'unavailable')},trace_id:'—',engine:'browser',renderer:'uninitialized',objects:0,faces:0,host_callTool:typeof window.openai?.callTool==='function'?'available':'unavailable'};
@@ -92,6 +105,7 @@ let view;
 try{view=new WorkshopView(canvas);updateDebug({renderer:'WebGL2 / existing WorkshopView'})}
 catch(e){view=createCanvasFallback(canvas);updateDebug({renderer:'Canvas 2D fallback: '+String(e?.message||e)})}
 document.getElementById('fit').onclick=()=>view.fit();
+document.getElementById('reset-view').onclick=()=>typeof view.reset==='function'?view.reset():view.fit();
 function receive(){
   let output=bridgeOutput||window.openai?.toolOutput||window.openai?.toolResponse?.structuredContent;
   if(!output||!Array.isArray(output.steps)){
@@ -110,6 +124,7 @@ function receive(){
     const results=model.replay(output.steps),errors=results.filter(x=>x.error);
     if(errors.length)throw Error(errors.slice(0,4).map(x=>'Step '+x.step+' ('+x.tool+'): '+x.error).join('\\n'));
     currentModel=model;
+    objectList.textContent=model.scene.objects.length?model.scene.objects.map(o=>o.name).join(' · '):'Empty scene';
     view.setScene(model.scene.objects);
     if(view.fit&&model.scene.objects.length)view.fit();
     const objects=model.scene.objects.length,faces=model.scene.objects.reduce((n,o)=>n+o.mesh.faces.length,0);
