@@ -2,7 +2,8 @@
 // Both model construction and graphics happen in the ChatGPT iframe/browser.
 import { readFileSync } from 'node:fs';
 import { buildInfo } from './build-info.js';
-const modelSource=readFileSync(new URL('./workshop-client.js',import.meta.url),'utf8').replace(/^export /gm,'');
+import { bundleBrowserModel } from './workshop-browser-model.js';
+const modelSource=bundleBrowserModel();
 const viewSource=readFileSync(new URL('../src/workshop-view.js',import.meta.url),'utf8').replace(/^export /gm,'');
 export const widgetHTML = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
