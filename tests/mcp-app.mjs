@@ -19,6 +19,8 @@ assert.ok(tool.description.includes('browser itself builds'));
 assert.ok(WORKSHOP_TOOLS.includes('add_box'));
 const resource=await call(3,'resources/read',{uri:RESOURCE_URI});
 assert.equal(resource.result.contents[0].mimeType,'text/html;profile=mcp-app');
+const oldResource=await call(300,'resources/read',{uri:'ui://spi3der/workshop-v1.html'});
+assert.equal(oldResource.result.contents[0].uri,'ui://spi3der/workshop-v1.html', 'legacy cached UI must remain readable');
 assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v2.html', 'new widget URL must bypass old host cache');
 assert.match(widgetHTML, /method,params\},'\*'\)/);
 assert.ok(widgetHTML.includes("bridgeSend('ui/initialize'"), 'browser must initialize MCP Apps UI bridge');
