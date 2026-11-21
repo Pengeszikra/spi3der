@@ -2,7 +2,11 @@
 // The server validates/forwards commands and records timing; it does NOT build geometry.
 import { readFileSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
-import { publicTools, pack, unpack } from './http.js';
+import { deflateRawSync, inflateRawSync } from 'node:zlib';
+// The workshop only compresses the declarative command history; no 3Draft imports.
+const b64url=buffer=>Buffer.from(buffer).toString('base64url');
+const pack=value=>b64url(deflateRawSync(Buffer.from(JSON.stringify(value)),{level:9}));
+const unpack=encoded=>JSON.parse(inflateRawSync(Buffer.from(encoded,'base64url'),{maxOutputLength:250000}).toString('utf8'));
 import { widgetHTML } from './workshop-widget.js';
 import { WORKSHOP_TOOLS } from './workshop-client.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
@@ -65,7 +69,11 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(!request||Array.isArray(request)||request.jsonrpc!=='2.0'||typeof request.method!=='string')return err(request?.id??null,-32600,'invalid request');
   const {id,method,params={}}=request;
   if(id===undefined||id===null)return null;
-  if(method==='tools/list')return answer(id,{tools:[...publicTools().map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool]});
+  if(method==='tools/list'){
+    // Legacy tools remain available, but are only imported for discovery/use.
+    const { publicTools }=await import('./http.js');
+    return answer(id,{tools:[...publicTools().map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool]});
+  }
   if(method==='resources/list')return answer(id,{resources:[{uri:RESOURCE_URI,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Browser-local 3D modeling and WebGL2 viewport embedded in the conversation'}]});
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI)return err(id,-32002,'resource not found');
