@@ -16,9 +16,15 @@ const display = [pad(year, 2), pad(month, 2), pad(Math.floor(dayBuild / 1000), 2
 
 const validHash = value => /^[a-f0-9]{7,40}$/i.test(String(value || '').trim())
   ? String(value).trim().toLowerCase() : null;
+// Docker source builds record HEAD while .git is still available, then discard
+// the Git directory. Never infer a source commit from a mutable remote branch.
+let embeddedHash = null;
+try { embeddedHash = validHash(readFileSync(new URL('./build-sha.txt', import.meta.url), 'utf8')); }
+catch { /* Local installs need no embedded build metadata. */ }
 let gitHash = validHash(process.env.SPI3DER_GIT_SHA)
   || validHash(process.env.COMMIT_SHA)
-  || validHash(process.env.GITHUB_SHA);
+  || validHash(process.env.GITHUB_SHA)
+  || embeddedHash;
 if (!gitHash) {
   try {
     gitHash = validHash(execFileSync('git', ['rev-parse', 'HEAD'], {
