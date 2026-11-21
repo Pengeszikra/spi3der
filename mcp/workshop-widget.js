@@ -40,6 +40,93 @@ const errorNode=document.getElementById('error');
 let bridgeOutput=null,bridgeInput=null,bridgeReady=false;
 let activeTrace=null,serial=0,modelCounts={objects:0,faces:0};
 let nativeEditorReady=false,nativeSceneReady=false,nativeKeySeen=false;
+let sessionId=null,revision=0,latestScene=null,queuedScene=null,publishing=false,polling=false;
+let applyingBatch=null,pollTimer=null,previousSceneJSON='',rpcSerial=0;
+const rpcPending=new Map();
+function toolResponse(raw){
+  const r=raw?.result||raw;
+  if(r?.isError)throw Error(r.content?.[0]?.text||'MCP tool failed');
+  if(r?.error)throw Error(r.error.message||String(r.error));
+  if(r?.structuredContent)return r.structuredContent;
+  if(r?.content?.[0]?.text)return JSON.parse(r.content[0].text);
+  return r;
+}
+async function invokeTool(name,args){
+  const call=window.openai?.callTool;
+  if(typeof call==='function')return toolResponse(await call.call(window.openai,name,args));
+  if(!bridgeReady)throw Error('Workshop MCP bridge unavailable');
+  const id='spi3der-shared-'+(++rpcSerial);
+  return new Promise((resolve,reject)=>{
+    rpcPending.set(id,{resolve,reject});
+    bridgeSend('tools/call',{name,arguments:args},id);
+  });
+}
+async function publishChanges(){
+  if(publishing||!sessionId||!queuedScene)return;
+  publishing=true;
+  try{
+    while(queuedScene){
+      const scene=queuedScene;
+      queuedScene=null;
+      const batch=applyingBatch;
+      const result=await invokeTool('workshop_publish',{session_id:sessionId,revision,scene,...(batch?{batch_id:batch}:{})});
+      revision=result.revision;
+      latestScene=scene;
+      previousSceneJSON=JSON.stringify(scene);
+      if(batch===applyingBatch)applyingBatch=null;
+    }
+  }catch(e){
+    errorNode.hidden=false;
+    errorNode.textContent='spi3der shared scene: '+String(e?.message||e);
+    console.error('[spi3der workshop] publish failed',e);
+  }finally{
+    publishing=false;
+    if(queuedScene)publishChanges();
+  }
+}
+function nativeChanged(scene){
+  if(!sessionId||!scene||!Array.isArray(scene.objects))return;
+  const json=JSON.stringify(scene);
+  if(json===previousSceneJSON&&!applyingBatch)return;
+  latestScene=scene;
+  queuedScene=scene;
+  publishChanges();
+}
+async function pollEdits(){
+  if(polling||publishing||queuedScene||applyingBatch||!latestScene||!sessionId)return;
+  polling=true;
+  try{
+    const state=await invokeTool('workshop_poll',{session_id:sessionId});
+    if(state.revision!==revision){
+      // Another writer changed the session; do not overwrite the newer revision.
+      errorNode.hidden=false;
+      errorNode.textContent='spi3der shared session changed elsewhere; reopen this workshop';
+      return;
+    }
+    const batch=state.pending;
+    if(!batch)return;
+    const model=new WorkshopModel(latestScene);
+    const result=model.replay(batch.steps);
+    const errors=result.filter(x=>x.error);
+    if(errors.length){
+      const reason=errors.map(x=>x.tool+': '+x.error).join('; ').slice(0,200);
+      await invokeTool('workshop_reject',{session_id:sessionId,batch_id:batch.batch_id,reason});
+      errorNode.hidden=false;
+      errorNode.textContent='spi3der agent edit: '+reason;
+      return;
+    }
+    const scene=model.data();
+    modelCounts={objects:scene.objects.length,faces:scene.objects.reduce((n,o)=>n+(o.mesh?.faces?.length||0),0)};
+    applyingBatch=batch.batch_id;
+    nativeSceneReady=false;
+    frame.contentWindow.postMessage({source:'spi3der-workshop',phase:'apply_scene',session_id:sessionId,scene},APP_ORIGIN);
+  }catch(e){console.warn('[spi3der workshop] poll failed',e)}
+  finally{polling=false}
+}
+function startPolling(){
+  if(pollTimer||!sessionId)return;
+  pollTimer=setInterval(pollEdits,1500);
+}
 
 function bridgeSend(method,params={},id){
   if(window.parent===window)return;
@@ -80,6 +167,9 @@ async function receive(){
   if(activeTrace===trace&&frame.getAttribute('src'))return;
   const request=++serial;
   activeTrace=trace;
+  sessionId=output.session_id||null;
+  revision=output.revision||0;
+  latestScene=null;queuedScene=null;applyingBatch=null;previousSceneJSON='';
   nativeEditorReady=false;nativeSceneReady=false;nativeKeySeen=false;
   errorNode.hidden=true;
   status.hidden=false;
@@ -97,7 +187,7 @@ async function receive(){
     // The original spi3der index.html already accepts compressed #scene links.
     // Loading it, rather than reimplementing controls, preserves the actual
     // KEYS map, input focus, selection, panels, XR and renderer.
-    frame.setAttribute('src',APP_ORIGIN+'/?workshop=1#scene='+packed);
+    frame.setAttribute('src',APP_ORIGIN+'/?workshop=1#'+(sessionId?'session='+sessionId+'&':'')+'scene='+packed);
     status.textContent='Loading spi3der with '+modelCounts.objects+' objects…';
     report('widget_loaded');
   }catch(e){
@@ -141,6 +231,9 @@ window.addEventListener('message',event=>{
       nativeSceneReady=true;
       status.hidden=true;
       report(modelCounts.objects?'widget_rendered':'widget_empty');
+      startPolling();
+    }else if(d.phase==='native_scene_changed'){
+      nativeChanged(d.scene);
     }else if(d.phase==='native_scene_error'){
       errorNode.hidden=false;
       errorNode.textContent='spi3der could not import the workshop scene';
@@ -154,6 +247,12 @@ window.addEventListener('message',event=>{
   }
   if(event.source!==window.parent)return;
   const msg=event.data;
+  if(rpcPending.has(msg?.id)){
+    const pending=rpcPending.get(msg.id);
+    rpcPending.delete(msg.id);
+    try{pending.resolve(toolResponse(msg))}catch(e){pending.reject(e)}
+    return;
+  }
   if(!msg||msg.jsonrpc!=='2.0')return;
   if(msg.id===INIT_ID){
     if(msg.result){
