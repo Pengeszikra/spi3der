@@ -115,7 +115,9 @@ async function pollEdits(){
       errorNode.textContent='spi3der agent edit: '+reason;
       return;
     }
-    const scene=model.data();
+    // Preserve native camera/view and scene metadata across agent edits.
+    // WorkshopModel owns geometry, not the human participant's viewport.
+    const scene={...latestScene,...model.data()};
     modelCounts={objects:scene.objects.length,faces:scene.objects.reduce((n,o)=>n+(o.mesh?.faces?.length||0),0)};
     applyingBatch=batch.batch_id;
     nativeSceneReady=false;
