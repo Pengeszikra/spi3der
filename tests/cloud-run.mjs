@@ -24,6 +24,20 @@ try {
   const home = await fetch(base + '/');
   assert.equal(home.status, 200);
   assert.match(await home.text(), /spi3der/);
+  const versionResponse = await fetch(base + '/api/version');
+  assert.equal(versionResponse.status, 200);
+  assert.match(versionResponse.headers.get('cache-control') || '', /no-store/);
+  const liveVersion = await versionResponse.json();
+  const expectedVersion = (await import('../package.json', { with: { type: 'json' } })).default.version;
+  assert.deepEqual(liveVersion, { name: 'spi3der', version: expectedVersion });
+  const displayVersion = (v) => {
+    const [yy, mm, packed] = v.split('.').map(Number);
+    return [yy,String(mm).padStart(2,'0'),String(Math.floor(packed/1000)).padStart(2,'0'),String(packed%1000).padStart(3,'0')].join('.');
+  };
+  assert.match(displayVersion(liveVersion.version), /^\d{2}\.\d{2}\.\d{2}\.\d{3}$/);
+  const html = await (await fetch(base + '/index.html')).text();
+  assert.ok(html.includes("fetch('/api/version'"), 'UI must fetch spi3der version from backend');
+  assert.ok(!html.includes("document.getElementById('build').textContent = displayVersion(version)"), 'UI must not display 3Draft version');
   const brand = await fetch(base + '/media/spi3der-brand.svg');
   assert.equal(brand.status, 200);
   assert.match(brand.headers.get('content-type') || '', /image\/svg\+xml/);
