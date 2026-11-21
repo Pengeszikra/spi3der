@@ -48,6 +48,16 @@ Use the exact same date-based npm-compatible scheme as 3Draft (see `Pengeszikra/
 - Run `npm run bump` to bump; `npm run bump -- --dry` to preview. The package.json version is the authoritative source. Keep UI version labels, manifests, and release metadata consistent with it; do not maintain an unrelated hard-coded version.
 - A source commit or build is **not** an npm publish: explicitly report which of commit, push, build, test, and publish occurred. Do not publish automatically.
 
+## Automated Cloud Run deployment — mandatory process
+- **Deployment to Google Cloud Run is automated via GitHub Actions.** After a push to `main`, the existing `spi3der MCP App` CI runs tests. On a successful `main` CI run, `.github/workflows/cloud-run-deploy.yml` deploys the *tested commit* to the existing Cloud Run service `spi3der` in `europe-west1`. Agents should push changes and check **both** CI and the deployment workflow; they must not ask for a routine manual `gcloud run deploy`.
+- The workflow uses short-lived Google Workload Identity Federation credentials (no stored Google service-account key), builds the existing Dockerfile from source, keeps the Cloud Run instance limit at one while workshop sessions are process-local, and sets `SPI3DER_GIT_SHA` from the exact commit.
+- **Never assert that a GitHub commit, green CI, or an accepted deploy command means the new version is live.** A deployment succeeds only after the workflow's `GET /api/version` check confirms the actual Cloud Run `gitHash` equals the source SHA. Report commit SHA, CI state, deployment state, and live SHA separately.
+- **One-time setup is still required in each Google Cloud project.** The owner must run `bash scripts/setup-cloud-run-oidc.sh PROJECT_ID` with authorized `gcloud` and `gh` credentials. This configures Google OIDC/IAM and GitHub Actions repository variables `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER` and `GCP_DEPLOY_SA`. Until setup is complete, deploy jobs fail fast; do not call the pipeline "operational" without a successful deploy/verification. See `docs/cloud-run-ci.md`.
+- The workflow skips stale commits and serializes deploys; do not create competing Cloud Run or Cloud Build triggers without removing/reconciling the existing trigger.
+- A Cloud Run revision change can interrupt in-memory shared workshop sessions. Preserve the one-instance constraint until the session store becomes durable and multi-instance safe.
+- **npm release is independent.** Automatic Cloud Run deployment must not call `npm run release`, bump the package version, or publish to npm. Do not alter Cloud Run access policy or runtime service identity as a routine deploy step.
+- Exception handling: if automated deployment fails, inspect the GitHub Actions logs and underlying Cloud Run build; do not silently deploy manually or claim success. Any manual emergency deploy should be explicitly identified as such and verified against `/api/version`.
+
 ## Development workflow
 1. Inspect the relevant source, tests, `APP.md`, `MCP.md`, and `README.md` before changes; legacy project documents can be stale.
 2. Prefer small, independently testable changes; run `npm test` when dependencies/environment permit.
