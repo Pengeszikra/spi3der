@@ -84,7 +84,7 @@ test('keycast is opt-in, passive, click-through and persists its toggle state', 
     key: 'g', repeat: false, isComposing: false,
     ctrlKey: false, altKey: false, shiftKey: false, metaKey: true
   });
-  assert.deepEqual(overlay.children.map(node => node.textContent), ['⌘', 'G']);
+  assert.equal(Array.from(overlay.children, node => node.textContent).join(' + '), '⌘ + G');
   assert.equal(overlay.classList.contains('visible'), true);
   handlers.get('blur')();
   assert.equal(overlay.classList.contains('visible'), false);
