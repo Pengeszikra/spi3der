@@ -32,6 +32,10 @@ jobs:
           node --check scripts/release.mjs
           node --check scripts/check-publish.mjs
           node --check tests/release.mjs
+      - name: Validate deployment setup and core math
+        run: |
+          bash -n scripts/setup-cloud-run-oidc.sh
+          node tests/math.mjs
       - name: Test ChatGPT widget MCP contract
         run: |
           npm run test:mcp-app
