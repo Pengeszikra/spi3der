@@ -8,7 +8,7 @@ const b64url=buffer=>Buffer.from(buffer).toString('base64url');
 const pack=value=>b64url(deflateRawSync(Buffer.from(JSON.stringify(value)),{level:9}));
 const unpack=encoded=>JSON.parse(inflateRawSync(Buffer.from(encoded,'base64url'),{maxOutputLength:250000}).toString('utf8'));
 import { widgetHTML } from './workshop-widget.js';
-import { WORKSHOP_TOOLS } from './workshop-client.js';
+import { WORKSHOP_TOOLS } from './workshop-tools.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
 
 export const RESOURCE_URI='ui://spi3der/workshop-v3.html';
