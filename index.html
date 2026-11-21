@@ -965,7 +965,7 @@
         return response.json();
       })
       .then(({ name, version: appVersion }) => {
-        if (name !== 'spi3der' || !/^\\d+\\.\\d+\\.\\d+$/.test(appVersion)) throw new Error('Invalid spi3der version');
+        if (name !== 'spi3der' || !/^\d+\.\d+\.\d+$/.test(appVersion)) throw new Error('Invalid spi3der version');
         const [yy, mm, packed] = appVersion.split('.').map(Number);
         buildEl.textContent = [yy, String(mm).padStart(2, '0'),
           String(Math.floor(packed / 1000)).padStart(2, '0'),
