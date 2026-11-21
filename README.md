@@ -6,15 +6,19 @@ Interactive 3D creation and exploration, powered by **3Draft**. Based on the 202
 
 The editor opens with **no scene** and **does not request VR** until you choose Enter XR. WebXR/Meta Quest and ViRtuSH hand interactions remain available. The scene picker offers **Globe**, **Deep Sky** and **Fifth Percent VR (LARK + Deep Sky)**. Model-format tooling is retained.
 
-## ChatGPT-native MCP App Workshop (current direction)
+## ChatGPT-native MCP App Workshop (browser-local)
 
-The **primary** spi3der workshop is a 3D viewport rendered **inside the ChatGPT conversation**, via the MCP Apps resource `ui://spi3der/workshop-v1.html` (`text/html;profile=mcp-app`). The `open_workshop` tool attaches `_meta.ui.resourceUri` and the ChatGPT compatibility key `openai/outputTemplate`; its output includes the scene geometry in `structuredContent`. No second editor or chatbot sidebar is required.
+The **primary** spi3der workshop is a standalone HTML/JavaScript modeler inside the ChatGPT conversation, served as an MCP Apps resource `ui://spi3der/workshop-v1.html` (`text/html;profile=mcp-app`). It renders with **the existing `src/workshop-view.js` WebGL2 viewer** or a Canvas 2D fallback; all geometry operations run in the browser through `mcp/workshop-client.js`. The widget is self-contained: no JavaScript or geometry is fetched at runtime.
 
-The embedded widget initially provides a simple shaded mesh view, orbit and zoom; camera state stays local to the widget. The agent generates/edit models with the 3Draft `build_model` operations and can call `open_workshop` with a sequence of steps and `from` pointing to an earlier model. The model currently travels in the MCP tool result, **not** through a persistent live multiplayer session. In-widget geometry manipulation and automatic bidirectional sync are not implemented yet.
+`open_workshop` is a **thin MCP command relay**. It validates and compresses declarative modeling steps and sends `structuredContent.steps` to the widget; it does not invoke the headless `build_model` engine or produce a mesh. A `trace_id` covers the MCP request. Successful modeling can be verified **only in the browser widget**, not merely from `response_ready`.
 
-Server: `api/mcp.mjs`, adapter: `mcp/workshop-app.js`, widget: `mcp/workshop-widget.js`, contract test: `npm run test:mcp-app`. For ChatGPT the remote MCP endpoint must be deployed and reconnected/refreshed as a custom plugin. Source commits alone do not enable the widget in a running ChatGPT conversation.
+Supported browser-local tools: `add_box`, `add_extrusion`, `add_mesh`, `transform`, `move_vertices`, `extrude_face`, `recolor`, `remove`, `clear`, `list`, `inspect`, `get_mesh`, `group` and `ungroup`. **CSG, mechanics, sensing, character generation and surface placement are not yet ported** to this browser interpreter; they remain available in the separate legacy headless `build_model` tool, but not in `open_workshop`.
 
-The earlier `workshop.html` / `npm run workshop` prototype is *legacy diagnostics*, not the product direction. Do not rebuild or polish its extra UI.
+Continue editing by passing the previous response's `workshop_token` as `from`. The token contains compressed operation history, not a server session. The iframe rebuilds the model deterministically on each update; no shared server-side scene exists. A previous `#scene=` URL may also be supplied as a base scene. Use `npm run test:mcp-app` to check the interpreter, widget resource, continuation, and MCP trace contract.
+
+Cloud Run is still needed to **register the MCP endpoint, deliver the widget HTML, and relay commands**. It is not needed for model computation or WebGL rendering. `api/mcp.mjs` lazily loads the old headless tool handler only if a legacy tool is requested. A source commit does **not** deploy Cloud Run: deploy the image and refresh/reconnect the ChatGPT custom plugin before testing this new widget.
+
+The earlier `workshop.html` / `npm run workshop` shared-scene prototype is legacy diagnostics, not the product direction.
 
 ## Run locally
 
@@ -57,11 +61,10 @@ A GitHub push alone does not deploy Cloud Run unless the project has configured 
 The `open_workshop` response returns a random `trace_id` in `structuredContent`
 and in the textual tool result; the HTTP response also supplies `x-spi3der-trace-id`.
 Use the MCP tool `debug_trace({trace_id})` to inspect a **recent** request.
-Milestones include `request_received`, `model_started`, `model_finished`,
-`scene_unpacked`, `response_ready` and `request_failed`.
-Each event has elapsed milliseconds; the successful response records payload size
-and scene object/vertex/face counts. Raw prompts, scenes, URLs and request bodies
-are **not logged**.
+Milestones include `request_received`, `steps_validated`, `response_ready`
+and `request_failed`. Each event records elapsed milliseconds and response
+size. **The MCP server does not know vertex/face counts:** those are determined
+in the browser widget. No raw prompts, meshes, URLs or request bodies are logged.
 
 The embedded widget optionally reports `widget_loaded`, `widget_rendered`,
 `widget_empty`, or `widget_error` via `window.openai.callTool` when supported

@@ -69,10 +69,15 @@ try {
   });
   assert.equal(built.status,200);
   const result=await built.json();
+  assert.equal(result.result.structuredContent.engine,'browser');
+  assert.ok(!('scene' in result.result.structuredContent));
   const traceId=result.result.structuredContent.trace_id;
   assert.equal(built.headers.get('x-spi3der-trace-id'),traceId);
   const trace=await request('/mcp',4,'tools/call',{name:'debug_trace',arguments:{trace_id:traceId}});
-  assert.equal(JSON.parse(trace.result.content[0].text).status,'server_complete');
+  const diagnostics=JSON.parse(trace.result.content[0].text);
+  assert.equal(diagnostics.status,'server_complete');
+  assert.ok(diagnostics.events.some(e=>e.phase==='steps_validated'));
+  assert.ok(!diagnostics.events.some(e=>e.phase==='model_started'));
   console.log('Cloud Run static + MCP smoke test passed');
 } finally {
   child.kill('SIGTERM');
