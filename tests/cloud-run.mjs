@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const port = 19080;
+const testCommit = '0123456789abcdef0123456789abcdef01234567';
 const base = 'http://127.0.0.1:' + port;
 const child = spawn(process.execPath, ['bin/cloud-run.mjs'], {
-  env: { ...process.env, PORT: String(port) },
+  env: { ...process.env, PORT: String(port), SPI3DER_GIT_SHA: testCommit },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
 let stderr = '';
@@ -29,12 +30,17 @@ try {
   assert.match(versionResponse.headers.get('cache-control') || '', /no-store/);
   const liveVersion = await versionResponse.json();
   const expectedVersion = (await import('../package.json', { with: { type: 'json' } })).default.version;
-  assert.deepEqual(liveVersion, { name: 'spi3der', version: expectedVersion });
+  assert.equal(liveVersion.name, 'spi3der');
+  assert.equal(liveVersion.version, expectedVersion);
+  assert.equal(liveVersion.gitHash, testCommit);
+  assert.equal(liveVersion.shortHash, testCommit.slice(0, 8));
   const displayVersion = (v) => {
     const [yy, mm, packed] = v.split('.').map(Number);
     return [yy,String(mm).padStart(2,'0'),String(Math.floor(packed/1000)).padStart(2,'0'),String(packed%1000).padStart(3,'0')].join('.');
   };
   assert.match(displayVersion(liveVersion.version), /^\d{2}\.\d{2}\.\d{2}\.\d{3}$/);
+  assert.equal(liveVersion.display, displayVersion(liveVersion.version));
+  assert.equal(liveVersion.label, liveVersion.display + ' · ' + testCommit.slice(0, 8));
   const html = await (await fetch(base + '/index.html')).text();
   assert.ok(html.includes("fetch('/api/version'"), 'UI must fetch spi3der version from backend');
   assert.ok(!html.includes("document.getElementById('build').textContent = displayVersion(version)"), 'UI must not display 3Draft version');
@@ -70,6 +76,7 @@ try {
   assert.equal(built.status,200);
   const result=await built.json();
   assert.equal(result.result.structuredContent.engine,'browser');
+  assert.equal(result.result.structuredContent.build.gitHash, testCommit);
   assert.ok(!('scene' in result.result.structuredContent));
   const traceId=result.result.structuredContent.trace_id;
   assert.equal(built.headers.get('x-spi3der-trace-id'),traceId);
