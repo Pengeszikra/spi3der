@@ -28,7 +28,7 @@ assert.equal(oldV2.result.contents[0].uri,'ui://spi3der/workshop-v2.html');
 assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v4.html', 'UI changes need a fresh resource to bypass old host cache');
 const oldV3=await call(302,'resources/read',{uri:'ui://spi3der/workshop-v3.html'});
 assert.equal(oldV3.result.contents[0].uri,'ui://spi3der/workshop-v3.html');
-assert.match(widgetHTML, /method,params\\},'\\*'\\)/);
+assert.match(widgetHTML, /method,params\},'\*'\)/);
 assert.ok(widgetHTML.includes("bridgeSend('ui/initialize'"), 'browser must initialize MCP Apps UI bridge');
 assert.ok(widgetHTML.includes("bridgeSend('ui/notifications/initialized')"), 'browser must acknowledge host handshake');
 assert.ok(widgetHTML.includes("bridgeSend('ui/notifications/size-changed'"), 'browser must report widget height');
