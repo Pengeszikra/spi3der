@@ -10,11 +10,12 @@ assert.ok(script,'inline browser script is present');
 assert.ok(widgetHTML.includes('id="spi3der"'), 'must embed native spi3der');
 assert.ok(!widgetHTML.includes('id="ui-toggle"'), 'must not reimplement the editor UI');
 
-const posted=[],listeners=new Map(),frameEvents=new Map();
+const posted=[],listeners=new Map(),frameEvents=new Map(),timers=[];
+const nativeUpdates=[];
 const nodes={
   host:{getBoundingClientRect:()=>({width:860,height:730})},
   spi3der:{
-    attrs:{},contentWindow:{},
+    attrs:{},contentWindow:{postMessage(message,origin){nativeUpdates.push({message,origin})}},
     getAttribute(key){return this.attrs[key]||null},
     setAttribute(key,value){this.attrs[key]=value},
     addEventListener(key,fn){frameEvents.set(key,fn)}
@@ -41,6 +42,7 @@ const vm=createContext({
   window:win,
   document:{getElementById(id){assert.ok(nodes[id],'unknown node '+id);return nodes[id]}},
   ResizeObserver:class{observe(){}},
+  setInterval(fn){timers.push(fn);return timers.length},
   CompressionStream:IdentityCompressionStream,
   TextEncoder,
   Blob:MockBlob,
@@ -89,4 +91,41 @@ assert.equal(nodes.status.hidden,true,'scene load is confirmed by the native app
 assert.equal(posted.some(m=>m.params?.arguments?.phase==='widget_rendered'),true);
 native('native_key_seen');
 assert.equal(posted.some(m=>m.params?.arguments?.phase==='native_key_seen'),true);
-console.log('spi3der MCP handshake, native readiness, scene, keyboard feedback, and origin guard: OK');
+// True shared-scene flow: the original native iframe publishes hand edits,
+ // an agent queues an edit, the same iframe receives and imports it.
+const sid='b'.repeat(40);
+onMessage({source:parent,data:{jsonrpc:'2.0',method:'ui/notifications/tool-result',
+  params:{structuredContent:{trace_id:'shared-test',session_id:sid,revision:0,steps:[cube],baseScene:null}}
+}});
+await new Promise(resolve=>setImmediate(resolve));
+assert.match(nodes.spi3der.getAttribute('src'),new RegExp('#session='+sid+'&scene='));
+native('native_editor_ready');
+native('native_scene_loaded',{objects:1});
+native('native_scene_changed',{scene});
+let publish=posted.filter(m=>m.params?.name==='workshop_publish').at(-1);
+assert.ok(publish,'native edit must publish current scene');
+assert.equal(publish.params.arguments.revision,0);
+onMessage({source:parent,data:{jsonrpc:'2.0',id:publish.id,result:{structuredContent:{revision:1,objects:1}}}});
+await new Promise(resolve=>setImmediate(resolve));
+assert.equal(timers.length,1,'shared workshop starts one polling loop');
+const waiting=timers[0]();
+const poll=posted.filter(m=>m.params?.name==='workshop_poll').at(-1);
+assert.ok(poll,'widget asks for agent edits');
+onMessage({source:parent,data:{jsonrpc:'2.0',id:poll.id,result:{structuredContent:{
+  session_id:sid,revision:1,pending:{batch_id:'batch-one',revision:1,
+    steps:[{tool:'add_box',args:{name:'spider',size:[.3,.2,.4],at:[0,1,0]}}]}
+}}}});
+await waiting;
+const update=nativeUpdates.at(-1);
+assert.equal(update.origin,'https://spi3der.cloud.run');
+assert.equal(update.message.phase,'apply_scene');
+assert.equal(update.message.session_id,sid);
+assert.equal(update.message.scene.objects.length,2,'agent edits appear in the real native editor');
+native('native_scene_loaded',{objects:2});
+native('native_scene_changed',{scene:update.message.scene});
+publish=posted.filter(m=>m.params?.name==='workshop_publish').at(-1);
+assert.equal(publish.params.arguments.batch_id,'batch-one');
+assert.equal(publish.params.arguments.revision,1);
+onMessage({source:parent,data:{jsonrpc:'2.0',id:publish.id,result:{structuredContent:{revision:2,objects:2}}}});
+await new Promise(resolve=>setImmediate(resolve));
+console.log('spi3der native handshake, shared snapshot, queued agent edit and revision ACK: OK');
