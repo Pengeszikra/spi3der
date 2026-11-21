@@ -12,6 +12,13 @@ The portable [plugin.json](plugin.json) defines the **spi3der** listing: display
 
 These are packaging files only. They do **not** change the existing custom MCP connection or automatically publish the plugin. For a public directory submission, use the plugin submission flow **With MCP** and complete domain verification, tool checks, and review materials. The currently absent `privacyPolicyURL` and `termsOfServiceURL` must be added only after genuine public pages exist; do not use placeholders. The manifest's semantic version (`1.0.0`) is the **plugin package version**, independent of spi3der's date-based npm version.
 
+## Native UI refinements (Nov 2026)
+
+- The ChatGPT-embedded editor (`?workshop=1`) starts in spi3der's **existing Zen mode** (model full-screen), with the native **Leave zen** control, **Z**, or **Esc** to restore the full UI. Normal standalone spi3der starts with its full UI unchanged.
+- The **SYS** panel now has an icon-only keyboard button for the **tutorial keycast**, ported from Spider Paint. When enabled, actual pressed keys and modifiers appear briefly at the top, without intercepting events or creating a second toolbar. Its enabled state is local to the browser (`spi3der.tutorial`). To enable it in a Zen-started workshop, exit Zen, activate the keyboard icon in SYS, then return to Zen with Z.
+- **Save** is a disk icon; **Character builder** is a person emoji. Both retain their original actions, titles, and accessible names.
+- `node tests/tutorial-ui.mjs` tests the native controls, Zen activation, and passive keycast; the MCP App CI workflow runs the test.
+
 ## ChatGPT-native collaborative MCP App Workshop
 
 The primary workshop embeds the **real spi3der editor** inside a ChatGPT MCP Apps widget (resource `ui://spi3der/workshop-v7.html`). Its original controls, keys, selection, navigation, WebGL and XR remain authoritative: there is no second editor UI.
