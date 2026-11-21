@@ -34,6 +34,7 @@ jobs:
         run: |
           npm run test:mcp-app
           node tests/mcp-widget-bridge.mjs
+          node tests/workshop-session.mjs
       - name: Test npm version release lifecycle
         run: node tests/release.mjs
       - name: Test embedded Git SHA with no source checkout
