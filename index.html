@@ -964,12 +964,17 @@
         if (!response.ok) throw new Error('Version endpoint: HTTP ' + response.status);
         return response.json();
       })
-      .then(({ name, version: appVersion }) => {
+      .then(({ name, version: appVersion, display, gitHash }) => {
         if (name !== 'spi3der' || !/^\d+\.\d+\.\d+$/.test(appVersion)) throw new Error('Invalid spi3der version');
         const [yy, mm, packed] = appVersion.split('.').map(Number);
-        buildEl.textContent = [yy, String(mm).padStart(2, '0'),
+        const readable = [yy, String(mm).padStart(2, '0'),
           String(Math.floor(packed / 1000)).padStart(2, '0'),
           String(packed % 1000).padStart(3, '0')].join('.');
+        if (display && display !== readable) throw new Error('Inconsistent spi3der version');
+        const hash = typeof gitHash === 'string' && /^[a-f0-9]{7,40}$/i.test(gitHash)
+          ? gitHash.toLowerCase() : null;
+        buildEl.textContent = readable + ' · ' + (hash ? hash.slice(0, 8) : 'git ?');
+        buildEl.title = 'spi3der ' + readable + '\nGit commit: ' + (hash || 'not included in this deployment');
       })
       .catch((error) => {
         buildEl.textContent = 'spi3der ?';
