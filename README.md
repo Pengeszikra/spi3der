@@ -52,12 +52,15 @@ The product name is always lowercase **spi3der**. The app header can retain **3D
 
 ## Cloud Run (browser app + MCP)
 
+**Cloud Run deployment is automated in GitHub Actions** (once keyless Google Cloud IAM/WIF setup is completed). Push to `main` → `spi3der MCP App` CI must succeed → `Deploy spi3der to Cloud Run` builds and deploys that tested SHA. The deployment checks the service's `/api/version` response against the expected commit. See [the setup and verification guide](docs/cloud-run-ci.md), or run `bash scripts/setup-cloud-run-oidc.sh PROJECT_ID` once with authorized `gcloud` and `gh` credentials. **Without that setup, the workflow is present but cannot deploy.** Agents must follow the deployment rules in [AGENTS.md](AGENTS.md).
+
+
 The Dockerfile now starts `bin/cloud-run.mjs` with Node.js on the Cloud Run `PORT`.
 One origin serves the browser application, `POST /mcp` and the compatible `POST /api/mcp` endpoint.
 It does **not** require a Vercel deployment. The legacy scene-store API is not hosted here.
 
 ```sh
-# Deploy exactly the current Git commit and expose its SHA in the UI + MCP widget:
+# Emergency manual fallback ONLY; normal deployments run from GitHub Actions:
 gcloud run deploy spi3der --source . --region europe-west1 --allow-unauthenticated \
   --update-env-vars "SPI3DER_GIT_SHA=$(git rev-parse HEAD)"
 # Check the actual Cloud Run service URL; do not guess the hostname:
@@ -66,7 +69,7 @@ gcloud run services describe spi3der --region europe-west1 --format='value(statu
 
 Use the returned service URL plus `/mcp` as the ChatGPT custom MCP server URL.
 Test locally with `PORT=8080 node bin/cloud-run.mjs` and `node tests/cloud-run.mjs`.
-A GitHub push alone does not deploy Cloud Run unless the project has configured its own deployment trigger.
+A push starts CI; successful main CI starts the Cloud Run deploy workflow. Check the deploy run and live /api/version: do not equate a green CI run with a successful Cloud Run release.
 
 `GET /api/version`, the main editor's build stamp, the MCP tool result, and
 the embedded ChatGPT workshop now show the spi3der package version followed by
