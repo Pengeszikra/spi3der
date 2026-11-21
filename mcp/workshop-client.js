@@ -98,7 +98,7 @@ export class WorkshopModel {
         const n=poly.length,pos=[...poly.map(p=>[p[0],y,p[1]]),...poly.map(p=>[p[0],y+h,p[1]])];
         const order=[...Array(n).keys()],top=area>0?order.reverse():order;
         const faces=[{v:top.map(i=>n+i),color:paint(args.color)},{v:[...top].reverse(),color:paint(args.color)}];
-        for(let i=0;i<n;i++){const j=(i+1)%n;const side=area>0?[i,j,n+j,n+i]:[j,i,n+i,n+j];faces.push({v:side,color:paint(args.color)})}
+        for(let i=0;i<n;i++){const j=(i+1)%n;const side=area>0?[j,i,n+i,n+j]:[i,j,n+j,n+i];faces.push({v:side,color:paint(args.color)})}
         result=this.put(args.name,{positions:pos,faces},args.replace);break;
       }
       case 'add_mesh':{
