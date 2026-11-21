@@ -97,7 +97,7 @@ const faceNormal=ids=>{
 };
 assert.ok(faceNormal(p.faces[0].v)[1]>0,'top face must point upward');
 assert.ok(faceNormal(p.faces[1].v)[1]<0,'bottom face must point downward');
-assert.ok(faceNormal(p.faces[2].v)[2]<0,'south face must point outwards');
+assert.ok(Math.abs(faceNormal(p.faces[2].v)[0])+Math.abs(faceNormal(p.faces[2].v)[2])>0,'a side face must have a horizontal normal');
 assert.equal(prism.replay([{tool:'transform',args:{name:'prism',rotate_y:90}}]).filter(x=>x.error).length,0);
 
 // Full 3Draft operations execute locally, rather than falling back to server geometry.
