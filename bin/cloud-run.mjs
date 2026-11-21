@@ -9,6 +9,8 @@ import mcpHandler from '../api/mcp.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 8080);
+const appPackage = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
+const versionInfo = JSON.stringify({name: appPackage.name, version: appPackage.version});
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -68,7 +70,18 @@ async function serveStatic(req, res, url) {
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', 'http://localhost');
-    if (url.pathname === '/mcp' || url.pathname === '/api/mcp') {
+    if (url.pathname === '/api/version') {
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        res.writeHead(405, { Allow: 'GET, HEAD' }).end();
+      } else {
+        res.writeHead(200, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store, max-age=0',
+          'X-Content-Type-Options': 'nosniff',
+        });
+        res.end(req.method === 'HEAD' ? undefined : versionInfo);
+      }
+    } else if (url.pathname === '/mcp' || url.pathname === '/api/mcp') {
       await mcpHandler(req, res);
     } else {
       await serveStatic(req, res, url);
