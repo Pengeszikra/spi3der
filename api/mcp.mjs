@@ -1,7 +1,6 @@
 // spi3der MCP endpoint: /api/mcp (Streamable HTTP, stateless for model results).
 // A Vercel Node function around mcp/http.js (synced from 3Draft). Static files it reads (sky.md, the Deep Sky
 // catalogue) are fetched from the site itself.
-import { handleHttp } from '../mcp/http.js';
 import { handleWorkshopMcp } from '../mcp/workshop-app.js';
 
 const readBody = (req) => new Promise((resolve, reject) => {
@@ -35,7 +34,12 @@ export default async function handler(req, res) {
       }
     }catch(e){if(out===undefined && e instanceof SyntaxError) { /* hand malformed input to standard transport */ } else if(out===undefined)throw e;}
   }
-  out??=await handleHttp({ method: req.method, body, origin, fetchText });
+  if(out===undefined){
+    // Legacy public tools are imported only when called; the inline workshop
+    // requires no headless modeling engine at request time.
+    const { handleHttp }=await import('../mcp/http.js');
+    out=await handleHttp({ method: req.method, body, origin, fetchText });
+  }
   // Expose a correlation ID for successful/failed workshop tool responses.
   // It carries no prompts, meshes or other user data.
   try {
