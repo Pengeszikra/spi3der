@@ -6,6 +6,12 @@ Interactive 3D creation and exploration, powered by **3Draft**. Based on the 202
 
 The editor opens with **no scene** and **does not request VR** until you choose Enter XR. WebXR/Meta Quest and ViRtuSH hand interactions remain available. The scene picker offers **Globe**, **Deep Sky** and **Fifth Percent VR (LARK + Deep Sky)**. Model-format tooling is retained.
 
+## OpenAI plugin package manifest
+
+The portable [plugin.json](plugin.json) defines the **spi3der** listing: display name, description, developer, existing PNG icons, and both `homepage` and `extensions.com.openai.interface.websiteURL` set to [Tüskék és Gyökerek](https://tuskek-es-gyokerek.vercel.app). The companion [mcp.json](mcp.json) declares the remote MCP endpoint used by the embedded workshop (`https://spi3der.cloud.run/mcp`).
+
+These are packaging files only. They do **not** change the existing custom MCP connection or automatically publish the plugin. For a public directory submission, use the plugin submission flow **With MCP** and complete domain verification, tool checks, and review materials. The currently absent `privacyPolicyURL` and `termsOfServiceURL` must be added only after genuine public pages exist; do not use placeholders. The manifest's semantic version (`1.0.0`) is the **plugin package version**, independent of spi3der's date-based npm version.
+
 ## ChatGPT-native collaborative MCP App Workshop
 
 The primary workshop embeds the **real spi3der editor** inside a ChatGPT MCP Apps widget (resource `ui://spi3der/workshop-v7.html`). Its original controls, keys, selection, navigation, WebGL and XR remain authoritative: there is no second editor UI.
