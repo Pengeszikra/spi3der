@@ -944,6 +944,33 @@
     const workshopNotice = (phase, data = {}) => {
       if (WORKSHOP_EMBED) window.parent.postMessage({ source: 'spi3der-native', phase, ...data }, '*');
     };
+    const workshopSessionId = WORKSHOP_EMBED ? new URLSearchParams(location.hash.slice(1)).get('session') : null;
+    let workshopSceneReady = false;
+    let workshopDirtyTimer = 0;
+    // The native editor remains authoritative for human edits and all original key bindings.
+    const workshopChanged = () => {
+      if (!WORKSHOP_EMBED || !workshopSessionId || !workshopSceneReady) return;
+      clearTimeout(workshopDirtyTimer);
+      workshopDirtyTimer = setTimeout(() => {
+        if (workshopSceneReady) workshopNotice('native_scene_changed', { scene: sceneFile('workshop') });
+      }, 350);
+    };
+    if (WORKSHOP_EMBED) window.addEventListener('message', async (e) => {
+      const d = e.data;
+      if (e.source !== window.parent || d?.source !== 'spi3der-workshop' || !workshopSessionId || d.session_id !== workshopSessionId) return;
+      if (d.phase !== 'apply_scene') return;
+      if (d.scene?.format !== '3draft-scene' || !Array.isArray(d.scene.objects) || d.scene.objects.length > 3000) {
+        workshopNotice('native_scene_error');
+        return;
+      }
+      workshopSceneReady = false;
+      clearTimeout(workshopDirtyTimer);
+      try {
+        await loadScene(d.scene, true);
+      } catch (_) {
+        workshopNotice('native_scene_error');
+      }
+    });
     let workshopKeySeen = false;
     if (WORKSHOP_EMBED) window.addEventListener('keydown', (e) => {
       if (workshopKeySeen || e.repeat || e.target?.closest?.('input, textarea, select, [contenteditable]')) return;
@@ -1162,6 +1189,7 @@
       sceneParts = objs.map((o) => o.mesh);
       scene = merge(nothing, ...sceneParts);
       placedVer++;
+      workshopChanged();
     };
     const shifted = (mesh, d) => ({ ...mesh, positions: mesh.positions.map((q) => [q[0] + d[0], q[1] + d[1], q[2] + d[2]]) });
     // how far a flying prism still is from where it lands, as a fraction of its flight
@@ -4892,6 +4920,10 @@
         await addScene(data);
         if (data.view && (replace || !mergeOn || !had)) applyView(data.view);
         workshopNotice('native_scene_loaded', { objects: allObjects().length });
+        if (WORKSHOP_EMBED && workshopSessionId) {
+          workshopSceneReady = true;
+          workshopNotice('native_scene_changed', { scene: sceneFile('workshop') });
+        }
       });
     // a sky catalogue ('3draft-sky', src/sky.ts) -> a scene; its warnings go to the scene note
     const fromSky = (sky) => {
