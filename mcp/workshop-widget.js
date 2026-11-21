@@ -32,6 +32,7 @@ ${viewSource}
 const canvas=document.getElementById('scene'),status=document.getElementById('status');
 const errorNode=document.getElementById('error'),debugData=document.getElementById('debug-data');
 let activeTrace=null,hasReported=false,currentModel=null;
+let bridgeOutput=null,bridgeInput=null,bridgeReady=false;
 const debug={status:'awaiting host output',build:${JSON.stringify(buildInfo.label)},git_hash:${JSON.stringify(buildInfo.gitHash || 'unavailable')},trace_id:'—',engine:'browser',renderer:'uninitialized',objects:0,faces:0,host_callTool:typeof window.openai?.callTool==='function'?'available':'unavailable'};
 const updateDebug=patch=>{Object.assign(debug,patch);debugData.textContent=Object.entries(debug).map(([k,v])=>k+': '+v).join('\\n')};
 updateDebug({});
@@ -90,7 +91,12 @@ try{view=new WorkshopView(canvas);updateDebug({renderer:'WebGL2 / existing Works
 catch(e){view=createCanvasFallback(canvas);updateDebug({renderer:'Canvas 2D fallback: '+String(e?.message||e)})}
 document.getElementById('fit').onclick=()=>view.fit();
 function receive(){
-  const output=window.openai?.toolOutput||window.openai?.toolResponse?.structuredContent;
+  let output=bridgeOutput||window.openai?.toolOutput||window.openai?.toolResponse?.structuredContent;
+  if(!output||!Array.isArray(output.steps)){
+    // A legacy host may omit structuredContent; new-model instructions suffice.
+    const args=bridgeInput||window.openai?.toolInput;
+    if(!args?.from&&Array.isArray(args?.steps))output={trace_id:'input-fallback',steps:args.steps,baseScene:null};
+  }
   if(!output||!Array.isArray(output.steps))return;
   const trace=output.trace_id||null;
   if(trace===activeTrace&&currentModel)return;
@@ -115,6 +121,52 @@ function receive(){
     report('widget_error');
     console.error('[spi3der workshop client]',e);
   }
+}
+// MCP Apps 2026-01-26 requires an explicit View ↔ Host handshake.
+// window.openai is a compatibility alias and is not present in every host.
+const INIT_ID='spi3der-ui-init';
+function bridgeSend(method,params={},id){
+  if(window.parent===window)return;
+  window.parent.postMessage({jsonrpc:'2.0',...(id===undefined?{}:{id}),method,params},'*');
+}
+function reportSize(){
+  if(!bridgeReady)return;
+  const rect=document.getElementById('viewport').getBoundingClientRect();
+  bridgeSend('ui/notifications/size-changed',{width:Math.round(rect.width)||400,height:Math.max(300,Math.round(rect.height))});
+}
+window.addEventListener('message',event=>{
+  if(event.source!==window.parent)return;
+  const msg=event.data;
+  if(!msg||msg.jsonrpc!=='2.0')return;
+  if(msg.id===INIT_ID){
+    if(msg.result){
+      bridgeReady=true;
+      updateDebug({bridge:'MCP Apps initialized',protocol:msg.result.protocolVersion||'unknown'});
+      bridgeSend('ui/notifications/initialized');
+      reportSize();
+    }else if(msg.error){
+      updateDebug({bridge:'MCP Apps initialize rejected: '+String(msg.error.message||msg.error)});
+    }
+  }
+  if(msg.method==='ui/notifications/tool-input'){
+    bridgeInput=msg.params?.arguments||null;
+    updateDebug({input_channel:'MCP Apps'});
+    receive();
+  }
+  if(msg.method==='ui/notifications/tool-result'){
+    bridgeOutput=msg.params?.structuredContent||null;
+    updateDebug({result_channel:'MCP Apps'});
+    receive();
+  }
+});
+if(window.parent!==window){
+  // Register listeners before initiating handshake: a host can respond immediately.
+  bridgeSend('ui/initialize',{
+    protocolVersion:'2026-01-26',
+    appInfo:{name:'spi3der',version:'${buildInfo.version}'},
+    appCapabilities:{availableDisplayModes:['inline']}
+  },INIT_ID);
+  new ResizeObserver(reportSize).observe(document.getElementById('viewport'));
 }
 window.addEventListener('openai:set_globals',receive);
 receive();
