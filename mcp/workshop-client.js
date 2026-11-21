@@ -2,13 +2,9 @@
 // ChatGPT's iframe receives declarative steps; all geometry executes in this model.
 // No server geometry calculation, networking, browser imports or dynamic loading.
 import { createScene } from './scene.js';
+import { WORKSHOP_TOOLS as SHARED_TOOLS } from './workshop-tools.js';
 
-export const WORKSHOP_TOOLS=[
-  'add_box','add_extrusion','add_mesh','add_character','transform','place_on',
-  'sense','sensing','group','ungroup','connect','disconnect','joints','move_joint',
-  'get_mesh','extrude_face','move_vertices','boolean','recolor','remove','clear',
-  'list','inspect','pick'
-];
+export const WORKSHOP_TOOLS=SHARED_TOOLS;
 const json=output=>{
   try{return JSON.parse(output.text)}catch{return output.text}
 };
