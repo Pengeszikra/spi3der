@@ -7,17 +7,17 @@ import { deflateRawSync, inflateRawSync } from 'node:zlib';
 const b64url=buffer=>Buffer.from(buffer).toString('base64url');
 const pack=value=>b64url(deflateRawSync(Buffer.from(JSON.stringify(value)),{level:9}));
 const unpack=encoded=>JSON.parse(inflateRawSync(Buffer.from(encoded,'base64url'),{maxOutputLength:250000}).toString('utf8'));
-import { widgetHTML } from './workshop-widget.js';
+import { widgetHTML, APP_ORIGIN } from './workshop-widget.js';
 import { WORKSHOP_TOOLS } from './workshop-tools.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
 
-export const RESOURCE_URI='ui://spi3der/workshop-v4.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html'];
+export const RESOURCE_URI='ui://spi3der/workshop-v5.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html'];
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000;
 const displayTool={
   name:'open_workshop',
-  description:'Open the interactive spi3der 3D workshop inside ChatGPT. The browser itself builds and renders the geometry; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Continue previous model by passing its returned workshop_token as from. Model results are only confirmed after the embedded widget runs.',
+  description:'Open the complete native spi3der editor inside ChatGPT. The browser builds the scene and loads the real editor with its original UI and key bindings; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Continue previous model by passing its returned workshop_token as from. Model results are only confirmed after the embedded widget runs.',
   inputSchema:{
     type:'object',
     properties:{
@@ -37,7 +37,7 @@ const debugTool={
 const widgetEventTool={
   name:'report_widget_event',
   description:'Internal diagnostic event from the embedded workshop; not used for normal model building.',
-  inputSchema:{type:'object',properties:{trace_id:{type:'string'},phase:{type:'string',enum:['widget_loaded','widget_rendered','widget_error','widget_empty']},widgetObjects:{type:'number'},widgetFaces:{type:'number'}},required:['trace_id','phase']},
+  inputSchema:{type:'object',properties:{trace_id:{type:'string'},phase:{type:'string',enum:['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded']},widgetObjects:{type:'number'},widgetFaces:{type:'number'}},required:['trace_id','phase']},
   annotations:{readOnlyHint:false,openWorldHint:false}
 };
 const err=(id,code,message)=>({jsonrpc:'2.0',id,error:{code,message}});
@@ -75,17 +75,17 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     const { publicTools }=await import('./http.js');
     return answer(id,{tools:[...publicTools().map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool]});
   }
-  if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Browser-local 3D modeling and WebGL2 viewport embedded in the conversation'}))});
+  if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI&&!LEGACY_RESOURCE_URIS.includes(params.uri))return err(id,-32002,'resource not found');
-    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v4',payloadBytes:Buffer.byteLength(widgetHTML)}));
-    return answer(id,{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:widgetHTML}]});
+    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v5',payloadBytes:Buffer.byteLength(widgetHTML)}));
+    return answer(id,{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:widgetHTML,_meta:{ui:{csp:{frameDomains:[APP_ORIGIN]}}}}]});
   }
   if(method==='initialize')return answer(id,{
     protocolVersion:params.protocolVersion||'2025-06-18',
     capabilities:{tools:{},resources:{listChanged:false}},
     serverInfo:{name:'spi3der',title:'spi3der',version},
-    instructions:'spi3der runs the interactive 3D modeling engine and WebGL2 renderer inside the ChatGPT browser widget. open_workshop relays modeling steps, not computed meshes. Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
+    instructions:'spi3der builds scenes locally inside the ChatGPT widget and embeds the full native editor from its own origin. open_workshop relays modeling steps, not computed meshes. Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
   });
   if(method==='tools/call'&&params.name==='debug_trace'){
     const trace=readTrace(params.arguments?.trace_id);
@@ -93,7 +93,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   }
   if(method==='tools/call'&&params.name==='report_widget_event'){
     const args=params.arguments||{};
-    const allowed=['widget_loaded','widget_rendered','widget_error','widget_empty'];
+    const allowed=['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded'];
     const accepted=allowed.includes(args.phase)&&recordTrace(args.trace_id,args.phase,{widgetObjects:args.widgetObjects,widgetFaces:args.widgetFaces});
     return answer(id,{content:[{type:'text',text:JSON.stringify({accepted})}]});
   }
