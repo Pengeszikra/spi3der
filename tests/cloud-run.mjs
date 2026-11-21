@@ -34,6 +34,15 @@ try {
   assert.equal(liveVersion.version, expectedVersion);
   assert.equal(liveVersion.gitHash, testCommit);
   assert.equal(liveVersion.shortHash, testCommit.slice(0, 8));
+  // Docker must preserve source identity before the final image drops .git.
+  const { readFileSync } = await import('node:fs');
+  const dockerfile = readFileSync(new URL('../Dockerfile',import.meta.url),'utf8');
+  const dockerignore = readFileSync(new URL('../.dockerignore',import.meta.url),'utf8');
+  assert.match(dockerfile, /git rev-parse HEAD/, 'Docker source build must capture HEAD');
+  assert.match(dockerfile, /mcp\/build-sha\.txt/, 'Docker must embed the source SHA');
+  assert.match(dockerfile, /rm -rf \.git/, 'Final runtime must not expose Git metadata');
+  assert.ok(!dockerignore.split(/\r?\n/).some(line=>line.trim()==='.git'),
+    '.git must reach the source stage to identify the exact commit');
   const displayVersion = (v) => {
     const [yy, mm, packed] = v.split('.').map(Number);
     return [yy,String(mm).padStart(2,'0'),String(Math.floor(packed/1000)).padStart(2,'0'),String(packed%1000).padStart(3,'0')].join('.');
