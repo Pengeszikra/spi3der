@@ -6,11 +6,11 @@ import { readFile } from 'node:fs/promises';
 import { extname, resolve, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import mcpHandler from '../api/mcp.mjs';
+import { buildInfo } from '../mcp/build-info.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const port = Number(process.env.PORT || 8080);
-const appPackage = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
-const versionInfo = JSON.stringify({name: appPackage.name, version: appPackage.version});
+const versionInfo = JSON.stringify(buildInfo);
 const types = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -92,5 +92,5 @@ createServer(async (req, res) => {
     res.end('Internal server error');
   }
 }).listen(port, '0.0.0.0', () => {
-  console.log('spi3der Cloud Run server listening on ' + port);
+  console.log('spi3der ' + buildInfo.label + ' Cloud Run server listening on ' + port);
 });
