@@ -8,7 +8,7 @@ The editor opens with **no scene** and **does not request VR** until you choose 
 
 ## ChatGPT-native MCP App Workshop (browser-local)
 
-The **primary** spi3der workshop is a standalone HTML/JavaScript modeler inside the ChatGPT conversation, served as an MCP Apps resource `ui://spi3der/workshop-v3.html` (`text/html;profile=mcp-app`). It renders with **the existing `src/workshop-view.js` WebGL2 viewer** or a Canvas 2D fallback; all geometry operations run in the browser through `mcp/workshop-client.js`. The widget is self-contained: no JavaScript or geometry is fetched at runtime.
+The **primary** spi3der workshop is a standalone HTML/JavaScript modeler inside the ChatGPT conversation, served as an MCP Apps resource `ui://spi3der/workshop-v4.html` (`text/html;profile=mcp-app`). It renders with **the existing `src/workshop-view.js` WebGL2 viewer** or a Canvas 2D fallback; all geometry operations run in the browser through `mcp/workshop-client.js`. The widget is self-contained: no JavaScript or geometry is fetched at runtime. Its viewport starts with the controls hidden. Press **UI** (upper right) to show/hide the Fit, Reset view, object list, and collapsible DEBUG panel; orbit and zoom keep working with the controls hidden.
 
 `open_workshop` is a **thin MCP command relay**. It validates and compresses declarative modeling steps and sends `structuredContent.steps` to the widget; it does not invoke the headless `build_model` engine or produce a mesh. A `trace_id` covers the MCP request. Successful modeling can be verified **only in the browser widget**, not merely from `response_ready`.
 
@@ -61,10 +61,7 @@ A GitHub push alone does not deploy Cloud Run unless the project has configured 
 the embedded ChatGPT workshop now show the spi3der package version followed by
 the actual build's Git commit (shortened to 8 characters in UI). The full
 hash is available in the JSON response and browser title/debug panel.
-The container excludes `.git`, so `SPI3DER_GIT_SHA` must be set on
-deployment (the command above does that). If absent, the UI prints
-`git ?` rather than guessing at the checked-out or latest GitHub commit.
-Run the command from a clean checkout of the commit being deployed.
+The multi-stage Dockerfile captures `git rev-parse HEAD` while the source checkout is present, stores it as a private `mcp/build-sha.txt`, then removes `.git` before producing the runtime image. A build from a source archive **without** `.git` must pass `--build-arg SPI3DER_GIT_SHA=<exact-source-commit>` to Docker, or set `SPI3DER_GIT_SHA` on the Cloud Run service (as in the command above). Never substitute the latest remote branch SHA: it might not match the deployed source. If the SHA truly is unavailable, the UI shows `git ?` instead of inventing an identity. Verify the deployed image at `GET /api/version` after redeploy.
 
 ## MCP debugging and timeout correlation
 
