@@ -34,5 +34,7 @@ jobs:
           node tests/mcp-widget-bridge.mjs
       - name: Test npm version release lifecycle
         run: node tests/release.mjs
+      - name: Test embedded Git SHA with no source checkout
+        run: node tests/build-info.mjs
       - name: Test Cloud Run static and MCP routes
         run: node tests/cloud-run.mjs
