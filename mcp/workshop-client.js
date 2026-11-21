@@ -29,20 +29,22 @@ export class WorkshopModel {
     this.scene=json(result);
     if(!Array.isArray(this.scene?.objects))throw Error('scene export returned no objects');
   }
-  apply(tool,args={}){
+  apply(tool,args={},refresh=true){
     if(!WORKSHOP_TOOLS.includes(tool))throw Error('unsupported browser workshop tool: '+tool);
     if(!args||typeof args!=='object'||Array.isArray(args))throw Error('args must be an object');
     const result=this.core.call(tool,args);
     if(result.isError)throw Error(result.text);
-    this.refresh();
+    if(refresh)this.refresh();
     return json(result);
   }
   replay(steps){
     if(!Array.isArray(steps)||steps.length>400)throw Error('too many workshop steps');
-    return steps.map((step,index)=>{
-      try{return {step:index,tool:step.tool,result:this.apply(step.tool,step.args||{})}}
+    const results=steps.map((step,index)=>{
+      try{return {step:index,tool:step.tool,result:this.apply(step.tool,step.args||{},false)}}
       catch(error){return {step:index,tool:step?.tool,error:String(error?.message||error)}}
     });
+    this.refresh();
+    return results;
   }
   data(){return copy(this.scene)}
 }
