@@ -1,6 +1,7 @@
 // Self-contained MCP Apps HTML: scripts are copied into the resource, never fetched at runtime.
 // Both model construction and graphics happen in the ChatGPT iframe/browser.
 import { readFileSync } from 'node:fs';
+import { buildInfo } from './build-info.js';
 const modelSource=readFileSync(new URL('./workshop-client.js',import.meta.url),'utf8').replace(/^export /gm,'');
 const viewSource=readFileSync(new URL('../src/workshop-view.js',import.meta.url),'utf8').replace(/^export /gm,'');
 export const widgetHTML = `<!doctype html>
@@ -19,7 +20,7 @@ canvas{display:block;width:100%;height:100%;touch-action:none}
 #error{position:absolute;left:13px;top:39px;color:#ff9e8f;max-width:75%;white-space:pre-wrap;pointer-events:none}
 </style></head><body>
 <div id="viewport"><canvas id="scene" aria-label="Interactive 3D scene, drag to orbit, wheel to zoom"></canvas>
-<span id="brand">spi3der · 3Draft workshop</span><span id="status">Waiting for ChatGPT scene…</span>
+<span id="brand">spi3der ${buildInfo.label} · workshop</span><span id="status">Waiting for ChatGPT scene…</span>
 <span id="error"></span><button id="fit" type="button">Fit</button>
 <details id="debug"><summary>DEBUG</summary><pre id="debug-data">Awaiting scene…</pre></details>
 </div>
@@ -31,7 +32,7 @@ ${viewSource}
 const canvas=document.getElementById('scene'),status=document.getElementById('status');
 const errorNode=document.getElementById('error'),debugData=document.getElementById('debug-data');
 let activeTrace=null,hasReported=false,currentModel=null;
-const debug={status:'awaiting host output',trace_id:'—',engine:'browser',renderer:'uninitialized',objects:0,faces:0,host_callTool:typeof window.openai?.callTool==='function'?'available':'unavailable'};
+const debug={status:'awaiting host output',build:${JSON.stringify(buildInfo.label)},git_hash:${JSON.stringify(buildInfo.gitHash || 'unavailable')},trace_id:'—',engine:'browser',renderer:'uninitialized',objects:0,faces:0,host_callTool:typeof window.openai?.callTool==='function'?'available':'unavailable'};
 const updateDebug=patch=>{Object.assign(debug,patch);debugData.textContent=Object.entries(debug).map(([k,v])=>k+': '+v).join('\\n')};
 updateDebug({});
 function report(phase,counts={}){
