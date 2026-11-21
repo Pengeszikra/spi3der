@@ -1,6 +1,6 @@
 {
   "name": "spi3der",
-  "version": "26.11.20005",
+  "version": "26.11.21002",
   "description": "Browser-native 3D scene building, WebXR and ViRtuSH, based on 3Draft",
   "license": "MIT",
   "type": "module",
