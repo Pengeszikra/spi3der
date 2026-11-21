@@ -955,7 +955,27 @@
     const pitchEl = document.getElementById('pitch');
     const countEl = document.getElementById('count');
     const surfaceEl = document.getElementById('surface');
-    document.getElementById('build').textContent = displayVersion(version);
+    // The header displays *spi3der's deployed package version*, never 3Draft's engine version.
+    // /api/version is served by Cloud Run from the package.json inside this running container.
+    const buildEl = document.getElementById('build');
+    buildEl.title = 'spi3der application version (deployed package.json)';
+    fetch('/api/version', { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) throw new Error('Version endpoint: HTTP ' + response.status);
+        return response.json();
+      })
+      .then(({ name, version: appVersion }) => {
+        if (name !== 'spi3der' || !/^\\d+\\.\\d+\\.\\d+$/.test(appVersion)) throw new Error('Invalid spi3der version');
+        const [yy, mm, packed] = appVersion.split('.').map(Number);
+        buildEl.textContent = [yy, String(mm).padStart(2, '0'),
+          String(Math.floor(packed / 1000)).padStart(2, '0'),
+          String(packed % 1000).padStart(3, '0')].join('.');
+      })
+      .catch((error) => {
+        buildEl.textContent = 'spi3der ?';
+        buildEl.title = 'Unable to verify deployed spi3der version: ' + error.message;
+        console.warn('[spi3der] Cannot verify application version', error);
+      });
 
     const HOME = { center: [0, 0.5, 0], radius: 1.6 }; // framing of an empty scene
     const fit = { ...HOME }; // follows the scene the MCP server sends
