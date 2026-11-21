@@ -25,8 +25,10 @@ const oldResource=await call(300,'resources/read',{uri:'ui://spi3der/workshop-v1
 assert.equal(oldResource.result.contents[0].uri,'ui://spi3der/workshop-v1.html', 'legacy cached UI must remain readable');
 const oldV2=await call(301,'resources/read',{uri:'ui://spi3der/workshop-v2.html'});
 assert.equal(oldV2.result.contents[0].uri,'ui://spi3der/workshop-v2.html');
-assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v3.html', 'full engine needs a fresh widget resource to bypass old host cache');
-assert.match(widgetHTML, /method,params\},'\*'\)/);
+assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v4.html', 'UI changes need a fresh resource to bypass old host cache');
+const oldV3=await call(302,'resources/read',{uri:'ui://spi3der/workshop-v3.html'});
+assert.equal(oldV3.result.contents[0].uri,'ui://spi3der/workshop-v3.html');
+assert.match(widgetHTML, /method,params\\},'\\*'\\)/);
 assert.ok(widgetHTML.includes("bridgeSend('ui/initialize'"), 'browser must initialize MCP Apps UI bridge');
 assert.ok(widgetHTML.includes("bridgeSend('ui/notifications/initialized')"), 'browser must acknowledge host handshake');
 assert.ok(widgetHTML.includes("bridgeSend('ui/notifications/size-changed'"), 'browser must report widget height');
@@ -39,6 +41,9 @@ assert.ok(widgetHTML.includes('const __spi3der_m'), 'browser modules have self-c
 assert.ok(widgetHTML.includes('class WorkshopView'));
 assert.ok(widgetHTML.includes('Canvas 2D fallback'));
 assert.ok(widgetHTML.includes('<summary>DEBUG</summary>'));
+assert.ok(widgetHTML.includes('id="ui-toggle"'), 'UI toggle must be exposed');
+assert.ok(widgetHTML.includes('id="ui-panel" hidden'), 'controls should begin hidden');
+assert.ok(widgetHTML.includes("uiPanel.hidden=!uiPanel.hidden"), 'controls must be toggleable');
 assert.ok(widgetHTML.includes('spi3der ' + buildInfo.label), 'workshop must display its actual build identity');
 assert.ok(widgetHTML.includes('trace_id'));
 assert.ok(widgetHTML.includes('widget_rendered'));
