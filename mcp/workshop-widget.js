@@ -123,7 +123,7 @@ const INIT_ID='spi3der-ui-init';
 window.addEventListener('message',event=>{
   if(event.source!==window.parent)return;
   const msg=event.data;
-  if(!msg||msg.jsonrpc!=='2.0)return;
+  if(!msg||msg.jsonrpc!=='2.0')return;
   if(msg.id===INIT_ID){
     if(msg.result){
       bridgeReady=true;
