@@ -18,7 +18,11 @@ spi3der is the interactive 3D workshop and eyes for AI agents: a bidirectional b
 - The standalone `workshop.html` / `npm run workshop` UI was rejected by the owner: do not extend or promote it as the product. Keep legacy prototype only for diagnostics until deliberately removed.
 - The **primary** spi3der workshop is an MCP App widget rendered *inside the ChatGPT conversation*, not another browser tab.
 - An MCP `open_workshop` / `build_model` tool returns a UI resource using `_meta.ui.resourceUri` (with `openai/outputTemplate` compatibility), MIME type `text/html;profile=mcp-app`.
-- The embedded UI is the **3D viewport only**: orbit, zoom, and natural object interaction. Do not recreate chatbot controls or a full editor toolbar. The conversation is the command surface.
+- The embedded workshop must use **spi3der's actual application UI and existing keyboard shortcuts/key bindings** as its authoritative interaction model. The normal editor panels, toggles, navigation, selection, and keyboard handling are part of the workshop experience; do not silently replace them with a separately invented miniature interface.
+- **Never proactively design, add, or rebuild UI.** An instruction to open or test the workshop, create a model, or exercise MCP tools is **not** authorization to invent controls, panels, toolbars, overlays, or a custom UI. Change UI only when the owner explicitly requests that UI change.
+- Reuse the existing application's UI/input code and command mapping wherever technically possible, rather than maintaining a second imitation of spi3der. Keyboard, mouse/trackpad, XR, and MCP operations must map to the existing app behavior, not to agent-invented shortcuts.
+- In ChatGPT, the conversation can issue modeling commands, but it must not displace or redefine the app's own UI. If embedding or host keyboard focus restrictions prevent an existing function from working, report the precise limitation and propose an integration fix **without fabricating substitute UI**.
+- A "UI test" means testing the **real spi3der controls and key bindings** in the intended workshop host: existing panels/toggles, pointer/orbit/zoom, shortcut dispatch, input focus, event capture, and any host-reserved keys. Compare behavior to the regular browser app. An MCP command relay response alone proves neither UI behavior nor that keyboard shortcuts work.
 - The plugin MCP layer is separate from the reusable headless 3Draft core. Widget-specific presentation metadata belongs in spi3der.
 - Initial MVP must demonstrate the widget rendered in ChatGPT and model changes reflected in it; avoid claiming a working live two-way persistent session until host callbacks, state transport, and tests prove it.
 - Plan for N participants with independent cameras, and for a nonblocking instruction queue, but build these on the shared session layer incrementally.
@@ -45,5 +49,5 @@ Use the exact same date-based npm-compatible scheme as 3Draft (see `Pengeszikra/
 1. Inspect the relevant source, tests, `APP.md`, `MCP.md`, and `README.md` before changes; legacy project documents can be stale.
 2. Prefer small, independently testable changes; run `npm test` when dependencies/environment permit.
 3. Verify user-to-agent and agent-to-user scene synchronization before promising inline interactive use in any host.
-4. No architectural changes or unrequested product concepts by assumption; document proposed interfaces separately.
+4. No architectural changes or unrequested product concepts by assumption; document proposed interfaces separately. In particular, never proactively build or redesign the UI during workshop integration or testing.
 5. State clearly what was changed, what was validated, and what remains unfinished.
