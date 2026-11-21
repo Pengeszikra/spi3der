@@ -1,6 +1,6 @@
 // ChatGPT MCP Apps transport for the browser-local spi3der workshop.
 // The server validates/forwards commands and records timing; it does NOT build geometry.
-import { readFileSync } from 'node:fs';
+import { buildInfo } from './build-info.js';
 import { performance } from 'node:perf_hooks';
 import { deflateRawSync, inflateRawSync } from 'node:zlib';
 // The workshop only compresses the declarative command history; no 3Draft imports.
@@ -12,7 +12,7 @@ import { WORKSHOP_TOOLS } from './workshop-client.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
 
 export const RESOURCE_URI='ui://spi3der/workshop-v1.html';
-const version=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')).version;
+const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000;
 const displayTool={
   name:'open_workshop',
@@ -111,12 +111,14 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
       const workshop_token=pack(state);
       const payload={
         trace_id,engine:'browser',steps,baseScene:history.baseScene,
-        workshop_token,revision:1,requestedSteps:args.steps.length
+        workshop_token,revision:1,requestedSteps:args.steps.length,
+        build:buildInfo
       };
       const result={
         structuredContent:payload,
         content:[{type:'text',text:JSON.stringify({
           trace_id,engine:'browser',queuedSteps:args.steps.length,totalSteps:steps.length,
+          build:buildInfo.label,gitHash:buildInfo.gitHash,
           workshop_token,
           note:'Geometry is built by the embedded browser widget, not the MCP server.'
         })}],
