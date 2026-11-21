@@ -10,19 +10,19 @@ test('compact native controls: save, character, tutorial', () => {
   for (const id of ['sceneSave', 'charBtn', 'tutorialKeyToggle']) {
     const button = html.match(new RegExp('<button id="' + id + '"[^>]*>[\\s\\S]*?<\\/button>'))?.[0];
     assert.ok(button, id + ' control is present');
-    assert.match(button, /class="[^"]*\\bic\\b/);
+    assert.ok(button.includes(' ic"'), id + ' uses the compact icon size');
     assert.match(button, /aria-label="[^"]+"/);
   }
   assert.match(html, /id="sceneSave"[^>]*><svg/);
-  assert.match(html, /id="charBtn"[^>]*>🧍<\\/button>/);
+  assert.ok(html.includes('aria-label="Character builder">🧍</button>'));
   assert.match(html, /id="tutorialKeyToggle"[^>]*aria-pressed="false"/);
-  assert.match(html, /src="\\.\\/src\\/tutorial-keycast\\.js"/);
+  assert.ok(html.includes('src="./src/tutorial-keycast.js"'));
 });
 
 test('only the embedded workshop starts in the existing Zen mode', () => {
-  assert.match(html, /window\\.parent !== window && new URLSearchParams\\(location\\.search\\)\\.has\\('workshop'\\)/);
-  assert.match(html, /if \\(WORKSHOP_EMBED\\) toggleZen\\(true\\);/);
-  assert.match(html, /if \\(document\\.body\\.classList\\.contains\\('zen'\\)\\) return void toggleZen\\(false\\)/);
+  assert.ok(html.includes("window.parent !== window && new URLSearchParams(location.search).has('workshop')"));
+  assert.ok(html.includes('if (WORKSHOP_EMBED) toggleZen(true);'));
+  assert.ok(html.includes("if (document.body.classList.contains('zen')) return void toggleZen(false)"));
 });
 
 test('keycast is opt-in, passive, click-through and persists its toggle state', () => {
