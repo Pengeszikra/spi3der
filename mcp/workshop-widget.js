@@ -39,6 +39,7 @@ const status=document.getElementById('status');
 const errorNode=document.getElementById('error');
 let bridgeOutput=null,bridgeInput=null,bridgeReady=false;
 let activeTrace=null,serial=0,modelCounts={objects:0,faces:0};
+let nativeEditorReady=false,nativeSceneReady=false,nativeKeySeen=false;
 
 function bridgeSend(method,params={},id){
   if(window.parent===window)return;
@@ -79,6 +80,7 @@ async function receive(){
   if(activeTrace===trace&&frame.getAttribute('src'))return;
   const request=++serial;
   activeTrace=trace;
+  nativeEditorReady=false;nativeSceneReady=false;nativeKeySeen=false;
   errorNode.hidden=true;
   status.hidden=false;
   status.textContent='Preparing the native spi3der scene…';
@@ -109,8 +111,8 @@ async function receive(){
 }
 frame.addEventListener('load',()=>{
   if(!frame.getAttribute('src'))return;
-  status.hidden=true;
-  // This confirms iframe navigation, NOT model rendering or keyboard focus.
+  // Navigation alone is NOT a completed editor, scene, or keyboard test.
+  if(!nativeSceneReady)status.textContent='spi3der frame loaded; waiting for native scene…';
   report('native_frame_loaded');
 });
 frame.addEventListener('error',()=>{
@@ -121,6 +123,35 @@ frame.addEventListener('error',()=>{
 });
 const INIT_ID='spi3der-ui-init';
 window.addEventListener('message',event=>{
+  // Accept native editor status only from the actual child window and exact deployed origin.
+  if(event.source===frame.contentWindow && event.origin===APP_ORIGIN){
+    const d=event.data;
+    if(d?.source!=='spi3der-native')return;
+    if(d.phase==='native_editor_ready' && !nativeEditorReady){
+      nativeEditorReady=true;
+      report('native_editor_ready');
+    }else if(d.phase==='native_scene_loaded' && !nativeSceneReady){
+      if(d.objects!==modelCounts.objects){
+        errorNode.hidden=false;
+        errorNode.textContent='spi3der: native scene count mismatch ('+d.objects+' vs '+modelCounts.objects+')';
+        status.hidden=true;
+        report('widget_error');
+        return;
+      }
+      nativeSceneReady=true;
+      status.hidden=true;
+      report(modelCounts.objects?'widget_rendered':'widget_empty');
+    }else if(d.phase==='native_scene_error'){
+      errorNode.hidden=false;
+      errorNode.textContent='spi3der could not import the workshop scene';
+      status.hidden=true;
+      report('widget_error');
+    }else if(d.phase==='native_key_seen' && !nativeKeySeen){
+      nativeKeySeen=true;
+      report('native_key_seen');
+    }
+    return;
+  }
   if(event.source!==window.parent)return;
   const msg=event.data;
   if(!msg||msg.jsonrpc!=='2.0')return;

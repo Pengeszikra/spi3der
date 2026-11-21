@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { Script } from 'node:vm';
 import { handleWorkshopMcp, RESOURCE_URI } from '../mcp/workshop-app.js';
 import { widgetHTML } from '../mcp/workshop-widget.js';
 import { WorkshopModel, WORKSHOP_TOOLS } from '../mcp/workshop-client.js';
 import { buildInfo } from '../mcp/build-info.js';
 
+const nativeEditor=readFileSync(new URL('../index.html', import.meta.url),'utf8');
+for(const signal of ["workshopNotice('native_editor_ready')","workshopNotice('native_scene_loaded'","workshopNotice('native_key_seen')"])assert.ok(nativeEditor.includes(signal),'native app must emit '+signal);
+assert.ok(nativeEditor.includes("e.target?.closest?.('input, textarea, select, [contenteditable]')"),'no text-input keyboard logging');
 const ctx={origin:'https://spi3der.example',fetchText:async()=>{throw Error('no remote data needed')}};
 const call=(id,method,params={})=>handleWorkshopMcp({jsonrpc:'2.0',id,method,params},ctx);
 const init=await call(1,'initialize',{protocolVersion:'2025-06-18'});
@@ -25,11 +29,13 @@ const oldResource=await call(300,'resources/read',{uri:'ui://spi3der/workshop-v1
 assert.equal(oldResource.result.contents[0].uri,'ui://spi3der/workshop-v1.html', 'legacy cached UI must remain readable');
 const oldV2=await call(301,'resources/read',{uri:'ui://spi3der/workshop-v2.html'});
 assert.equal(oldV2.result.contents[0].uri,'ui://spi3der/workshop-v2.html');
-assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v5.html', 'UI changes need a fresh resource to bypass old host cache');
+assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v6.html', 'UI changes need a fresh resource to bypass old host cache');
 const oldV3=await call(302,'resources/read',{uri:'ui://spi3der/workshop-v3.html'});
 assert.equal(oldV3.result.contents[0].uri,'ui://spi3der/workshop-v3.html');
 const oldV4=await call(303,'resources/read',{uri:'ui://spi3der/workshop-v4.html'});
 assert.equal(oldV4.result.contents[0].uri,'ui://spi3der/workshop-v4.html');
+const oldV5=await call(304,'resources/read',{uri:'ui://spi3der/workshop-v5.html'});
+assert.equal(oldV5.result.contents[0].uri,'ui://spi3der/workshop-v5.html');
 assert.deepEqual(resource.result.contents[0]._meta.ui.csp.frameDomains,['https://spi3der.cloud.run']);
 assert.match(widgetHTML, /method,params\},'\*'\)/);
 assert.ok(widgetHTML.includes("bridgeSend('ui/initialize'"), 'browser must initialize MCP Apps UI bridge');
@@ -47,6 +53,9 @@ assert.ok(widgetHTML.includes('new CompressionStream('), 'scene links use native
 assert.ok(!widgetHTML.includes('id="ui-toggle"'), 'no separate miniature toolbar');
 assert.ok(!widgetHTML.includes('class WorkshopView'), 'no duplicate WebGL viewer in the MCP widget');
 assert.ok(widgetHTML.includes('native_frame_loaded'), 'iframe navigation is distinguishable from rendering');
+assert.ok(widgetHTML.includes('native_editor_ready'), 'native editor readiness is observable');
+assert.ok(widgetHTML.includes('native_key_seen'), 'native keyboard focus is observable');
+assert.ok(widgetHTML.includes('event.origin===APP_ORIGIN'), 'native messages require trusted origin');
 assert.ok(widgetHTML.includes(buildInfo.label), 'workshop must preserve the true spi3der build identity');
 assert.ok(widgetHTML.includes('trace_id'));
 assert.ok(widgetHTML.includes('native_frame_loaded'));

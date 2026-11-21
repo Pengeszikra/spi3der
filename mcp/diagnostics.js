@@ -8,7 +8,7 @@ const TTL_MS = 15 * 60 * 1000;
 const MAX_EVENTS = 48;
 const traces = new Map();
 const fields = new Set(['stepCount','objects','vertices','faces','payloadBytes','durationMs','phase','reason','httpStatus','widgetObjects','widgetFaces']);
-const phases = new Set(['request_received','steps_validated','model_started','model_finished','scene_unpacked','response_ready','request_failed','widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded']);
+const phases = new Set(['request_received','steps_validated','model_started','model_finished','scene_unpacked','response_ready','request_failed','widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen']);
 const number = value => typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.round(value)) : undefined;
 function trim() {
   const now = Date.now();
@@ -49,7 +49,9 @@ export function recordTrace(id, phase, details = {}) {
   if (phase === 'response_ready') t.status = 'server_complete';
   if (phase === 'request_failed') t.status = 'server_error';
   if (phase === 'widget_rendered') t.status = 'widget_rendered';
-  if (phase === 'native_frame_loaded') t.status = 'native_frame_loaded';
+  if (phase === 'native_frame_loaded' && t.status === 'server_complete') t.status = 'native_frame_loaded';
+  if (phase === 'native_editor_ready' && !['widget_rendered','widget_empty'].includes(t.status)) t.status = 'native_editor_ready';
+  if (phase === 'native_key_seen' && !['widget_rendered','widget_empty','widget_error'].includes(t.status)) t.status = 'native_key_seen';
   if (phase === 'widget_error') t.status = 'widget_error';
   log(t, e);
   return true;

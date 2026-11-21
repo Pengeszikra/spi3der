@@ -939,6 +939,17 @@
     const orbit_ = (o = {}) => orbitView({ roll, ...o });
     const LEG = { base: 0.15 }; // the base of a placed prism
 
+    const WORKSHOP_EMBED = window.parent !== window && new URLSearchParams(location.search).has('workshop');
+    // Diagnostic-only bridge from the existing editor. No duplicate UI or command map.
+    const workshopNotice = (phase, data = {}) => {
+      if (WORKSHOP_EMBED) window.parent.postMessage({ source: 'spi3der-native', phase, ...data }, '*');
+    };
+    let workshopKeySeen = false;
+    if (WORKSHOP_EMBED) window.addEventListener('keydown', (e) => {
+      if (workshopKeySeen || e.repeat || e.target?.closest?.('input, textarea, select, [contenteditable]')) return;
+      workshopKeySeen = true;
+      workshopNotice('native_key_seen'); // never transmit actual key values
+    }, true);
     const stage = document.getElementById('stage');
     const frame = document.getElementById('frame');
     let canvas = document.getElementById('gpu');
@@ -4880,6 +4891,7 @@
         if ((replace || !mergeOn) && had) clearScene();
         await addScene(data);
         if (data.view && (replace || !mergeOn || !had)) applyView(data.view);
+        workshopNotice('native_scene_loaded', { objects: allObjects().length });
       });
     // a sky catalogue ('3draft-sky', src/sky.ts) -> a scene; its warnings go to the scene note
     const fromSky = (sky) => {
@@ -13686,6 +13698,7 @@
           await withLoader(data.name ?? (sky ? 'sky catalogue' : 'model'), async () => loadScene(sky ? fromSky(data) : data, true));
           targetByName(linkTarget);
         } catch (e) {
+          workshopNotice('native_scene_error');
           sceneNote(`the link's scene could not be read: ${e.message}`);
         }
       }, 0);
@@ -13693,6 +13706,7 @@
 
     draw();
     window.__ready = true;
+    workshopNotice('native_editor_ready');
     // works offline once opened (not in an artifact, nor from a file)
     if (!EMBED && 'serviceWorker' in navigator && location.protocol.startsWith('http') && !globalThis.claude?.use) navigator.serviceWorker.register('sw.js').catch(() => {});
     // Leaving by accident: the browser asks first (closing the tab, reloading, typing another address) once something has been made

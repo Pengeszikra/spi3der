@@ -14,7 +14,7 @@ const posted=[],listeners=new Map(),frameEvents=new Map();
 const nodes={
   host:{getBoundingClientRect:()=>({width:860,height:730})},
   spi3der:{
-    attrs:{},
+    attrs:{},contentWindow:{},
     getAttribute(key){return this.attrs[key]||null},
     setAttribute(key,value){this.attrs[key]=value},
     addEventListener(key,fn){frameEvents.set(key,fn)}
@@ -77,6 +77,16 @@ assert.equal(nodes.error.hidden,true);
 assert.ok(posted.some(m=>m.params?.name==='report_widget_event'&&m.params.arguments.phase==='widget_loaded'));
 
 frameEvents.get('load')();
-assert.equal(nodes.status.hidden,true);
+assert.equal(nodes.status.hidden,false,'iframe navigation must not claim successful scene loading');
 assert.ok(posted.some(m=>m.params?.name==='report_widget_event'&&m.params.arguments.phase==='native_frame_loaded'));
-console.log('spi3der MCP handshake, native editor URL, scene transfer and frame lifecycle: OK');
+const native=(phase,extra={})=>onMessage({source:nodes.spi3der.contentWindow,origin:'https://spi3der.cloud.run',data:{source:'spi3der-native',phase,...extra}});
+onMessage({source:nodes.spi3der.contentWindow,origin:'https://evil.invalid',data:{source:'spi3der-native',phase:'native_editor_ready'}});
+assert.equal(posted.some(m=>m.params?.arguments?.phase==='native_editor_ready'),false,'foreign origins cannot fake editor readiness');
+native('native_editor_ready');
+assert.equal(posted.some(m=>m.params?.arguments?.phase==='native_editor_ready'),true);
+native('native_scene_loaded',{objects:1});
+assert.equal(nodes.status.hidden,true,'scene load is confirmed by the native app');
+assert.equal(posted.some(m=>m.params?.arguments?.phase==='widget_rendered'),true);
+native('native_key_seen');
+assert.equal(posted.some(m=>m.params?.arguments?.phase==='native_key_seen'),true);
+console.log('spi3der MCP handshake, native readiness, scene, keyboard feedback, and origin guard: OK');

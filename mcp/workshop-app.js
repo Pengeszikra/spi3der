@@ -11,8 +11,8 @@ import { widgetHTML, APP_ORIGIN } from './workshop-widget.js';
 import { WORKSHOP_TOOLS } from './workshop-tools.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
 
-export const RESOURCE_URI='ui://spi3der/workshop-v5.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html'];
+export const RESOURCE_URI='ui://spi3der/workshop-v6.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html'];
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000;
 const displayTool={
@@ -37,7 +37,7 @@ const debugTool={
 const widgetEventTool={
   name:'report_widget_event',
   description:'Internal diagnostic event from the embedded workshop; not used for normal model building.',
-  inputSchema:{type:'object',properties:{trace_id:{type:'string'},phase:{type:'string',enum:['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded']},widgetObjects:{type:'number'},widgetFaces:{type:'number'}},required:['trace_id','phase']},
+  inputSchema:{type:'object',properties:{trace_id:{type:'string'},phase:{type:'string',enum:['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen']},widgetObjects:{type:'number'},widgetFaces:{type:'number'}},required:['trace_id','phase']},
   annotations:{readOnlyHint:false,openWorldHint:false}
 };
 const err=(id,code,message)=>({jsonrpc:'2.0',id,error:{code,message}});
@@ -78,7 +78,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI&&!LEGACY_RESOURCE_URIS.includes(params.uri))return err(id,-32002,'resource not found');
-    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v5',payloadBytes:Buffer.byteLength(widgetHTML)}));
+    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v6',payloadBytes:Buffer.byteLength(widgetHTML)}));
     return answer(id,{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:widgetHTML,_meta:{ui:{csp:{frameDomains:[APP_ORIGIN]}}}}]});
   }
   if(method==='initialize')return answer(id,{
@@ -93,7 +93,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   }
   if(method==='tools/call'&&params.name==='report_widget_event'){
     const args=params.arguments||{};
-    const allowed=['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded'];
+    const allowed=['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen'];
     const accepted=allowed.includes(args.phase)&&recordTrace(args.trace_id,args.phase,{widgetObjects:args.widgetObjects,widgetFaces:args.widgetFaces});
     return answer(id,{content:[{type:'text',text:JSON.stringify({accepted})}]});
   }
