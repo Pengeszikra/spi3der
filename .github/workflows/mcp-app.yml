@@ -22,13 +22,16 @@ jobs:
           node --check mcp/workshop-client.js
           node --check src/workshop-view.js
           node --check tests/mcp-app.mjs
+          node --check tests/mcp-widget-bridge.mjs
           node --check bin/cloud-run.mjs
           node --check tests/cloud-run.mjs
           node --check scripts/release.mjs
           node --check scripts/check-publish.mjs
           node --check tests/release.mjs
       - name: Test ChatGPT widget MCP contract
-        run: npm run test:mcp-app
+        run: |
+          npm run test:mcp-app
+          node tests/mcp-widget-bridge.mjs
       - name: Test npm version release lifecycle
         run: node tests/release.mjs
       - name: Test Cloud Run static and MCP routes
