@@ -10,9 +10,10 @@ const unpack=encoded=>JSON.parse(inflateRawSync(Buffer.from(encoded,'base64url')
 import { widgetHTML, APP_ORIGIN } from './workshop-widget.js';
 import { WORKSHOP_TOOLS } from './workshop-tools.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
+import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enqueueWorkshopEdit, rejectWorkshopEdit } from './workshop-session.js';
 
-export const RESOURCE_URI='ui://spi3der/workshop-v6.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html'];
+export const RESOURCE_URI='ui://spi3der/workshop-v7.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html'];
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000;
 const displayTool={
@@ -40,6 +41,15 @@ const widgetEventTool={
   inputSchema:{type:'object',properties:{trace_id:{type:'string'},phase:{type:'string',enum:['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen']},widgetObjects:{type:'number'},widgetFaces:{type:'number'}},required:['trace_id','phase']},
   annotations:{readOnlyHint:false,openWorldHint:false}
 };
+const sharedTools=[
+  {name:'workshop_state',description:'Read the latest live spi3der workshop scene, object bounds, revision and pending edit status using the session_id returned by open_workshop. Set include_scene=true for exact mesh geometry.',inputSchema:{type:'object',properties:{session_id:{type:'string'},include_scene:{type:'boolean'}},required:['session_id']},annotations:{readOnlyHint:true,openWorldHint:false}},
+  {name:'workshop_edit',description:'Apply changes to the SAME open spi3der workshop. Submit browser-local modeling steps against the exact revision from workshop_state; the active widget executes and displays them. Check workshop_state later for applied status. A queued response is not completion.',inputSchema:{type:'object',properties:{session_id:{type:'string'},revision:{type:'integer'},steps:{type:'array',items:{type:'object',properties:{tool:{type:'string',enum:WORKSHOP_TOOLS},args:{type:'object'}},required:['tool']}}},required:['session_id','revision','steps']},annotations:{readOnlyHint:false,openWorldHint:false}},
+  {name:'workshop_poll',description:'Internal read-only widget poll for queued modeling operations.',inputSchema:{type:'object',properties:{session_id:{type:'string'}},required:['session_id']},annotations:{readOnlyHint:true,openWorldHint:false}},
+  {name:'workshop_publish',description:'Internal widget callback: publish native editor scene after an edit with optimistic revision matching.',inputSchema:{type:'object',properties:{session_id:{type:'string'},revision:{type:'integer'},scene:{type:'object'},batch_id:{type:'string'}},required:['session_id','revision','scene']},annotations:{readOnlyHint:false,openWorldHint:false}},
+  {name:'workshop_reject',description:'Internal widget callback: release an invalid queued batch and report the error.',inputSchema:{type:'object',properties:{session_id:{type:'string'},batch_id:{type:'string'},reason:{type:'string'}},required:['session_id','batch_id']},annotations:{readOnlyHint:false,openWorldHint:false}}
+];
+const sharedResult=(id,value)=>answer(id,{content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value});
+const sharedError=(id,e)=>answer(id,{isError:true,content:[{type:'text',text:JSON.stringify({error:String(e?.message||e).slice(0,200)})}]});
 const err=(id,code,message)=>({jsonrpc:'2.0',id,error:{code,message}});
 const answer=(id,result)=>({jsonrpc:'2.0',id,result});
 const toolError=(id,trace_id,reason)=>answer(id,{isError:true,content:[{type:'text',text:JSON.stringify({trace_id,error:'workshop_failed',reason})}]});
@@ -73,12 +83,12 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(method==='tools/list'){
     // Legacy tools remain available, but are only imported for discovery/use.
     const { publicTools }=await import('./http.js');
-    return answer(id,{tools:[...publicTools().map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool]});
+    return answer(id,{tools:[...publicTools().map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool,...sharedTools]});
   }
   if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI&&!LEGACY_RESOURCE_URIS.includes(params.uri))return err(id,-32002,'resource not found');
-    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v6',payloadBytes:Buffer.byteLength(widgetHTML)}));
+    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v7',payloadBytes:Buffer.byteLength(widgetHTML)}));
     return answer(id,{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:widgetHTML,_meta:{ui:{csp:{frameDomains:[APP_ORIGIN]}}}}]});
   }
   if(method==='initialize')return answer(id,{
@@ -87,6 +97,23 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     serverInfo:{name:'spi3der',title:'spi3der',version},
     instructions:'spi3der builds scenes locally inside the ChatGPT widget and embeds the full native editor from its own origin. open_workshop relays modeling steps, not computed meshes. Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
   });
+  if(method==='tools/call'&&sharedTools.some(x=>x.name===params.name)){
+    const args=params.arguments||{};
+    try{
+      if(params.name==='workshop_state')return sharedResult(id,readWorkshopSession(args.session_id,args.include_scene===true));
+      if(params.name==='workshop_poll'){
+        const state=readWorkshopSession(args.session_id);
+        return sharedResult(id,{session_id:state.session_id,revision:state.revision,ready:state.ready,pending:state.pending,last_edit:state.last_edit});
+      }
+      if(params.name==='workshop_edit'){
+        validateSteps(args.steps);
+        if(!args.steps?.length||args.steps.length>100)throw Error('steps must contain 1 to 100 operations');
+        return sharedResult(id,enqueueWorkshopEdit(args));
+      }
+      if(params.name==='workshop_publish')return sharedResult(id,publishWorkshopScene(args));
+      if(params.name==='workshop_reject')return sharedResult(id,rejectWorkshopEdit(args));
+    }catch(e){return sharedError(id,e);}
+  }
   if(method==='tools/call'&&params.name==='debug_trace'){
     const trace=readTrace(params.arguments?.trace_id);
     return answer(id,{content:[{type:'text',text:JSON.stringify(trace||{status:'not_found_or_expired'})}]});
@@ -110,16 +137,17 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
       const serialized=JSON.stringify(state);
       if(Buffer.byteLength(serialized)>MAX_PAYLOAD)throw Error('workshop_history_too_large');
       const workshop_token=pack(state);
+      const session_id=createWorkshopSession();
       const payload={
         trace_id,engine:'browser',steps,baseScene:history.baseScene,
-        workshop_token,revision:1,requestedSteps:args.steps.length,
+        workshop_token,session_id,revision:0,requestedSteps:args.steps.length,
         build:buildInfo
       };
       const result={
         structuredContent:payload,
         content:[{type:'text',text:JSON.stringify({
           trace_id,engine:'browser',queuedSteps:args.steps.length,totalSteps:steps.length,
-          build:buildInfo.label,gitHash:buildInfo.gitHash,
+          session_id,build:buildInfo.label,gitHash:buildInfo.gitHash,
           workshop_token,
           note:'Geometry is built by the embedded browser widget, not the MCP server.'
         })}],

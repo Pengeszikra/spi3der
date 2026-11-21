@@ -26,6 +26,9 @@ spi3der is the interactive 3D workshop and eyes for AI agents: a bidirectional b
 - The plugin MCP layer is separate from the reusable headless 3Draft core. Widget-specific presentation metadata belongs in spi3der.
 - Initial MVP must demonstrate the widget rendered in ChatGPT and model changes reflected in it; avoid claiming a working live two-way persistent session until host callbacks, state transport, and tests prove it.
 - Plan for N participants with independent cameras, and for a nonblocking instruction queue, but build these on the shared session layer incrementally.
+- Shared workshop v7 MVP: the real native editor emits `native_scene_changed` from its existing rebuild path; the ChatGPT MCP App publishes the exported scene with an optimistic revision. `workshop_state` observes human changes and `workshop_edit` queues agent steps for **the same live iframe**. The widget applies steps with browser-local `WorkshopModel` and imports through the native `loadScene`. An accepted queue entry is never proof the scene changed: check `last_edit.status`.
+- Session storage is process-local, time-limited and capability-scoped; it is not durable or multi-instance safe. The browser may be disconnected. Never claim live sync until a real host-side acceptance test validates both directions; see WORKSHOP.md. Preserve the no-duplicate-UI rule throughout.
+
 
 ## Multi-participant and interruptible-work principles
 - No privileged world origin: (0,0,0) is not a special user or AI seat. A scene may serve N participants, including humans and AI agents.
