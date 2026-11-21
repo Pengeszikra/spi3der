@@ -46,8 +46,9 @@ One origin serves the browser application, `POST /mcp` and the compatible `POST 
 It does **not** require a Vercel deployment. The legacy scene-store API is not hosted here.
 
 ```sh
-# Authenticate with the Google Cloud project that owns spi3der before deploying:
-gcloud run deploy spi3der --source . --region europe-west1 --allow-unauthenticated
+# Deploy exactly the current Git commit and expose its SHA in the UI + MCP widget:
+gcloud run deploy spi3der --source . --region europe-west1 --allow-unauthenticated \
+  --update-env-vars "SPI3DER_GIT_SHA=$(git rev-parse HEAD)"
 # Check the actual Cloud Run service URL; do not guess the hostname:
 gcloud run services describe spi3der --region europe-west1 --format='value(status.url)'
 ```
@@ -55,6 +56,15 @@ gcloud run services describe spi3der --region europe-west1 --format='value(statu
 Use the returned service URL plus `/mcp` as the ChatGPT custom MCP server URL.
 Test locally with `PORT=8080 node bin/cloud-run.mjs` and `node tests/cloud-run.mjs`.
 A GitHub push alone does not deploy Cloud Run unless the project has configured its own deployment trigger.
+
+`GET /api/version`, the main editor's build stamp, the MCP tool result, and
+the embedded ChatGPT workshop now show the spi3der package version followed by
+the actual build's Git commit (shortened to 8 characters in UI). The full
+hash is available in the JSON response and browser title/debug panel.
+The container excludes `.git`, so `SPI3DER_GIT_SHA` must be set on
+deployment (the command above does that). If absent, the UI prints
+`git ?` rather than guessing at the checked-out or latest GitHub commit.
+Run the command from a clean checkout of the commit being deployed.
 
 ## MCP debugging and timeout correlation
 
