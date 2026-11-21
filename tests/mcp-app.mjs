@@ -17,6 +17,8 @@ const tool=listed.result.tools.find(x=>x.name==='open_workshop');
 assert.equal(tool?._meta?.ui?.resourceUri,RESOURCE_URI);
 assert.ok(tool.description.includes('browser itself builds'));
 assert.ok(WORKSHOP_TOOLS.includes('add_box'));
+assert.equal(WORKSHOP_TOOLS.length,24,'browser and build_model must advertise the same 24 modeling operations');
+for(const advanced of ['add_character','place_on','sense','sensing','boolean','connect','disconnect','joints','move_joint','pick'])assert.ok(WORKSHOP_TOOLS.includes(advanced),advanced);
 const resource=await call(3,'resources/read',{uri:RESOURCE_URI});
 assert.equal(resource.result.contents[0].mimeType,'text/html;profile=mcp-app');
 const oldResource=await call(300,'resources/read',{uri:'ui://spi3der/workshop-v1.html'});
@@ -30,6 +32,8 @@ assert.ok(widgetHTML.includes("msg.method==='ui/notifications/tool-result'"), 'b
 assert.ok(widgetHTML.includes("msg.method==='ui/notifications/tool-input'"), 'browser must accept standard MCP Apps input');
 assert.ok(widgetHTML.includes("window.openai?.toolOutput"), 'legacy ChatGPT global remains supported');
 assert.ok(widgetHTML.includes('WorkshopModel'));
+assert.ok(widgetHTML.includes('const createScene'), 'canonical 3Draft core is bundled into widget');
+assert.ok(widgetHTML.includes('const __spi3der_m'), 'browser modules have self-contained lexical scopes');
 assert.ok(widgetHTML.includes('class WorkshopView'));
 assert.ok(widgetHTML.includes('Canvas 2D fallback'));
 assert.ok(widgetHTML.includes('<summary>DEBUG</summary>'));
@@ -96,8 +100,29 @@ assert.ok(faceNormal(p.faces[1].v)[1]<0,'bottom face must point downward');
 assert.ok(faceNormal(p.faces[2].v)[2]<0,'south face must point outwards');
 assert.equal(prism.replay([{tool:'transform',args:{name:'prism',rotate_y:90}}]).filter(x=>x.error).length,0);
 
+// Full 3Draft operations execute locally, rather than falling back to server geometry.
+const advanced=new WorkshopModel();
+const advancedSteps=advanced.replay([
+  {tool:'add_box',args:{name:'solid',size:[2,2,2],at:[0,1,0]}},
+  {tool:'add_box',args:{name:'cutter',size:[1,3,1],at:[0,1,0]}},
+  {tool:'boolean',args:{a:'solid',b:'cutter',op:'subtract',name:'cut-solid'}},
+  {tool:'inspect',args:{name:'cut-solid'}},
+  {tool:'sense',args:{from:[0,3,0],dir:[0,-1,0]}},
+]);
+assert.deepEqual(advancedSteps.filter(x=>x.error),[],'advanced CSG and sense must run using 3Draft inside the model');
+assert.equal(advanced.scene.objects.length,1);
+assert.ok(advanced.scene.objects[0].mesh.faces.length>6,'boolean must generate cut faces');
+const jointModel=new WorkshopModel();
+const jointSteps=jointModel.replay([
+  {tool:'add_box',args:{name:'holder',size:[2,1,2],at:[0,.5,0]}},
+  {tool:'add_box',args:{name:'door',size:[1,2,.1],at:[2,1,0]}},
+  {tool:'connect',args:{type:'hinge',a:'holder',b:'door',axis:[[1.5,0,0],[1.5,2,0]]}},
+  {tool:'joints',args:{}},
+]);
+assert.deepEqual(jointSteps.filter(x=>x.error),[],'hinge creation and inspection should be available in browser');
+assert.ok(jointModel.scene.joints?.length===1);
 // Server validation rejects unsupported operations; never silently execute on server.
-const bad=await call(7,'tools/call',{name:'open_workshop',arguments:{steps:[{tool:'boolean',args:{op:'subtract'}}]}});
+const bad=await call(7,'tools/call',{name:'open_workshop',arguments:{steps:[{tool:'not_a_modeling_tool',args:{}}]}});
 assert.equal(bad.result.isError,true);
 const badTrace=JSON.parse(bad.result.content[0].text);
 assert.ok(badTrace.trace_id);
