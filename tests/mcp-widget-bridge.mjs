@@ -22,6 +22,10 @@ const nodes={
   error:{textContent:''},
   'debug-data':{textContent:''},
   fit:{onclick:null},
+  'reset-view':{onclick:null},
+  'ui-toggle':{onclick:null,attributes:{},setAttribute(k,v){this.attributes[k]=v}},
+  'ui-panel':{hidden:true},
+  'object-list':{textContent:''},
   viewport:{getBoundingClientRect:()=>({width:480,height:320})},
 };
 const parent={postMessage(message){posted.push(message);}};
@@ -38,6 +42,12 @@ const vmContext=createContext({
   console:{log(){},debug(){},error(){}},
 });
 new Script(script).runInContext(vmContext);
+assert.equal(nodes['ui-panel'].hidden,true,'controls start hidden');
+nodes['ui-toggle'].onclick();
+assert.equal(nodes['ui-panel'].hidden,false,'UI toggle opens controls');
+assert.equal(nodes['ui-toggle'].attributes['aria-expanded'],'true');
+nodes['ui-toggle'].onclick();
+assert.equal(nodes['ui-panel'].hidden,true,'UI toggle closes controls');
 const init=posted.find(m=>m.method==='ui/initialize');
 assert.ok(init,'MCP Apps initialization request must be sent');
 assert.equal(init.params.appInfo.name,'spi3der');
@@ -55,6 +65,7 @@ onMessage({source:parent,data:{
   params:{structuredContent:{trace_id:'browser-probe',steps:[cube],baseScene:null}}
 }});
 assert.match(nodes.status.textContent,/1 object\(s\).*6 faces/);
+assert.equal(nodes['object-list'].textContent,'probe-cube');
 assert.match(nodes['debug-data'].textContent,/widget_rendered/);
 assert.ok(posted.some(m=>m.method==='tools/call'&&m.params?.name==='report_widget_event'), 'render telemetry should use the MCP bridge');
 console.log('spi3der iframe handshake, tool-result, local modeling, canvas fallback: OK');
