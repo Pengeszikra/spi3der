@@ -1,4 +1,5 @@
-.git
+# Preserve Git metadata in the Docker build context to capture the exact source HEAD.
+# The builder strips it before producing the runtime image.
 .github
 node_modules
 tests
