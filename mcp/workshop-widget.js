@@ -41,10 +41,11 @@ function report(phase,counts={}){
   updateDebug({status:phase,objects:counts.objects??debug.objects,faces:counts.faces??debug.faces});
   console.debug('[spi3der workshop]',activeTrace,phase,counts);
   const call=window.openai?.callTool;
+  const args={trace_id:activeTrace,phase,widgetObjects:counts.objects??0,widgetFaces:counts.faces??0};
   if(typeof call==='function'){
-    try{Promise.resolve(call.call(window.openai,'report_widget_event',{
-      trace_id:activeTrace,phase,widgetObjects:counts.objects??0,widgetFaces:counts.faces??0
-    })).catch(()=>{})}catch(_ignored){}
+    try{Promise.resolve(call.call(window.openai,'report_widget_event',args)).catch(()=>{})}catch(_ignored){}
+  }else if(bridgeReady){
+    bridgeSend('tools/call',{name:'report_widget_event',arguments:args},'spi3der-trace-'+phase);
   }
 }
 function createCanvasFallback(element){
