@@ -3,6 +3,7 @@ import { Script } from 'node:vm';
 import { handleWorkshopMcp, RESOURCE_URI } from '../mcp/workshop-app.js';
 import { widgetHTML } from '../mcp/workshop-widget.js';
 import { WorkshopModel, WORKSHOP_TOOLS } from '../mcp/workshop-client.js';
+import { buildInfo } from '../mcp/build-info.js';
 
 const ctx={origin:'https://spi3der.example',fetchText:async()=>{throw Error('no remote data needed')}};
 const call=(id,method,params={})=>handleWorkshopMcp({jsonrpc:'2.0',id,method,params},ctx);
@@ -22,6 +23,7 @@ assert.ok(widgetHTML.includes('WorkshopModel'));
 assert.ok(widgetHTML.includes('class WorkshopView'));
 assert.ok(widgetHTML.includes('Canvas 2D fallback'));
 assert.ok(widgetHTML.includes('<summary>DEBUG</summary>'));
+assert.ok(widgetHTML.includes('spi3der ' + buildInfo.label), 'workshop must display its actual build identity');
 assert.ok(widgetHTML.includes('trace_id'));
 assert.ok(widgetHTML.includes('widget_rendered'));
 assert.ok(widgetHTML.includes('host_callTool'));
@@ -36,6 +38,8 @@ const result=await call(4,'tools/call',{name:'open_workshop',arguments:{steps:[c
 assert.ok(!result.result.isError,JSON.stringify(result));
 const out=result.result.structuredContent;
 assert.equal(out.engine,'browser');
+assert.equal(out.build.version, liveVersion);
+assert.equal(out.build.gitHash, buildInfo.gitHash);
 assert.equal(out.steps.length,1);
 assert.equal(out.steps[0].tool,'add_box');
 assert.ok(!('scene' in out),'MCP server must not compute scene geometry');
