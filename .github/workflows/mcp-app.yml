@@ -18,6 +18,8 @@ jobs:
         run: |
           node --check api/mcp.mjs
           node --check mcp/workshop-app.js
+          node --check mcp/workshop-session.js
+          node --check tests/workshop-session.mjs
           node --check mcp/workshop-widget.js
           node --check mcp/workshop-client.js
           node --check src/workshop-view.js
