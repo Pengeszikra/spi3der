@@ -581,6 +581,7 @@
       footer.console button.chip[hidden] { display: none; }
       footer.console button.ic { width: 34px; height: 30px; padding: 0; display: inline-grid; place-items: center; }
       footer.console button.ic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      #charBtn { font-size: 19px; }
       footer.console button.red { background: var(--red); color: #1b0803; }
       footer.console button.teal { background: var(--teal); color: #04181a; }
       footer.console button.slate { background: #3a382f; color: var(--cream); }
@@ -862,13 +863,13 @@
         </span>
         <span class="row">
           <input id="sceneName" type="text" placeholder="name" maxlength="40" spellcheck="false" autocapitalize="off" aria-label="Name of the scene to save" title="The name a scene is saved under here (empty: a dated name)">
-          <button id="sceneSave" type="button" class="cream" title="Save the scene on this computer (this browser) under that name; it then shows in the list">save</button>
+          <button id="sceneSave" type="button" class="cream ic" title="Save the scene on this computer (this browser) under that name; it then shows in the list" aria-label="Save scene"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h14l3 3v15H3V3h1M7 3v7h10V3M7 21v-8h10v8M9 6h6"/></svg></button>
           <button id="sceneCloud" type="button" class="teal" hidden title="Save the scene online, in the store, under that name: then every device opens it from the list (online). The first time it asks for the store's key. Shift+click: take that name out of the store">☁</button>
           <button id="sceneDown" type="button" class="cream" title="Download the scene as a .3draft file (3Draft scene JSON)">f↓</button>
           <button id="sceneOpen" type="button" class="cream" title="Add a scene from a .json file">f↑</button>
           <button id="sceneForget" type="button" class="slate" title="Forget the saved scene with the name in the box">✕</button>
           <button id="boolBtn" type="button" class="slate" title="Boolean: select two objects (B), then this; the first taken is A, the second B">bool</button>
-          <button id="charBtn" type="button" class="teal" title="Assets: the character builder. Make a figure from a few sliders, hair, clothes and a prop (presets: scientist, mechanic, space crew, astronaut; every part a palette material), then place it at the cross; edit a placed one">char</button>
+          <button id="charBtn" type="button" class="teal ic" title="Assets: the character builder. Make a figure from a few sliders, hair, clothes and a prop (presets: scientist, mechanic, space crew, astronaut; every part a palette material), then place it at the cross; edit a placed one" aria-label="Character builder">🧍</button>
           <input id="sceneFile" type="file" accept=".3draft,.json,application/json" hidden>
         </span>
       </span>
@@ -877,7 +878,7 @@
           <button id="undo" type="button" class="slate ic" title="Undo (U)" aria-label="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7L4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12" transform="translate(0 -5)"/></svg></button>
           <button id="reset" type="button" class="slate ic" title="Reset the view" aria-label="Reset view"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5"/></svg></button>
           <button id="zen" type="button" class="slate ic" title="Zen: only the model (Z)" aria-label="Zen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-          <button id="keys" type="button" class="teal ic" title="Help: every mode and key (?)" aria-label="Help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8M12 17h.01"/></svg></button>
+          <button id="keys" type="button" class="teal ic" title="Help: every mode and key (?)" aria-label="Help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8M12 17h.01"/></svg></button><button id="tutorialKeyToggle" type="button" class="slate ic" title="Tutorial keycast: show keyboard shortcuts at the top of the scene (click-through)" aria-label="Toggle tutorial key display" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M6 9h1M10 9h1M14 9h1M18 9h1M6 12h1M10 12h1M14 12h1M18 12h1M7 15h10"/></svg></button>
         </span>
         <span class="row">
           <button id="rec" type="button" class="red" title="Record: starts from an empty scene and writes every move and key into a JSON file when you press it again">rec</button>
@@ -13737,6 +13738,8 @@
     else if (!EMBED && !SHOW && sceneParam) setTimeout(() => addExample(sceneParam).then(() => targetByName(linkTarget)).catch((e) => sceneNote(`scene: ${e.message}`)), 0);
 
     draw();
+    // Embedded ChatGPT workshop opens in the existing Zen view; Z, Esc or the native exit button restores the editor.
+    if (WORKSHOP_EMBED) toggleZen(true);
     window.__ready = true;
     workshopNotice('native_editor_ready');
     // works offline once opened (not in an artifact, nor from a file)
@@ -13804,5 +13807,6 @@
     }, 20000);
     window.addEventListener('load', () => setTimeout(() => { if (window.__booted) try { sessionStorage.removeItem('engine-retry'); } catch {} }, 1000));
   </script>
+  <script defer src="./src/tutorial-keycast.js"></script>
 </body>
 </html>
