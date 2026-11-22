@@ -29,7 +29,7 @@ const oldResource=await call(300,'resources/read',{uri:'ui://spi3der/workshop-v1
 assert.equal(oldResource.result.contents[0].uri,'ui://spi3der/workshop-v1.html', 'legacy cached UI must remain readable');
 const oldV2=await call(301,'resources/read',{uri:'ui://spi3der/workshop-v2.html'});
 assert.equal(oldV2.result.contents[0].uri,'ui://spi3der/workshop-v2.html');
-assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v7.html', 'UI changes need a fresh resource to bypass old host cache');
+assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v8.html', 'UI changes need a fresh resource to bypass old host cache');
 const oldV3=await call(302,'resources/read',{uri:'ui://spi3der/workshop-v3.html'});
 assert.equal(oldV3.result.contents[0].uri,'ui://spi3der/workshop-v3.html');
 const oldV4=await call(303,'resources/read',{uri:'ui://spi3der/workshop-v4.html'});
@@ -38,6 +38,8 @@ const oldV5=await call(304,'resources/read',{uri:'ui://spi3der/workshop-v5.html'
 assert.equal(oldV5.result.contents[0].uri,'ui://spi3der/workshop-v5.html');
 const oldV6=await call(305,'resources/read',{uri:'ui://spi3der/workshop-v6.html'});
 assert.equal(oldV6.result.contents[0].uri,'ui://spi3der/workshop-v6.html');
+const oldV7=await call(3031,'resources/read',{uri:'ui://spi3der/workshop-v7.html'});
+assert.equal(oldV7.result.contents[0].uri,'ui://spi3der/workshop-v7.html');
 assert.deepEqual(resource.result.contents[0]._meta.ui.csp.frameDomains,['https://spi3der.cloud.run']);
 assert.match(widgetHTML, /method,params\},'\*'\)/);
 assert.ok(widgetHTML.includes("bridgeSend('ui/initialize'"), 'browser must initialize MCP Apps UI bridge');
@@ -89,6 +91,15 @@ assert.equal(out.steps[0].tool,'add_box');
 assert.ok(!('scene' in out),'MCP server must not compute scene geometry');
 assert.ok(typeof out.workshop_token==='string'&&out.workshop_token.length>10);
 assert.equal(result.result._meta.ui.resourceUri,RESOURCE_URI);
+// Large commands must not be duplicated in the tool result as uncompressed
+// structured steps plus a compressed replay token.
+const large=await call(404,'tools/call',{name:'open_workshop',arguments:{steps:[{
+  tool:'add_box',args:{name:'big-payload-cube',size:[1,1,1],at:[0,.5,0],comment:'x'.repeat(35000)}
+}]}});
+assert.equal(large.result.isError,undefined);
+assert.equal(large.result.structuredContent.encoding,'deflate-raw+base64url');
+assert.equal(large.result.structuredContent.steps,undefined);
+assert.ok(large.result.structuredContent.workshop_token.length>10);
 
 // Run exactly the commands the iframe receives, entirely in a pure JS model.
 const browser=new WorkshopModel(out.baseScene||undefined);
