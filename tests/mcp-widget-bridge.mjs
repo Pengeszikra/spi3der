@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { Script, createContext } from 'node:vm';
 import { TextEncoder } from 'node:util';
+import { deflateRawSync, inflateRawSync } from 'node:zlib';
 import { widgetHTML } from '../mcp/workshop-widget.js';
 
 const script=widgetHTML.match(/<script>([\s\S]*?)<\/script>/)?.[1];
@@ -28,6 +29,9 @@ const win={parent,addEventListener(key,fn){listeners.set(key,fn)}};
 class IdentityCompressionStream {
   constructor(type){assert.equal(type,'deflate-raw')}
 }
+class IdentityDecompressionStream {
+  constructor(type){assert.equal(type,'deflate-raw')}
+}
 class MockBlob {
   constructor(parts){this.bytes=parts[0]}
   stream(){return {pipeThrough:()=>this.bytes}}
@@ -37,6 +41,7 @@ class MockResponse {
   async arrayBuffer(){
     return this.bytes.buffer.slice(this.bytes.byteOffset,this.bytes.byteOffset+this.bytes.byteLength)
   }
+  async text(){return inflateRawSync(this.bytes).toString('utf8')}
 }
 const vm=createContext({
   window:win,
@@ -44,6 +49,8 @@ const vm=createContext({
   ResizeObserver:class{observe(){}},
   setInterval(fn){timers.push(fn);return timers.length},
   CompressionStream:IdentityCompressionStream,
+  DecompressionStream:IdentityDecompressionStream,
+  atob:value=>Buffer.from(value,'base64').toString('binary'),
   TextEncoder,
   Blob:MockBlob,
   Response:MockResponse,
@@ -91,6 +98,13 @@ assert.equal(nodes.status.hidden,true,'scene load is confirmed by the native app
 assert.equal(posted.some(m=>m.params?.arguments?.phase==='widget_rendered'),true);
 native('native_key_seen');
 assert.equal(posted.some(m=>m.params?.arguments?.phase==='native_key_seen'),true);
+// Compressed large-history payload still reconstructs the exact native scene.
+const packedHistory=deflateRawSync(Buffer.from(JSON.stringify({format:'spi3der-workshop-history',version:1,steps:[cube],baseScene:null}))).toString('base64url');
+onMessage({source:parent,data:{jsonrpc:'2.0',method:'ui/notifications/tool-result',
+  params:{structuredContent:{trace_id:'compact-test',workshop_token:packedHistory,encoding:'deflate-raw+base64url'}}}});
+await new Promise(resolve=>setImmediate(resolve));
+assert.match(nodes.spi3der.getAttribute('src'),/^https:\/\/spi3der\.cloud\.run\/\?workshop=1#scene=/);
+assert.equal(nodes.error.hidden,true);
 // True shared-scene flow: the original native iframe publishes hand edits,
  // an agent queues an edit, the same iframe receives and imports it.
 const sid='b'.repeat(40);
