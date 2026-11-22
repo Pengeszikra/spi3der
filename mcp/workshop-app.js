@@ -12,10 +12,10 @@ import { WORKSHOP_TOOLS } from './workshop-tools.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
 import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enqueueWorkshopEdit, rejectWorkshopEdit } from './workshop-session.js';
 
-export const RESOURCE_URI='ui://spi3der/workshop-v7.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html'];
+export const RESOURCE_URI='ui://spi3der/workshop-v8.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html'];
 const version=buildInfo.version;
-const MAX_STEPS=400, MAX_PAYLOAD=250000;
+const MAX_STEPS=400, MAX_PAYLOAD=250000, COMPACT_HISTORY_BYTES=32768;
 const displayTool={
   name:'open_workshop',
   description:'Open the complete native spi3der editor inside ChatGPT. The browser builds the scene and loads the real editor with its original UI and key bindings; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Continue previous model by passing its returned workshop_token as from. Model results are only confirmed after the embedded widget runs.',
@@ -137,9 +137,14 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
       const serialized=JSON.stringify(state);
       if(Buffer.byteLength(serialized)>MAX_PAYLOAD)throw Error('workshop_history_too_large');
       const workshop_token=pack(state);
+      // Large declarative models (especially add_mesh) previously travelled twice:
+      // as raw steps and as the compressed replay token. Keep only the token for
+      // large requests so the host never has to shuttle megabytes of duplicate JSON.
+      const compact=Buffer.byteLength(serialized)>COMPACT_HISTORY_BYTES;
       const session_id=createWorkshopSession();
       const payload={
-        trace_id,engine:'browser',steps,baseScene:history.baseScene,
+        trace_id,engine:'browser',
+        ...(!compact?{steps,baseScene:history.baseScene}:{encoding:'deflate-raw+base64url'}),
         workshop_token,session_id,revision:0,requestedSteps:args.steps.length,
         build:buildInfo
       };
