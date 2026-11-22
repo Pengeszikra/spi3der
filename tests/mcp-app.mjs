@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Script } from 'node:vm';
+import { deflateRawSync } from 'node:zlib';
 import { handleWorkshopMcp, RESOURCE_URI } from '../mcp/workshop-app.js';
 import { widgetHTML } from '../mcp/workshop-widget.js';
 import { WorkshopModel, WORKSHOP_TOOLS } from '../mcp/workshop-client.js';
@@ -20,6 +21,7 @@ const listed=await call(2,'tools/list');
 const tool=listed.result.tools.find(x=>x.name==='open_workshop');
 assert.equal(tool?._meta?.ui?.resourceUri,RESOURCE_URI);
 assert.ok(tool.description.includes('browser builds the scene'));
+assert.ok(!tool.inputSchema.required?.includes('steps'),'open_workshop steps must be optional for scene-only reopening');
 assert.ok(WORKSHOP_TOOLS.includes('add_box'));
 assert.equal(WORKSHOP_TOOLS.length,24,'browser and build_model must advertise the same 24 modeling operations');
 for(const advanced of ['add_character','place_on','sense','sensing','boolean','connect','disconnect','joints','move_joint','pick'])assert.ok(WORKSHOP_TOOLS.includes(advanced),advanced);
@@ -91,6 +93,30 @@ assert.equal(out.steps[0].tool,'add_box');
 assert.ok(!('scene' in out),'MCP server must not compute scene geometry');
 assert.ok(typeof out.workshop_token==='string'&&out.workshop_token.length>10);
 assert.equal(result.result._meta.ui.resourceUri,RESOURCE_URI);
+
+// Opening an empty workshop or reopening a previous scene must not require
+// artificial modeling commands. This previously failed with a 400-step error.
+const emptyWorkshop=await call(405,'tools/call',{name:'open_workshop',arguments:{}});
+assert.ok(!emptyWorkshop.result.isError, 'empty editor should open without steps');
+assert.deepEqual(emptyWorkshop.result.structuredContent.steps,[]);
+assert.equal(emptyWorkshop.result.structuredContent.requestedSteps,0);
+const reopenedToken=await call(406,'tools/call',{name:'open_workshop',arguments:{from:out.workshop_token}});
+assert.ok(!reopenedToken.result.isError,'workshop_token should reopen without steps');
+assert.equal(reopenedToken.result.structuredContent.steps.length,1);
+assert.equal(reopenedToken.result.structuredContent.requestedSteps,0);
+const exportedScene=new WorkshopModel();
+assert.deepEqual(exportedScene.replay([cubeStep]).filter(x=>x.error),[]);
+const sceneLink='https://spi3der.cloud.run/#scene='+
+  deflateRawSync(Buffer.from(JSON.stringify(exportedScene.data()))).toString('base64url');
+const reopenedScene=await call(407,'tools/call',{name:'open_workshop',arguments:{from:sceneLink}});
+assert.ok(!reopenedScene.result.isError,'build_model #scene link should reopen without steps');
+assert.equal(reopenedScene.result.structuredContent.steps.length,0);
+assert.equal(reopenedScene.result.structuredContent.baseScene.objects.length,1);
+assert.equal(new WorkshopModel(reopenedScene.result.structuredContent.baseScene).scene.objects.length,1);
+const invalidSteps=await call(408,'tools/call',{name:'open_workshop',arguments:{steps:null}});
+assert.equal(invalidSteps.result.isError,true,'explicit invalid steps must still be rejected');
+const excessiveSteps=await call(409,'tools/call',{name:'open_workshop',arguments:{steps:Array.from({length:401},()=>({tool:'list'}))}});
+assert.equal(excessiveSteps.result.isError,true,'400-step safety limit must remain intact');
 // Large commands must not be duplicated in the tool result as uncompressed
 // structured steps plus a compressed replay token.
 const large=await call(404,'tools/call',{name:'open_workshop',arguments:{steps:[{
