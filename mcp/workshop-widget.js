@@ -158,13 +158,23 @@ async function packScene(scene){
   for(let i=0;i<compressed.length;i+=8192)binary+=String.fromCharCode(...compressed.subarray(i,i+8192));
   return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
+async function unpackHistory(token){
+  if(typeof DecompressionStream!=='function')throw Error('This browser does not support deflate-raw DecompressionStream');
+  const encoded=token.replace(/-/g,'+').replace(/_/g,'/');
+  const binary=atob(encoded+'='.repeat((4-encoded.length%4)%4));
+  const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+  const json=await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+  const history=JSON.parse(json);
+  if(history?.format!=='spi3der-workshop-history'||history.version!==1||!Array.isArray(history.steps))throw Error('Invalid compressed workshop history');
+  return history;
+}
 async function receive(){
   let output=bridgeOutput||window.openai?.toolOutput||window.openai?.toolResponse?.structuredContent;
-  if(!output||!Array.isArray(output.steps)){
+  if(!output||( !Array.isArray(output.steps)&&typeof output.workshop_token!=='string')){
     const args=bridgeInput||window.openai?.toolInput;
     if(!args?.from&&Array.isArray(args?.steps))output={trace_id:'input-fallback',steps:args.steps,baseScene:null};
   }
-  if(!output||!Array.isArray(output.steps))return;
+  if(!output||(!Array.isArray(output.steps)&&typeof output.workshop_token!=='string'))return;
   const trace=output.trace_id||'input-fallback';
   if(activeTrace===trace&&frame.getAttribute('src'))return;
   const request=++serial;
@@ -177,8 +187,10 @@ async function receive(){
   status.hidden=false;
   status.textContent='Preparing the native spi3der scene…';
   try{
-    const model=new WorkshopModel(output.baseScene||undefined);
-    const results=model.replay(output.steps);
+    const data=Array.isArray(output.steps)?output:await unpackHistory(output.workshop_token);
+    if(request!==serial)return;
+    const model=new WorkshopModel(data.baseScene||undefined);
+    const results=model.replay(data.steps);
     const errors=results.filter(x=>x.error);
     if(errors.length)throw Error(errors.slice(0,4).map(x=>'Step '+x.step+' ('+x.tool+'): '+x.error).join('\n'));
     const scene=model.data();

@@ -1,4 +1,4 @@
-# spi3der collaborative workshop — MCP v7 (26.11.21.009)
+# spi3der collaborative workshop — MCP v8 (26.11.22.001)
 
 This is a browser-native, ChatGPT-embedded collaboration **MVP**. The real spi3der `index.html` is the one and only editor. This protocol adds scene synchronization, not a new panel, toolbar or keyboard map.
 
@@ -13,6 +13,10 @@ This is a browser-native, ChatGPT-embedded collaboration **MVP**. The real spi3d
 7. The still-open widget polls `workshop_poll`, replays the steps in a browser-side `WorkshopModel` initialized from the last native scene, and posts `apply_scene` to the native iframe. The native editor imports it through its existing `loadScene` path and publishes the result with the `batch_id`. The server commits the new revision and reports `last_edit.status=applied`. Errors are reported via `workshop_reject`.
 8. Agent rechecks `workshop_state` before giving another geometry command. Revisions are optimistic compare-and-swap; stale edits are rejected instead of silently overwriting a human.
 
+## Large model transfer
+
+For tool requests whose declarative command history exceeds 32 KiB, `open_workshop` returns only a compressed `workshop_token` in its structured payload, not duplicate raw steps. The widget unpacks the history locally using `DecompressionStream('deflate-raw')` before executing the same `WorkshopModel`. Small calls still use direct steps for compatibility. This avoids unnecessarily large MCP responses without adding a UI or moving modelling to the server. `tests/mcp-app.mjs` and `tests/mcp-widget-bridge.mjs` exercise both paths.
+
 ## Session and security
 
 - `session_id` is a 160-bit bearer capability, and appears only in tool payloads and URL fragments (not HTTP query URLs). Treat it like a secret; do not paste it into public logs or issues.
@@ -25,7 +29,7 @@ This is a browser-native, ChatGPT-embedded collaboration **MVP**. The real spi3d
 
 ## Acceptance test
 
-1. Deploy a build with version `26.11.21.009` and the matching Git SHA. Reconnect the custom ChatGPT plugin so it reads the v7 MCP App resource.
+1. Deploy a build with version `26.11.22.001` and the matching Git SHA. Reconnect the custom ChatGPT plugin so it reads the v8 MCP App resource.
 2. Ask `open_workshop` to build a cube. Inspect the actual native editor and its native version stamp. Do not count MCP `response_ready` as proof of rendering.
 3. Call `workshop_state` using the returned `session_id`. Verify `ready=true` and the real cube's bounds.
 4. In the embedded editor, add/transform an object with its **existing** keyboard and pointer controls. Call `workshop_state` again: object count/positions and revision should change.
