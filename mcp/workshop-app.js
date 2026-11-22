@@ -18,13 +18,13 @@ const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000, COMPACT_HISTORY_BYTES=32768;
 const displayTool={
   name:'open_workshop',
-  description:'Open the complete native spi3der editor inside ChatGPT. The browser builds the scene and loads the real editor with its original UI and key bindings; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Continue previous model by passing its returned workshop_token as from. Model results are only confirmed after the embedded widget runs.',
+  description:'Open the complete native spi3der editor inside ChatGPT. The browser builds the scene and loads the real editor with its original UI and key bindings; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Pass steps to model, from to reopen a workshop_token or #scene link, or omit both to open an empty editor. steps is optional; model results are only confirmed after the embedded widget runs.',
   inputSchema:{
     type:'object',
     properties:{
-      steps:{type:'array',items:{type:'object',properties:{tool:{type:'string',enum:WORKSHOP_TOOLS},args:{type:'object'}},required:['tool']}},
+      steps:{type:'array',description:'Optional modeling operations; omit or pass [] to open an existing scene without editing it',items:{type:'object',properties:{tool:{type:'string',enum:WORKSHOP_TOOLS},args:{type:'object'}},required:['tool']}}, 
       from:{type:'string',description:'workshop_token from previous open_workshop; older #scene links also accepted'}
-    },required:['steps']
+    }
   },
   annotations:{readOnlyHint:false,openWorldHint:false},
   _meta:{ui:{resourceUri:RESOURCE_URI},'openai/outputTemplate':RESOURCE_URI}
@@ -128,9 +128,10 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     const args=params.arguments||{};
     const trace_id=startTrace(Array.isArray(args.steps)?args.steps.length:0),started=performance.now();
     try {
-      validateSteps(args.steps);
+      const requestedSteps=args.steps===undefined?[]:args.steps;
+      validateSteps(requestedSteps);
       const history=fromHistory(args.from);
-      const steps=[...history.steps,...args.steps];
+      const steps=[...history.steps,...requestedSteps];
       validateSteps(steps);
       recordTrace(trace_id,'steps_validated',{stepCount:steps.length,durationMs:performance.now()-started});
       const state={format:'spi3der-workshop-history',version:1,baseScene:history.baseScene,steps};
@@ -145,13 +146,13 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
       const payload={
         trace_id,engine:'browser',
         ...(!compact?{steps,baseScene:history.baseScene}:{encoding:'deflate-raw+base64url'}),
-        workshop_token,session_id,revision:0,requestedSteps:args.steps.length,
+        workshop_token,session_id,revision:0,requestedSteps:requestedSteps.length,
         build:buildInfo
       };
       const result={
         structuredContent:payload,
         content:[{type:'text',text:JSON.stringify({
-          trace_id,engine:'browser',queuedSteps:args.steps.length,totalSteps:steps.length,
+          trace_id,engine:'browser',queuedSteps:requestedSteps.length,totalSteps:steps.length,
           session_id,build:buildInfo.label,gitHash:buildInfo.gitHash,
           workshop_token,
           note:'Geometry is built by the embedded browser widget, not the MCP server.'
