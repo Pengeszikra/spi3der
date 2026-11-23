@@ -8,6 +8,7 @@ const b64url=buffer=>Buffer.from(buffer).toString('base64url');
 const pack=value=>b64url(deflateRawSync(Buffer.from(JSON.stringify(value)),{level:9}));
 const unpack=encoded=>JSON.parse(inflateRawSync(Buffer.from(encoded,'base64url'),{maxOutputLength:250000}).toString('utf8'));
 import { widgetHTML, APP_ORIGIN } from './workshop-widget.js';
+import { INLINE_RESOURCE_URI, inlineViewHTML, inlineCsp } from './claude-view.js';
 import { WORKSHOP_TOOLS } from './workshop-tools.js';
 import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
 import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enqueueWorkshopEdit, rejectWorkshopEdit } from './workshop-session.js';
@@ -76,16 +77,40 @@ function fromHistory(from) {
   validateSteps(value.steps);
   return {steps:value.steps,baseScene:value.baseScene||null};
 }
-export async function handleWorkshopMcp(request,{origin,fetchText}) {
+
+// Human-readable titles (MCP tool `title` and annotations.title; required by the Claude directory).
+const TITLES={open_workshop:'Open spi3der workshop',debug_trace:'Read workshop trace',report_widget_event:'Report widget event',
+  workshop_state:'Read workshop scene',workshop_edit:'Edit workshop scene',workshop_poll:'Poll workshop edits',
+  workshop_publish:'Publish workshop scene',workshop_reject:'Reject workshop edit'};
+const titleOf=name=>TITLES[name]||name.split('_').map((w,i)=>i?w:w[0].toUpperCase()+w.slice(1)).join(' ');
+// Tools only the view calls (MCP Apps visibility "app"): hidden from the model where the host supports it.
+const APP_ONLY=new Set(['report_widget_event','workshop_poll','workshop_publish','workshop_reject']);
+const withTitle=t=>({...t,title:titleOf(t.name),annotations:{title:titleOf(t.name),...(t.annotations||{})}});
+// view 'inline': the editor itself is the view (mcp/claude-view.js) — Claude, or any host that cannot frame other sites.
+function toolsFor(view,legacy){
+  const inline=view==='inline';
+  const display=inline?{...displayTool,
+    description:displayTool.description.replace('Open the complete native spi3der editor inside ChatGPT.','Open the complete native spi3der editor in the conversation.'),
+    _meta:{ui:{resourceUri:INLINE_RESOURCE_URI}}}:displayTool;
+  const own=[display,debugTool,widgetEventTool,...sharedTools].map(t=>inline&&APP_ONLY.has(t.name)?{...t,_meta:{...(t._meta||{}),ui:{visibility:['app']}}}:t);
+  return [...legacy,...own].map(withTitle);
+}
+export async function handleWorkshopMcp(request,{origin,fetchText,view}={}) {
+  const inline=view==='inline';
   if(!request||Array.isArray(request)||request.jsonrpc!=='2.0'||typeof request.method!=='string')return err(request?.id??null,-32600,'invalid request');
   const {id,method,params={}}=request;
   if(id===undefined||id===null)return null;
   if(method==='tools/list'){
     // Legacy tools remain available, but are only imported for discovery/use.
     const { publicTools }=await import('./http.js');
-    return answer(id,{tools:[...publicTools().map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool,...sharedTools]});
+    return answer(id,{tools:toolsFor(view,publicTools().map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})))});
   }
-  if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
+  if(method==='resources/list')return answer(id,{resources:[...(inline?[INLINE_RESOURCE_URI]:[]),RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
+  if(method==='resources/read'&&params.uri===INLINE_RESOURCE_URI){
+    const text=inlineViewHTML();
+    console.error(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-inline-v1',payloadBytes:Buffer.byteLength(text)}));
+    return answer(id,{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text,_meta:{ui:{csp:inlineCsp()}}}]});
+  }
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI&&!LEGACY_RESOURCE_URIS.includes(params.uri))return err(id,-32002,'resource not found');
     console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v7',payloadBytes:Buffer.byteLength(widgetHTML)}));
@@ -95,7 +120,9 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     protocolVersion:params.protocolVersion||'2025-06-18',
     capabilities:{tools:{},resources:{listChanged:false}},
     serverInfo:{name:'spi3der',title:'spi3der',version},
-    instructions:'spi3der builds scenes locally inside the ChatGPT widget and embeds the full native editor from its own origin. open_workshop relays modeling steps, not computed meshes. Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
+    instructions:inline
+      ?'spi3der builds scenes locally in the browser: the conversation view is the full native spi3der editor. open_workshop relays modeling steps, not computed meshes. Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
+      :'spi3der builds scenes locally inside the ChatGPT widget and embeds the full native editor from its own origin. open_workshop relays modeling steps, not computed meshes. Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
   });
   if(method==='tools/call'&&sharedTools.some(x=>x.name===params.name)){
     const args=params.arguments||{};
@@ -157,7 +184,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
           workshop_token,
           note:'Geometry is built by the embedded browser widget, not the MCP server.'
         })}],
-        _meta:{ui:{resourceUri:RESOURCE_URI},'openai/outputTemplate':RESOURCE_URI,'spi3der/trace_id':trace_id}
+        _meta:inline?{ui:{resourceUri:INLINE_RESOURCE_URI},'spi3der/trace_id':trace_id}:{ui:{resourceUri:RESOURCE_URI},'openai/outputTemplate':RESOURCE_URI,'spi3der/trace_id':trace_id}
       };
       recordTrace(trace_id,'response_ready',{payloadBytes:Buffer.byteLength(JSON.stringify(result)),durationMs:performance.now()-started});
       return answer(id,result);

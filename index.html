@@ -944,12 +944,17 @@
     const orbit_ = (o = {}) => orbitView({ roll, ...o });
     const LEG = { base: 0.15 }; // the base of a placed prism
 
-    const WORKSHOP_EMBED = window.parent !== window && new URLSearchParams(location.search).has('workshop');
+    // WORKSHOP_HOST: this page is itself the MCP Apps view (mcp/claude-view.js, for hosts that cannot frame another site);
+    // the bridge shell runs in this same window, so notices and scenes travel through window.postMessage, not to a parent.
+    const WORKSHOP_HOST = window.__SPI3DER_HOST__ === 'mcp-app';
+    const WORKSHOP_EMBED = WORKSHOP_HOST || (window.parent !== window && new URLSearchParams(location.search).has('workshop'));
+    const workshopPeer = WORKSHOP_HOST ? window : window.parent;
     // Diagnostic-only bridge from the existing editor. No duplicate UI or command map.
     const workshopNotice = (phase, data = {}) => {
-      if (WORKSHOP_EMBED) window.parent.postMessage({ source: 'spi3der-native', phase, ...data }, '*');
+      if (WORKSHOP_EMBED) workshopPeer.postMessage({ source: 'spi3der-native', phase, ...data }, '*');
     };
-    const workshopSessionId = WORKSHOP_EMBED ? new URLSearchParams(location.hash.slice(1)).get('session') : null;
+    // In the iframe the session comes in the #fragment; as a view it arrives with the first scene from the shell.
+    let workshopSessionId = WORKSHOP_EMBED && !WORKSHOP_HOST ? new URLSearchParams(location.hash.slice(1)).get('session') : null;
     let workshopSceneReady = false;
     let workshopDirtyTimer = 0;
     // The native editor remains authoritative for human edits and all original key bindings.
@@ -962,8 +967,10 @@
     };
     if (WORKSHOP_EMBED) window.addEventListener('message', async (e) => {
       const d = e.data;
-      if (e.source !== window.parent || d?.source !== 'spi3der-workshop' || !workshopSessionId || d.session_id !== workshopSessionId) return;
+      if (e.source !== workshopPeer || d?.source !== 'spi3der-workshop') return;
       if (d.phase !== 'apply_scene') return;
+      if (WORKSHOP_HOST) workshopSessionId = typeof d.session_id === 'string' ? d.session_id : null;
+      else if (!workshopSessionId || d.session_id !== workshopSessionId) return;
       if (d.scene?.format !== '3draft-scene' || !Array.isArray(d.scene.objects) || d.scene.objects.length > 3000) {
         workshopNotice('native_scene_error');
         return;
@@ -1002,7 +1009,8 @@
     // /api/version is served by Cloud Run from the package.json inside this running container.
     const buildEl = document.getElementById('build');
     buildEl.title = 'spi3der application version (deployed package.json)';
-    fetch('/api/version', { cache: 'no-store' })
+    // As an MCP Apps view (WORKSHOP_HOST) there is no /api/version beside the page: the server put its build info in the page.
+    (WORKSHOP_HOST && window.__SPI3DER_BUILD__ ? Promise.resolve(new Response(JSON.stringify(window.__SPI3DER_BUILD__))) : fetch('/api/version', { cache: 'no-store' }))
       .then((response) => {
         if (!response.ok) throw new Error('Version endpoint: HTTP ' + response.status);
         return response.json();

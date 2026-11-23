@@ -6,6 +6,14 @@ Interactive 3D creation and exploration, powered by **3Draft**. Based on the 202
 
 The editor opens with **no scene** and **does not request VR** until you choose Enter XR. WebXR/Meta Quest and ViRtuSH hand interactions remain available. The scene picker offers **Globe**, **Deep Sky** and **Fifth Percent VR (LARK + Deep Sky)**. Model-format tooling is retained.
 
+## Claude plugin
+
+```
+/plugin install spi3der --marketplace Pengeszikra/spi3der
+```
+
+This repository is also a Claude plugin ([.claude-plugin/plugin.json](.claude-plugin/plugin.json)) and its own one-plugin marketplace ([.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)). The plugin runs spi3der's MCP server **locally over stdio** ([bin/spi3der-mcp.mjs](bin/spi3der-mcp.mjs), Node 18+, no dependencies) and ships a modelling skill ([skills/spi3der/SKILL.md](skills/spi3der/SKILL.md)). No spi3der server is involved: see [docs/claude-plugin.md](docs/claude-plugin.md) for how the editor reaches the conversation, how to test it, and what is not yet verified in Claude.
+
 ## OpenAI plugin package manifest
 
 The portable [plugin.json](plugin.json) defines the **spi3der** listing: display name, description, developer, existing PNG icons, and both `homepage` and `extensions.com.openai.interface.websiteURL` set to [Tüskék és Gyökerek](https://tuskek-es-gyokerek.vercel.app). The companion [mcp.json](mcp.json) declares the remote MCP endpoint used by the embedded workshop (`https://spi3der.cloud.run/mcp`).

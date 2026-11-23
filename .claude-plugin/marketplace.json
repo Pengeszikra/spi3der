@@ -1,0 +1,15 @@
+{
+  "name": "spi3der",
+  "description": "spi3der: the 3D workshop for AI agents and people, as a Claude plugin.",
+  "owner": {
+    "name": "Péter Vívó",
+    "url": "https://github.com/Pengeszikra"
+  },
+  "plugins": [
+    {
+      "name": "spi3der",
+      "source": "./",
+      "description": "The spi3der 3D workshop in the conversation: editable 3D scenes built with real 3Draft operations, shown in the native spi3der editor."
+    }
+  ]
+}

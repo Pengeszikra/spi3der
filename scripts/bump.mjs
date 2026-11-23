@@ -33,5 +33,10 @@ const run = () => {
   if (process.argv.includes('--dry')) return;
   pkg.version = version;
   writeFileSync(pkgUrl, JSON.stringify(pkg, null, 2) + '\n');
+  // The Claude plugin manifest carries the same version (Claude only updates an installed plugin when it changes).
+  const pluginUrl = new URL('../.claude-plugin/plugin.json', import.meta.url);
+  const plugin = JSON.parse(readFileSync(pluginUrl, 'utf8'));
+  plugin.version = version;
+  writeFileSync(pluginUrl, JSON.stringify(plugin, null, 2) + '\n');
 };
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) run();

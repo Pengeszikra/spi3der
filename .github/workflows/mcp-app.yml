@@ -32,6 +32,9 @@ jobs:
           node --check scripts/release.mjs
           node --check scripts/check-publish.mjs
           node --check tests/release.mjs
+          node --check mcp/claude-view.js
+          node --check bin/spi3der-mcp.mjs
+          node --check tests/claude-view.mjs
       - name: Validate deployment setup and core math
         run: |
           bash -n scripts/setup-cloud-run-oidc.sh
@@ -41,6 +44,8 @@ jobs:
           npm run test:mcp-app
           node tests/mcp-widget-bridge.mjs
           node tests/workshop-session.mjs
+      - name: Test inline MCP Apps view (Claude) over stdio in a mock host
+        run: npm run test:claude-view
       - name: Test native tutorial controls and workshop Zen startup
         run: node tests/tutorial-ui.mjs
       - name: Test npm version release lifecycle

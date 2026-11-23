@@ -6,7 +6,8 @@
   "type": "module",
   "bin": {
     "spi3der": "./bin/spi3der.mjs",
-    "spi3der-workshop-mcp": "./bin/workshop-mcp.mjs"
+    "spi3der-workshop-mcp": "./bin/workshop-mcp.mjs",
+    "spi3der-mcp": "./bin/spi3der-mcp.mjs"
   },
   "scripts": {
     "start": "node bin/spi3der.mjs",
@@ -17,7 +18,8 @@
     "mcp:workshop": "node bin/workshop-mcp.mjs",
     "test:mcp-app": "node tests/mcp-app.mjs",
     "release": "node scripts/release.mjs",
-    "prepublishOnly": "node scripts/check-publish.mjs"
+    "prepublishOnly": "node scripts/check-publish.mjs",
+    "test:claude-view": "node tests/claude-view.mjs"
   },
   "files": [
     "api/",

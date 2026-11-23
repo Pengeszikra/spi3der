@@ -29,7 +29,10 @@ export default async function handler(req, res) {
     try{
       const json=JSON.parse(body);
       if(!Array.isArray(json)){
-        const handled=await handleWorkshopMcp(json,{origin,fetchText});
+        // ?view=inline (or ?host=claude) on the connector URL: the conversation view is the editor itself, no iframe.
+        const query=new URL(req.url||'/',origin).searchParams;
+        const view=query.get('view')==='inline'||query.get('host')==='claude'?'inline':undefined;
+        const handled=await handleWorkshopMcp(json,{origin,fetchText,view});
         if(handled!==undefined)out={status:handled===null?202:200,headers:{'content-type':'application/json','access-control-allow-origin':'*','access-control-allow-headers':'content-type, accept, mcp-protocol-version','access-control-expose-headers':'mcp-protocol-version'},body:handled===null?'':JSON.stringify(handled)};
       }
     }catch(e){if(out===undefined && e instanceof SyntaxError) { /* hand malformed input to standard transport */ } else if(out===undefined)throw e;}

@@ -1,0 +1,30 @@
+{
+  "name": "spi3der",
+  "version": "26.11.22001",
+  "description": "The spi3der 3D workshop in the conversation: an agent builds editable 3D scenes with real 3Draft operations, and the native spi3der editor, with its own panels and keys, opens as an interactive view where you and the agent work on the same scene.",
+  "author": {
+    "name": "Péter Vívó",
+    "url": "https://tuskek-es-gyokerek.vercel.app"
+  },
+  "homepage": "https://tuskek-es-gyokerek.vercel.app/spi3der.html",
+  "repository": "https://github.com/Pengeszikra/spi3der",
+  "license": "MIT",
+  "icon": "./icons/icon-512.png",
+  "keywords": [
+    "3d",
+    "modeling",
+    "mcp-app",
+    "3draft",
+    "webxr",
+    "creative-tools"
+  ],
+  "skills": "./skills/",
+  "mcpServers": {
+    "spi3der": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/bin/spi3der-mcp.mjs"
+      ]
+    }
+  }
+}
