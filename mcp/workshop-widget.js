@@ -249,7 +249,7 @@ function report(phase,reason){
   sendReport(phase,reason,since());
 }
 function sendReport(phase,reason,ms){
-  const args={trace_id:activeTrace,phase,widgetObjects:modelCounts.objects,widgetFaces:modelCounts.faces,widgetMs:ms,
+  const args={trace_id:activeTrace,phase,widgetObjects:modelCounts?.objects??0,widgetFaces:modelCounts?.faces??0,widgetMs:ms,
     ...(reason?{reason:String(reason).slice(0,60)}:{}),host:((diag.host||'nohost')+' ui '+BUILD).slice(0,64)}; // the widget build: an old host-cached UI shows here
   console.debug('[spi3der workshop]',BUILD,activeTrace,phase,modelCounts,reason||'');
   const failed=e=>{
@@ -303,7 +303,7 @@ async function receive(){
     const args=bridgeInput||window.openai?.toolInput;
     if(!args?.from&&Array.isArray(args?.steps))output={trace_id:'input-fallback',steps:args.steps,baseScene:null};
   }
-  if(!output||(!Array.isArray(output.steps)&&typeof output.workshop_token!=='string')){
+  if(!output||(!Array.isArray(output.steps)&&typeof output.workshop_token!=='string'&&typeof output.story_token!=='string')){
     if(diag.toolInput||diag.toolResult)note('tool_output_unusable',output?'no steps or workshop_token':'no structuredContent');
     return;
   }
@@ -323,6 +323,18 @@ async function receive(){
   status.hidden=false;
   status.textContent='Preparing the native spi3der scene…';
   try{
+    if(typeof output.story_token==='string'){
+      // A build_story recording: the native editor opens it in its own Stories player (#story= link), no workshop session.
+      viewScene=null;
+      modelCounts=null;
+      const launchHash='#story='+output.story_token;
+      frame.setAttribute('data-launch','?workshop=1'+launchHash);
+      const launch={search:'?workshop=1&nopickworker',hash:launchHash};
+      frame.srcdoc=NATIVE_HTML.replace('<head>',()=>'<head>\n<script>window.__spi3der_launch='+JSON.stringify(launch).replace(/</g,'\\u003c')+';<\/script>');
+      status.textContent='Loading the spi3der story'+(output.title?' “'+output.title+'”':'')+'…';
+      report('widget_loaded');
+      return;
+    }
     const data=Array.isArray(output.steps)?output:await unpackHistory(output.workshop_token);
     if(request!==serial)return;
     const model=new WorkshopModel(data.baseScene||undefined);
@@ -388,7 +400,7 @@ window.addEventListener('message',event=>{
       nativeEditorReady=true;
       report('native_editor_ready');
     }else if(d.phase==='native_scene_loaded' && !nativeSceneReady){
-      if(d.objects!==modelCounts.objects){
+      if(modelCounts&&d.objects!==modelCounts.objects){
         nativeWaiter?.reject(Error('native scene count mismatch ('+d.objects+' vs '+modelCounts.objects+')'));
         errorNode.hidden=false;
         errorNode.textContent='spi3der: native scene count mismatch ('+d.objects+' vs '+modelCounts.objects+')';
@@ -399,7 +411,7 @@ window.addEventListener('message',event=>{
       nativeSceneReady=true;
       nativeWaiter?.resolve(d.objects);
       status.hidden=true;
-      report(modelCounts.objects?'widget_rendered':'widget_empty');
+      report(!modelCounts||modelCounts.objects?'widget_rendered':'widget_empty');
       startPolling();
     }else if(d.phase==='native_scene_changed'){
       nativeChanged(d.scene);

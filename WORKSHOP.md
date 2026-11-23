@@ -26,6 +26,14 @@ Since 26.11.23.007 the widget declares the MCP Apps `tools` capability in `ui/in
 
 The tool definitions are constant (a host's saved "Always allow" is tied to them). Hosts list a newly opened view's tools with the user's next message. The server queue (`workshop_edit` + poll) remains the path for hosts without app tools. `tests/mcp-widget-bridge.mjs` covers the list, read, apply and failure paths.
 
+## Stories inline (`open_workshop` `story`)
+
+`open_workshop({ story })` takes the `story_token` (or `open_url`) of `build_story` instead of steps. The server only
+checks that it is a Spider Build v2 recording and returns it as `structuredContent.story_token`, with no session. The
+widget launches the same native editor with `#story=<token>`, and the editor opens it with its existing `openStory`, the
+Stories player of the LARK recordings: no new UI. The native scene-count check is skipped for a story (its objects come
+from the timeline). `workshop_state` / `workshop_edit` do not apply. `tests/story.mjs` covers the server side.
+
 ## Large model transfer
 
 For tool requests whose declarative command history exceeds 32 KiB, `open_workshop` returns only a compressed `workshop_token` in its structured payload, not duplicate raw steps. The widget unpacks the history locally using `DecompressionStream('deflate-raw')` before executing the same `WorkshopModel`. Small calls still use direct steps for compatibility. This avoids unnecessarily large MCP responses without adding a UI or moving modelling to the server. `tests/mcp-app.mjs` and `tests/mcp-widget-bridge.mjs` exercise both paths.

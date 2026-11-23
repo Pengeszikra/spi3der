@@ -31,6 +31,12 @@ The older stateless `workshop_token` continuation and `#scene=` links still work
 
 Cloud Run serves the native browser app and the MCP bridge. WebGL and ordinary geometry execution remain browser-local. The earlier standalone `workshop.html` prototype is legacy diagnostics, not the product direction.
 
+## Animated stories over MCP
+
+`build_story` turns a model plus keyframed motions, a camera path and captions into a Spider Build v2 story (the format of
+the LARK assembly and the black-hole scene). Its `open_url` plays it in the editor's Stories player, `player_url` in the bare
+`player.html`, and `open_workshop({ story })` plays it inline in the chat. See [MCP.md](MCP.md#stories-build_story).
+
 ## Run locally
 
 ```sh

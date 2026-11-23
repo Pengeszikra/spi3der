@@ -46,6 +46,7 @@ jobs:
           node tests/mcp-widget-bridge.mjs
           node tests/workshop-session.mjs
           node tests/raster.mjs
+          node tests/story.mjs
       - name: Test native tutorial controls and workshop Zen startup
         run: node tests/tutorial-ui.mjs
       - name: Test npm version release lifecycle

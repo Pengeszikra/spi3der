@@ -20,16 +20,35 @@ const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000, COMPACT_HISTORY_BYTES=32768;
 const displayTool={
   name:'open_workshop',
-  description:'Open the complete native spi3der editor inside ChatGPT. The browser builds the scene and loads the real editor with its original UI and key bindings; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Pass steps to model, from to reopen a workshop_token or #scene link, or omit both to open an empty editor. steps is optional; model results are only confirmed after the embedded widget runs.',
+  description:'Open the complete native spi3der editor inside ChatGPT. The browser builds the scene and loads the real editor with its original UI and key bindings; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Pass steps to model, from to reopen a workshop_token or #scene link, or omit both to open an empty editor. steps is optional; model results are only confirmed after the embedded widget runs. Pass story (the story_token or open_url of build_story) instead to play an animated story inline in the editor\'s own Stories player.',
   inputSchema:{
     type:'object',
     properties:{
       steps:{type:'array',description:'Optional modeling operations; omit or pass [] to open an existing scene without editing it',items:{type:'object',properties:{tool:{type:'string',enum:WORKSHOP_TOOLS},args:{type:'object'}},required:['tool']}}, 
-      from:{type:'string',description:'workshop_token from previous open_workshop; older #scene links also accepted'}
+      from:{type:'string',description:'workshop_token from previous open_workshop; older #scene links also accepted'},
+      story:{type:'string',description:'play a story: the story_token (or open_url) returned by build_story; not combined with steps / from'}
     }
   },
   annotations:{readOnlyHint:false,openWorldHint:false},
   _meta:{ui:{resourceUri:RESOURCE_URI},'openai/outputTemplate':RESOURCE_URI}
+};
+const storyTool={
+  name:'build_story',
+  description:'Make an animated story (a Spider Build v2 recording, models/spider-build-v2.md) from a model and play it on a timeline: assembly, disassembly, explosions, mechanisms, fly-throughs. The model: from (a build_model open_url) and / or steps (build_model steps). motions: [{ object | objects: [names] | match: "pyr-*", pivot: "center" (default) | "foot" | [x, y, z], ease, keys: [{ t (ms), move: [dx, dy, dz] (from the object\'s place in the model), rotate: [x, y, z] (degrees about the pivot), scale, ease: smooth (default) | linear | in | out | cut }] }]: each key is a pose relative to where the object stands in the model; before its first key an object holds that key\'s pose, after its last it holds the last (so disassembly: keys from move [0,0,0] to the far place; assembly: the reverse). One motion per object; one motion can name many objects (they move alike). camera: { orbit: { turns (default 0.25), radius, height, center, start_yaw, fov } } (default: a slow orbit round everything) or { keys: [{ t, eye, look_at | yaw + pitch, transition: smoothstep | linear | cut, fov, roll }] }. captions: [{ start, end (ms), text, channel: voiceover | operation | chapter }]. duration_ms (default: the last key + hold_ms 800). mode: auto (default) | animation (GPU-blended rigid channels, at most 64 distinct motions) | frames (stop-motion every sample_ms, default 80, no limit; only moving objects are stored). Returns open_url (the spi3der editor playing it in its Stories player: play / pause, time slider, speed, recorded camera on/off, captions), player_url (the bare player.html for an iframe), story_token (pass it to open_workshop story to play it inline), a PNG preview of the start, middle and end, and with include_doc the .build.json document itself.',
+  inputSchema:{type:'object',properties:{
+    title:{type:'string'},
+    from:{type:'string',description:'the model: an open_url of build_model'},
+    steps:{type:'array',description:'modelling steps (as build_model), run after from',items:{type:'object',properties:{tool:{type:'string'},args:{type:'object'}},required:['tool']}},
+    motions:{type:'array',items:{type:'object',properties:{object:{type:'string'},objects:{type:'array',items:{type:'string'}},match:{type:'string'},pivot:{},ease:{type:'string',enum:['smooth','linear','in','out','cut']},keys:{type:'array',items:{type:'object',properties:{t:{type:'number'},move:{type:'array',items:{type:'number'}},rotate:{type:'array',items:{type:'number'}},scale:{},ease:{type:'string',enum:['smooth','linear','in','out','cut']}},required:['t']}}},required:['keys']}},
+    camera:{type:'object',properties:{orbit:{type:'object'},keys:{type:'array',items:{type:'object'}}}},
+    captions:{type:'array',items:{type:'object',properties:{start:{type:'number'},end:{type:'number'},text:{type:'string'},channel:{type:'string',enum:['voiceover','operation','chapter']}},required:['start','end','text']}},
+    duration_ms:{type:'number'},hold_ms:{type:'number'},
+    mode:{type:'string',enum:['auto','animation','frames']},
+    sample_ms:{type:'number',description:'sampling step in ms (animation default 50, frames default 80)'},
+    preview:{type:'boolean',description:'PNG preview of three moments (default true)'},
+    include_doc:{type:'boolean',description:'also return the Spider Build v2 document (to save as .build.json)'}
+  }},
+  annotations:{readOnlyHint:true,openWorldHint:false}
 };
 const debugTool={
   name:'debug_trace',
@@ -82,6 +101,27 @@ async function buildModelPng(id,args,ctx){
   content.unshift({type:'text',text:JSON.stringify(out)});
   return answer(id,{content});
 }
+async function buildStoryCall(id,args,ctx){
+  const { buildStory, storyMoments, StoryFail }=await import('./story.js');
+  let made;
+  try{made=await buildStory(args,ctx);}
+  catch(e){return answer(id,{isError:true,content:[{type:'text',text:e instanceof StoryFail?e.message:'error: '+String(e?.message||e)}]});}
+  const out={...made.summary};
+  if(args.include_doc===true)out.story=made.doc;
+  const content=[];
+  if(args.preview!==false){
+    try{
+      const { renderPng }=await import('./raster.js');
+      for(const m of storyMoments(made.doc,3)){
+        if(!m.objects.length)continue;
+        content.push({type:'text',text:'t = '+m.t+' ms'});
+        content.push({type:'image',data:renderPng(m.objects,{view:'persp',size:240,palette:made.doc.scene.palette}).toString('base64'),mimeType:'image/png'});
+      }
+    }catch(e){out.preview_error=String(e?.message||e).slice(0,200);}
+  }
+  content.unshift({type:'text',text:JSON.stringify(out)});
+  return answer(id,{content});
+}
 const sharedResult=(id,value)=>answer(id,{content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value});
 const sharedError=(id,e)=>answer(id,{isError:true,content:[{type:'text',text:JSON.stringify({error:String(e?.message||e).slice(0,200),...(e?.details?{details:e.details}:{}),server:instanceInfo({build:buildInfo.label})})}]});
 const err=(id,code,message)=>({jsonrpc:'2.0',id,error:{code,message}});
@@ -117,7 +157,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(method==='tools/list'){
     // Legacy tools remain available, but are only imported for discovery/use.
     const { publicTools }=await import('./http.js');
-    return answer(id,{tools:[...publicTools().map(withPngRender).map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool,...sharedTools]});
+    return answer(id,{tools:[...publicTools().map(withPngRender).map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,storyTool,debugTool,widgetEventTool,...sharedTools]});
   }
   if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
   if(method==='resources/read'){
@@ -149,6 +189,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
       if(params.name==='workshop_reject')return sharedResult(id,rejectWorkshopEdit(args));
     }catch(e){return sharedError(id,e);}
   }
+  if(method==='tools/call'&&params.name==='build_story')return buildStoryCall(id,params.arguments||{},{origin,fetchText});
   if(method==='tools/call'&&params.name==='build_model'&&(params.arguments?.format??'png')==='png'){
     return buildModelPng(id,params.arguments||{},{origin,fetchText});
   }
@@ -172,6 +213,24 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     const args=params.arguments||{};
     const trace_id=startTrace(Array.isArray(args.steps)?args.steps.length:0),started=performance.now();
     try {
+      if(args.story!==undefined){
+        if(args.steps!==undefined||args.from!==undefined)throw Error('story_is_not_combined_with_steps_or_from');
+        const story_token=typeof args.story==='string'?(/#story=([A-Za-z0-9_-]+)/.exec(args.story)?.[1]||(/^[A-Za-z0-9_-]+$/.test(args.story)?args.story:null)):null;
+        if(!story_token||story_token.length>400000)throw Error('invalid_story_token');
+        let doc;
+        try{doc=unpackScene(story_token);}catch{throw Error('invalid_story_token');}
+        if(doc?.format!=='spider-build-tutorial'||doc.version!==2)throw Error('not_a_spider_build_v2_story');
+        recordTrace(trace_id,'steps_validated',{stepCount:0,durationMs:performance.now()-started});
+        const payload={trace_id,engine:'browser',story_token,title:doc.metadata?.title,durationMs:doc.timeline?.durationMs,build:buildInfo,server:instanceInfo()};
+        const result={
+          structuredContent:payload,
+          content:[{type:'text',text:JSON.stringify({trace_id,engine:'browser',story:doc.metadata?.title,durationMs:doc.timeline?.durationMs,build:buildInfo.label,gitHash:buildInfo.gitHash,server:instanceInfo(),
+            note:'The embedded editor plays the story in its own Stories player (play / pause, time slider, camera, captions). A story is not a shared workshop session: workshop_state / workshop_edit do not apply.'})}],
+          _meta:{ui:{resourceUri:RESOURCE_URI},'openai/outputTemplate':RESOURCE_URI,'spi3der/trace_id':trace_id}
+        };
+        recordTrace(trace_id,'response_ready',{payloadBytes:Buffer.byteLength(JSON.stringify(result)),durationMs:performance.now()-started});
+        return answer(id,result);
+      }
       const requestedSteps=args.steps===undefined?[]:args.steps;
       validateSteps(requestedSteps);
       const history=fromHistory(args.from);

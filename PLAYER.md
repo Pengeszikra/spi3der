@@ -36,6 +36,9 @@ A transparent background works when the iframe itself has no background (as abov
 
 A relative address is relative to the player page.
 
+Without `scene`, the player reads a packed story or scene from its own fragment: `player.html#story=<…>` (MCP
+`build_story`'s `player_url`) or `player.html#scene=<…>` (a `build_model` link's fragment), deflate-raw + base64url.
+
 ## URL parameters
 
 | Parameter | Default | Meaning |

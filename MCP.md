@@ -15,6 +15,7 @@ Tools:
 | tool | what it does |
 | --- | --- |
 | `build_model` | runs model steps (`add_box`, `add_extrusion`, `add_mesh`, `add_character`, `transform` (also rotate_x / rotate_z, pivot), `instance` (copies of one object or group: one tree, many placements; unedited copies are stored once as a scene v2 prototype, so the link stays small), `place_on` (like G G: puts an object onto a surface), `sense` / `sensing` (the cursor's feel from the camera, with distances; which objects it feels), `extrude_face`, `move_vertices`, `boolean`, `recolor`, `remove`, `list`, `inspect`, …) and returns the objects, an SVG render and an `open_url` (`/#scene=…`, the whole scene packed into the link); pass that link back as `from` to keep building |
+| `build_story` | an **animated story** from a model: keyframed `motions` (move / rotate / scale per object or `match` group), a `camera` orbit or keyframes, `captions` → a Spider Build v2 recording (see [Stories](#stories-build_story)); returns `open_url` (`/#story=…`, the editor's Stories player), `player_url` (`/player.html#story=…`), `story_token` (for `open_workshop` `story`) and a PNG preview of three moments. spi3der endpoint only |
 | `sky_scene` | a 3draft-sky catalogue (stars, planets, orbits) → a `#sky=…` link, optionally `target` to lock onto one body |
 | `find` | searches the Deep Sky catalogue (stars, galaxies, nebulae, planets) → name, kind, distance and a `?scene=deepsky&target=…` link |
 | `examples` | the bundled scenes with their links |
@@ -62,6 +63,58 @@ Every open viewer gets every change and every command. The viewers do not write 
 4. **Keep** it: `export` (JSON text, or a `.json` file inside the server's working directory), `import`.
 
 The engine: flat-coloured convex faces, no textures (except screens, below). Y is up, the ground is y = 0. Faces are listed counter-clockwise seen from outside.
+
+### Stories: `build_story`
+
+A story is a model on a timeline: assembly, disassembly, an explosion view, a mechanism moving, a camera flight. `build_story`
+writes it in the **Spider Build v2** format ([models/spider-build-v2.md](models/spider-build-v2.md)), the same format as the
+LARK–4 assembly and the LARK–4C black-hole scene, so the same players play it: the editor's **Stories** mode (play / pause,
+time slider, steps, speed, recorded camera on / off, captions) and the bare `player.html` ([PLAYER.md](PLAYER.md)). It is
+stateless like `build_model`: the whole story travels packed in the link's `#story=` fragment.
+
+| argument | meaning |
+|---|---|
+| `from`, `steps` | the model: a `build_model` `open_url` and / or modelling steps (as `build_model`), run first |
+| `motions` | `[{ object \| objects: [...] \| match: "pyr-*", pivot: "center" (default) \| "foot" \| [x, y, z], ease, keys: [{ t, move, rotate, scale, ease }] }]` |
+| `camera` | `{ orbit: { turns (default 0.25), radius, height, center, start_yaw, fov } }` (default: a slow orbit round everything that moves) or `{ keys: [{ t, eye, look_at \| yaw + pitch, transition: smoothstep \| linear \| cut, fov, roll }] }` |
+| `captions` | `[{ start, end, text, channel: voiceover \| operation \| chapter }]` (ms) |
+| `duration_ms`, `hold_ms` | the length (default: the last key + `hold_ms`, 800) |
+| `mode` | `auto` (default), `animation` or `frames` (below) |
+| `sample_ms` | the sampling step (animation 50, frames 80) |
+| `preview` | PNG frames of the start, middle and end (default true) |
+| `include_doc` | also return the `.build.json` document itself, to save or edit |
+
+- **Keys are poses relative to the model.** `move` is the offset from where the object stands in the model, `rotate`
+  degrees round X, Y, Z about the pivot (applied as `transform`: scale, X, Z, Y, then move), `scale` a number or
+  `[x, y, z]`. Before its first key an object holds that key's pose, after its last key the last one: a disassembly goes
+  from `move: [0, 0, 0]` to the far place, an assembly the other way round (its first key already far away).
+- `ease` (per key, the approach to it; or per motion): `smooth` (default), `linear`, `in`, `out`, `cut`. An arc is a
+  middle key (up and out with `out`, down with `in`).
+- One motion per object. One motion may name many objects (`objects`, `match` with `*`): they move alike, each about its
+  own pivot.
+- **Two storages.** `animation`: one rigid affine channel per distinct motion on the shared animation clock
+  (`tracks.animation`), blended on the GPU: smooth and small, but at most **64** distinct motions (the engine's limit).
+  `frames`: stop-motion on the construction track: every `sample_ms` only the objects that moved are put again with their
+  moved mesh; no limit, the size grows with how much moves. `auto` takes `animation` when it fits, else `frames`.
+- Links over ~200 KB are refused (the result says so): use a larger `sample_ms`, fewer moving objects, or `include_doc`
+  and keep the `.build.json` as a file (`player.html?scene=<its address>`).
+- **Inline:** `open_workshop` with `story: <story_token>` plays it inside the chat, in the native editor's Stories player.
+  A story is a recording, not a shared workshop session: `workshop_state` / `workshop_edit` do not apply to it.
+
+A 91-brick pyramid taken apart from the top (frames mode, ~116 000 characters of link):
+
+```json
+{ "tool": "build_story", "arguments": {
+  "title": "Brick pyramid, taken apart",
+  "from": "<build_model open_url of the pyramid>",
+  "motions": [
+    { "object": "pyr-90", "keys": [ { "t": 0 }, { "t": 450, "move": [1.5, 2.4, 2], "rotate": [30, 40, 15], "ease": "out" }, { "t": 900, "move": [3, -2.5, 4], "rotate": [0, 120, 0], "ease": "in" } ] },
+    { "object": "pyr-89", "keys": [ { "t": 55 }, { "t": 505, "move": [3, 2, 0], "ease": "out" }, { "t": 955, "move": [6, -2, 1], "ease": "in" } ] }
+  ],
+  "captions": [ { "start": 0, "end": 2500, "text": "The capstone goes first" } ],
+  "camera": { "orbit": { "turns": 0.3 } }
+} }
+```
 
 ### Screens: an image, a scene or a web page on a face
 

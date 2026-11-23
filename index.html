@@ -13728,7 +13728,8 @@
     // ?scene=<a value of the + scene list> starts with that one instead (deepsky, stars, sky:trappist-1, story:…; sky.md links here)
     const sceneParam = new URLSearchParams(location.search).get('scene');
     // A link from the public MCP server (mcp/http.js): the scene travels in the #fragment, packed (deflate-raw, base64url), so
-    // nothing is stored anywhere: #scene=<a 3draft-scene> (build_model) or #sky=<a 3draft-sky catalogue> (sky_scene). ?target=<name>
+    // nothing is stored anywhere: #scene=<a 3draft-scene> (build_model), #sky=<a 3draft-sky catalogue> (sky_scene) or
+    // #story=<a Spider Build v2 story> (build_story). ?target=<name>
     // (or &target in the fragment) takes that object as the target once the scene is in, as the find box (Enter) would.
     const linkHash = new URLSearchParams(location.hash.slice(1));
     const linkTarget = new URLSearchParams(location.search).get('target') ?? linkHash.get('target');
@@ -13746,7 +13747,19 @@
       else sceneNote(`no "${name}" in this scene`);
     };
     const linked = linkHash.get('scene') ?? linkHash.get('sky');
-    if (!EMBED && !SHOW && linked)
+    // #story=<a Spider Build v2 story> (MCP build_story): opens it in the Stories player
+    const linkedStory = linkHash.get('story');
+    if (!EMBED && !SHOW && linkedStory)
+      setTimeout(async () => {
+        try {
+          const data = await unpackLink(linkedStory);
+          await withLoader(data?.metadata?.title ?? 'story', async () => openStory(data));
+        } catch (e) {
+          workshopNotice('native_scene_error');
+          sceneNote(`the link's story could not be read: ${e.message}`);
+        }
+      }, 0);
+    else if (!EMBED && !SHOW && linked)
       setTimeout(async () => {
         try {
           const data = await unpackLink(linked);

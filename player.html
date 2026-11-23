@@ -262,8 +262,18 @@
         fail(`WebGL2 is not available: ${err?.message ?? err}`);
       }
       const first = q.get('scene') ?? q.get('src');
+      // a link from the MCP server carries the story / scene itself in the #fragment (deflate-raw, base64url):
+      // #story=<a Spider Build v2 story> (build_story) or #scene=<a 3draft-scene> (build_model)
+      const packed = new URLSearchParams(location.hash.slice(1));
+      const inline = packed.get('story') ?? packed.get('scene');
+      const unpackLink = async (s) => {
+        const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+        const bytes = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+        return JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text());
+      };
       try {
-        if (first) await load(first);
+        if (inline && !first) await load(await unpackLink(inline));
+        else if (first) await load(first);
       } catch (err) {
         fail(err);
       }
