@@ -173,7 +173,7 @@ function report(phase,reason){
 }
 function sendReport(phase,reason,ms){
   const args={trace_id:activeTrace,phase,widgetObjects:modelCounts.objects,widgetFaces:modelCounts.faces,widgetMs:ms,
-    ...(reason?{reason:String(reason).slice(0,60)}:{}),...(diag.host?{host:diag.host}:{})};
+    ...(reason?{reason:String(reason).slice(0,60)}:{}),host:((diag.host||'nohost')+' ui '+BUILD).slice(0,64)}; // the widget build: an old host-cached UI shows here
   console.debug('[spi3der workshop]',BUILD,activeTrace,phase,modelCounts,reason||'');
   const failed=e=>{
     const why=String(e?.message||e).slice(0,120);

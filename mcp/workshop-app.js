@@ -12,8 +12,10 @@ import { WORKSHOP_TOOLS } from './workshop-tools.js';
 import { startTrace, recordTrace, readTrace, recentTraces, linkTraceSession, instanceInfo, WIDGET_PHASES, safeErrorCode } from './diagnostics.js';
 import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enqueueWorkshopEdit, rejectWorkshopEdit, workshopSessionExists, workshopSessionCount } from './workshop-session.js';
 
-export const RESOURCE_URI='ui://spi3der/workshop-v12.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html','ui://spi3der/workshop-v9.html','ui://spi3der/workshop-v10.html','ui://spi3der/workshop-v11.html'];
+// Which UI resources hosts actually read from this process (a host may keep an older cached one).
+const resourceReads=[];
+export const RESOURCE_URI='ui://spi3der/workshop-v13.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html','ui://spi3der/workshop-v9.html','ui://spi3der/workshop-v10.html','ui://spi3der/workshop-v11.html','ui://spi3der/workshop-v12.html'];
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000, COMPACT_HISTORY_BYTES=32768;
 const displayTool={
@@ -120,7 +122,8 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI&&!LEGACY_RESOURCE_URIS.includes(params.uri))return err(id,-32002,'resource not found');
-    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v12',payloadBytes:Buffer.byteLength(widgetHTML)}));
+    resourceReads.push({uri:params.uri,at:new Date().toISOString()});if(resourceReads.length>10)resourceReads.shift();
+    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:String(params.uri).slice(0,64),payloadBytes:Buffer.byteLength(widgetHTML)}));
     return answer(id,{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:widgetHTML,_meta:{ui:{csp:{frameDomains:[APP_ORIGIN]}}}}]});
   }
   if(method==='initialize')return answer(id,{
@@ -153,7 +156,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     const traceId=params.arguments?.trace_id;
     const server=instanceInfo({build:buildInfo.label,sessions:workshopSessionCount()});
     if(traceId===undefined||traceId===''){
-      return answer(id,{content:[{type:'text',text:JSON.stringify({server,recent:recentTraces(workshopSessionExists)})}]});
+      return answer(id,{content:[{type:'text',text:JSON.stringify({server,ui_resource:RESOURCE_URI,resource_reads:resourceReads,recent:recentTraces(workshopSessionExists)})}]});
     }
     const trace=readTrace(traceId,workshopSessionExists);
     return answer(id,{content:[{type:'text',text:JSON.stringify(trace||{status:'not_found_or_expired',server,recent:recentTraces(workshopSessionExists,5),hint:'This process does not know the trace: it expired, or this call reached a different server process than open_workshop (compare instance ids).'})}]});
