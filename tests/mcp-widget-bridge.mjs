@@ -77,8 +77,9 @@ onMessage({source:parent,data:{
   params:{structuredContent:{trace_id:'native-test',steps:[cube],baseScene:null}}
 }});
 await new Promise(resolve=>setImmediate(resolve));
-const url=nodes.spi3der.getAttribute('src');
-assert.match(url,/^https:\/\/spi3der\.cloud\.run\/\?workshop=1#scene=/);
+const url=nodes.spi3der.getAttribute('data-launch');
+assert.ok(nodes.spi3der.srcdoc.includes('window.__spi3der_launch='),'the native editor runs inline (srcdoc) with its launch parameters');
+assert.match(url,/^\?workshop=1#scene=/);
 const encoded=url.split('#scene=')[1];
 const scene=JSON.parse(Buffer.from(encoded.replace(/-/g,'+').replace(/_/g,'/'),'base64').toString('utf8'));
 assert.equal(scene.format,'3draft-scene');
@@ -127,7 +128,7 @@ const packedHistory=deflateRawSync(Buffer.from(JSON.stringify({format:'spi3der-w
 onMessage({source:parent,data:{jsonrpc:'2.0',method:'ui/notifications/tool-result',
   params:{structuredContent:{trace_id:'compact-test',workshop_token:packedHistory,encoding:'deflate-raw+base64url'}}}});
 await new Promise(resolve=>setImmediate(resolve));
-assert.match(nodes.spi3der.getAttribute('src'),/^https:\/\/spi3der\.cloud\.run\/\?workshop=1#scene=/);
+assert.match(nodes.spi3der.getAttribute('data-launch'),/^\?workshop=1#scene=/);
 assert.equal(nodes.error.hidden,true);
 // True shared-scene flow: the original native iframe publishes hand edits,
  // an agent queues an edit, the same iframe receives and imports it.
@@ -136,7 +137,7 @@ onMessage({source:parent,data:{jsonrpc:'2.0',method:'ui/notifications/tool-resul
   params:{structuredContent:{trace_id:'shared-test',session_id:sid,revision:0,steps:[cube],baseScene:null}}
 }});
 await new Promise(resolve=>setImmediate(resolve));
-assert.match(nodes.spi3der.getAttribute('src'),new RegExp('#session='+sid+'&scene='));
+assert.match(nodes.spi3der.getAttribute('data-launch'),new RegExp('#session='+sid+'&scene='));
 native('native_editor_ready');
 native('native_scene_loaded',{objects:1});
 native('native_scene_changed',{scene});

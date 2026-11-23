@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { Script } from 'node:vm';
 import { deflateRawSync } from 'node:zlib';
 import { handleWorkshopMcp, RESOURCE_URI } from '../mcp/workshop-app.js';
-import { widgetHTML } from '../mcp/workshop-widget.js';
+import { widgetHTML, widgetShellHTML } from '../mcp/workshop-widget.js';
 import { WorkshopModel, WORKSHOP_TOOLS } from '../mcp/workshop-client.js';
 import { buildInfo } from '../mcp/build-info.js';
 
@@ -32,7 +32,7 @@ const oldResource=await call(300,'resources/read',{uri:'ui://spi3der/workshop-v1
 assert.equal(oldResource.result.contents[0].uri,'ui://spi3der/workshop-v1.html', 'legacy cached UI must remain readable');
 const oldV2=await call(301,'resources/read',{uri:'ui://spi3der/workshop-v2.html'});
 assert.equal(oldV2.result.contents[0].uri,'ui://spi3der/workshop-v2.html');
-assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v11.html', 'UI changes need a fresh resource to bypass old host cache');
+assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v12.html', 'UI changes need a fresh resource to bypass old host cache');
 const oldV3=await call(302,'resources/read',{uri:'ui://spi3der/workshop-v3.html'});
 assert.equal(oldV3.result.contents[0].uri,'ui://spi3der/workshop-v3.html');
 const oldV4=await call(303,'resources/read',{uri:'ui://spi3der/workshop-v4.html'});
@@ -72,7 +72,8 @@ assert.ok(widgetHTML.includes('trace_id'));
 assert.ok(widgetHTML.includes('native_frame_loaded'));
 assert.ok(widgetHTML.includes("window.openai?.callTool"));
 assert.ok(!widgetHTML.includes('<script src='),'client resource must be self-contained');
-assert.ok(!widgetHTML.includes('fetch('),'scene generation must not call a remote geometry API');
+assert.ok(!widgetShellHTML.includes('fetch('),'scene generation must not call a remote geometry API');
+assert.ok(widgetHTML.includes('window.__spi3der_inline=true'),'the real native editor is packaged inline');
 const browserScript=widgetHTML.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 assert.ok(browserScript);
 assert.doesNotThrow(()=>new Script(browserScript),'embedded browser JavaScript syntax');

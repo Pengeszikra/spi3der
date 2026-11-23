@@ -3,6 +3,7 @@
 // Do not build a competing mini toolbar or keyboard system here.
 import { buildInfo } from './build-info.js';
 import { bundleBrowserModel } from './workshop-browser-model.js';
+import { nativeInlineHTML } from './workshop-native-inline.js';
 
 export const APP_ORIGIN = 'https://spi3der.cloud.run';
 const template = String.raw`
@@ -34,6 +35,9 @@ __MODEL_SOURCE__
 'use strict';
 const APP_ORIGIN=__APP_ORIGIN_JSON__;
 const BUILD=__BUILD_LABEL_JSON__;
+// The complete native editor (index.html + 3Draft engine) packaged as one document. It runs in the child
+// frame via srcdoc, so no host has to allow a nested frame to APP_ORIGIN (Claude does not).
+const NATIVE_HTML=__NATIVE_HTML_JSON__;
 const frame=document.getElementById('spi3der');
 const status=document.getElementById('status');
 const errorNode=document.getElementById('error');
@@ -42,7 +46,8 @@ let activeTrace=null,serial=0,modelCounts={objects:0,faces:0};
 let nativeEditorReady=false,nativeSceneReady=false,nativeKeySeen=false;
 // The native frame's origin as seen here: APP_ORIGIN, or 'null' when the host sandboxes the widget without
 // allow-same-origin (Claude) and the child inherits an opaque origin. Messages are still tied to frame.contentWindow.
-let nativeOrigin=APP_ORIGIN;
+let nativeOrigin=null;
+const OWN_ORIGIN=(()=>{try{return location.origin}catch(e){return null}})();
 let sessionId=null,revision=0,latestScene=null,queuedScene=null,publishing=false,polling=false;
 let applyingBatch=null,pollTimer=null,previousSceneJSON='',rpcSerial=0;
 const rpcPending=new Map();
@@ -148,7 +153,7 @@ async function pollEdits(){
     modelCounts={objects:scene.objects.length,faces:scene.objects.reduce((n,o)=>n+(o.mesh?.faces?.length||0),0)};
     applyingBatch=batch.batch_id;
     nativeSceneReady=false;
-    frame.contentWindow.postMessage({source:'spi3der-workshop',phase:'apply_scene',session_id:sessionId,scene},nativeOrigin==='null'?'*':APP_ORIGIN);
+    frame.contentWindow.postMessage({source:'spi3der-workshop',phase:'apply_scene',session_id:sessionId,scene},nativeOrigin===APP_ORIGIN?APP_ORIGIN:'*');
   }catch(e){console.warn('[spi3der workshop] poll failed',e)}
   finally{polling=false}
 }
@@ -226,7 +231,7 @@ async function receive(){
     return;
   }
   const trace=output.trace_id||'input-fallback';
-  if(activeTrace===trace&&frame.getAttribute('src'))return;
+  if(activeTrace===trace&&frame.getAttribute('data-launch'))return;
   const request=++serial;
   activeTrace=trace;
   diag.trace=trace;
@@ -255,7 +260,11 @@ async function receive(){
     // The original spi3der index.html already accepts compressed #scene links.
     // Loading it, rather than reimplementing controls, preserves the actual
     // KEYS map, input focus, selection, panels, XR and renderer.
-    frame.setAttribute('src',APP_ORIGIN+'/?workshop=1#'+(sessionId?'session='+sessionId+'&':'')+'scene='+packed);
+    const launchHash='#'+(sessionId?'session='+sessionId+'&':'')+'scene='+packed;
+    frame.setAttribute('data-launch','?workshop=1'+launchHash);
+    // Workers cannot load the document-scoped engine bundle: the editor picks on the main thread instead.
+    const launch={search:'?workshop=1&nopickworker',hash:launchHash};
+    frame.srcdoc=NATIVE_HTML.replace('<head>',()=>'<head>\n<script>window.__spi3der_launch='+JSON.stringify(launch).replace(/</g,'\\u003c')+';<\/script>');
     status.textContent='Loading spi3der with '+modelCounts.objects+' objects…';
     report('widget_loaded');
   }catch(e){
@@ -268,7 +277,7 @@ async function receive(){
   }
 }
 frame.addEventListener('load',()=>{
-  if(!frame.getAttribute('src'))return;
+  if(!frame.getAttribute('data-launch'))return;
   // Navigation alone is NOT a completed editor, scene, or keyboard test.
   if(!nativeSceneReady)status.textContent='spi3der frame loaded; waiting for native scene…';
   report('native_frame_loaded');
@@ -282,9 +291,9 @@ frame.addEventListener('error',()=>{
 const INIT_ID='spi3der-ui-init';
 window.addEventListener('message',event=>{
   // Accept native editor status only from the actual child window and exact deployed origin.
-  // Accept native editor status only from the actual child window: the deployed origin, or the opaque
-  // origin it inherits from a host sandbox (our own src, set just above; any other origin is ignored).
-  if(event.source===frame.contentWindow && (event.origin===APP_ORIGIN||event.origin==='null')){
+  // Accept native editor status only from the actual child window. Its origin is this widget's own
+  // (srcdoc), 'null' when the host sandbox is opaque, or APP_ORIGIN for a legacy frame; others are ignored.
+  if(event.source===frame.contentWindow && (event.origin===APP_ORIGIN||event.origin==='null'||event.origin===OWN_ORIGIN)){
     const d=event.data;
     if(d?.source!=='spi3der-native')return;
     nativeOrigin=event.origin;
@@ -383,8 +392,12 @@ receive();
 </body>
 </html>
 `;
-export const widgetHTML=template
-  .replace('__MODEL_SOURCE__',bundleBrowserModel())
+const shell=template
+  .replace('__MODEL_SOURCE__',()=>bundleBrowserModel())
   .replace('__APP_ORIGIN_JSON__',JSON.stringify(APP_ORIGIN))
   .replace('__APP_VERSION_JSON__',JSON.stringify(buildInfo.version))
   .replace('__BUILD_LABEL_JSON__',JSON.stringify(buildInfo.label));
+// The widget shell without the packaged editor (for contract tests of the widget's own code).
+export const widgetShellHTML=shell.replace('__NATIVE_HTML_JSON__','""');
+export const widgetHTML=shell
+  .replace('__NATIVE_HTML_JSON__',()=>JSON.stringify(nativeInlineHTML()).replace(/<\//g,'<\\/').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029'));
