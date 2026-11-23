@@ -152,6 +152,7 @@ async function receive(){
     if(errors.length)throw Error(errors.slice(0,4).map(x=>'Step '+x.step+' ('+x.tool+'): '+x.error).join('\n'));
     const scene=model.data();
     modelCounts={objects:scene.objects.length,faces:scene.objects.reduce((n,o)=>n+(o.mesh?.faces?.length||0),0)};
+    say('scene built: '+modelCounts.objects+' objects'+(nativeEditorReady?'':' (waiting for the editor)'));
     report('widget_loaded');
     applyNative(scene);
   }catch(e){
@@ -167,11 +168,11 @@ window.addEventListener('message',event=>{
   if(event.source===window){
     if(d?.source!=='spi3der-native')return;
     if(d.phase==='native_editor_ready'&&!nativeEditorReady){
-      nativeEditorReady=true;report('native_editor_ready');
+      nativeEditorReady=true;say('native editor ready');report('native_editor_ready');
       if(pendingScene){const s=pendingScene;pendingScene=null;applyNative(s)}
     }else if(d.phase==='native_scene_loaded'&&!nativeSceneReady){
       if(d.objects!==modelCounts.objects){say('native scene count mismatch ('+d.objects+' vs '+modelCounts.objects+')',true);report('widget_error');return}
-      nativeSceneReady=true;report(modelCounts.objects?'widget_rendered':'widget_empty');startPolling();
+      nativeSceneReady=true;say('scene shown: '+d.objects+' objects');report(modelCounts.objects?'widget_rendered':'widget_empty');startPolling();
     }else if(d.phase==='native_scene_changed')nativeChanged(d.scene);
     else if(d.phase==='native_scene_error'){say('could not import the workshop scene',true);report('widget_error')}
     else if(d.phase==='native_key_seen'&&!nativeKeySeen){nativeKeySeen=true;report('native_key_seen')}
@@ -185,11 +186,17 @@ window.addEventListener('message',event=>{
   }
   if(!d||d.jsonrpc!=='2.0')return;
   if(d.id===INIT_ID){
-    if(d.result){bridgeReady=true;bridgeSend('ui/notifications/initialized');reportSize();receive()}
+    if(d.result){bridgeReady=true;say('host handshake done');bridgeSend('ui/notifications/initialized');reportSize();receive()}
     else if(d.error)console.warn('[spi3der view] host rejected MCP Apps initialization',d.error);
   }
-  if(d.method==='ui/notifications/tool-input'){bridgeInput=d.params?.arguments||null;receive()}
-  if(d.method==='ui/notifications/tool-result'){bridgeOutput=d.params?.structuredContent||null;receive()}
+  if(d.method==='ui/notifications/tool-input'){say('tool input received');bridgeInput=d.params?.arguments||null;receive()}
+  if(d.method==='ui/notifications/tool-result'){
+    // Some hosts pass only the text content: open_workshop's text is the same JSON (token, session, trace).
+    let out=d.params?.structuredContent||null;
+    if(!out){try{out=JSON.parse(d.params?.content?.find(c=>c.type==='text')?.text||'null')}catch(_){out=null}}
+    say('tool result received ('+(d.params?.structuredContent?'structured':'text')+')');
+    bridgeOutput=out;receive();
+  }
 });
 if(window.parent!==window){
   bridgeSend('ui/initialize',{
