@@ -18,6 +18,8 @@ jobs:
         run: |
           node --check api/mcp.mjs
           node --check mcp/workshop-app.js
+          node --check mcp/raster.js
+          node --check tests/raster.mjs
           node --check mcp/workshop-session.js
           node --check tests/workshop-session.mjs
           node --check mcp/workshop-widget.js
@@ -41,6 +43,7 @@ jobs:
           npm run test:mcp-app
           node tests/mcp-widget-bridge.mjs
           node tests/workshop-session.mjs
+          node tests/raster.mjs
       - name: Test native tutorial controls and workshop Zen startup
         run: node tests/tutorial-ui.mjs
       - name: Test npm version release lifecycle

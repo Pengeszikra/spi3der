@@ -48,6 +48,37 @@ const sharedTools=[
   {name:'workshop_publish',description:'Internal widget callback: publish native editor scene after an edit with optimistic revision matching.',inputSchema:{type:'object',properties:{session_id:{type:'string'},revision:{type:'integer'},scene:{type:'object'},batch_id:{type:'string'}},required:['session_id','revision','scene']},annotations:{readOnlyHint:false,openWorldHint:false}},
   {name:'workshop_reject',description:'Internal widget callback: release an invalid queued batch and report the error.',inputSchema:{type:'object',properties:{session_id:{type:'string'},batch_id:{type:'string'},reason:{type:'string'}},required:['session_id','batch_id']},annotations:{readOnlyHint:false,openWorldHint:false}}
 ];
+// build_model answers with a PNG image block (mcp/raster.js) instead of SVG text: hosts look at it as a picture,
+// and a dense mesh no longer becomes a black blot or overflows the host's result limit. format:"svg" keeps the old text.
+const withPngRender=t=>t.name!=='build_model'?t:{
+  ...t,
+  description:t.description.replace('a render (SVG text: a 2x2 sheet of front, side, top and perspective by default)','a render (a PNG image: a 2x2 sheet of front, side, top and perspective by default; format "svg" gives SVG text instead)'),
+  inputSchema:{...t.inputSchema,properties:{...t.inputSchema.properties,
+    size:{type:'number',description:'render size in pixels per view (default 280, 64 to 1024)'},
+    format:{type:'string',enum:['png','svg'],description:'png (default): an image block to look at; svg: the deterministic SVG text'}}}
+};
+// the scene link is already size-capped by http.js (MAX_URL), so its inflated JSON may be larger than a workshop history
+const unpackScene=encoded=>JSON.parse(inflateRawSync(Buffer.from(encoded,'base64url'),{maxOutputLength:64e6}).toString('utf8'));
+async function buildModelPng(id,args,ctx){
+  const { publicTools }=await import('./http.js');
+  const tool=publicTools().find(t=>t.name==='build_model');
+  const view=args.render??'sheet';
+  let out;
+  try{out=await tool.run({...args,render:'none'},ctx);}
+  catch(e){return answer(id,{isError:true,content:[{type:'text',text:String(e?.message||e)}]});}
+  const content=[];
+  if(view!=='none'&&out.objects&&out.open_url){
+    try{
+      const { renderPng }=await import('./raster.js');
+      const scene=unpackScene(/#scene=([A-Za-z0-9_-]+)/.exec(out.open_url)[1]);
+      const size=Math.max(64,Math.min(1024,Math.round(Number(args.size)||280)));
+      const png=renderPng(scene.objects,{view,size,palette:scene.palette});
+      content.push({type:'image',data:png.toString('base64'),mimeType:'image/png'});
+    }catch(e){out.render_error=String(e?.message||e).slice(0,200);}
+  }else if(view!=='none'&&out.objects)out.render_error='the model is too big for a link, so it was not rendered';
+  content.unshift({type:'text',text:JSON.stringify(out)});
+  return answer(id,{content});
+}
 const sharedResult=(id,value)=>answer(id,{content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value});
 const sharedError=(id,e)=>answer(id,{isError:true,content:[{type:'text',text:JSON.stringify({error:String(e?.message||e).slice(0,200),...(e?.details?{details:e.details}:{}),server:instanceInfo({build:buildInfo.label})})}]});
 const err=(id,code,message)=>({jsonrpc:'2.0',id,error:{code,message}});
@@ -83,7 +114,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(method==='tools/list'){
     // Legacy tools remain available, but are only imported for discovery/use.
     const { publicTools }=await import('./http.js');
-    return answer(id,{tools:[...publicTools().map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool,...sharedTools]});
+    return answer(id,{tools:[...publicTools().map(withPngRender).map(({name,description,inputSchema,annotations})=>({name,description,inputSchema,annotations})),displayTool,debugTool,widgetEventTool,...sharedTools]});
   }
   if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
   if(method==='resources/read'){
@@ -113,6 +144,9 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
       if(params.name==='workshop_publish')return sharedResult(id,publishWorkshopScene(args));
       if(params.name==='workshop_reject')return sharedResult(id,rejectWorkshopEdit(args));
     }catch(e){return sharedError(id,e);}
+  }
+  if(method==='tools/call'&&params.name==='build_model'&&(params.arguments?.format??'png')==='png'){
+    return buildModelPng(id,params.arguments||{},{origin,fetchText});
   }
   if(method==='tools/call'&&params.name==='debug_trace'){
     const traceId=params.arguments?.trace_id;
