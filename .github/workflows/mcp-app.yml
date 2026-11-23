@@ -50,6 +50,9 @@ jobs:
       - name: Test native tutorial controls and workshop Zen startup
         run: node tests/tutorial-ui.mjs
       - name: Test npm version release lifecycle
+        # versions are dated by the owner's local calendar day (Budapest), not the runner's UTC day
+        env:
+          TZ: Europe/Budapest
         run: node tests/release.mjs
       - name: Test embedded Git SHA with no source checkout
         run: node tests/build-info.mjs
