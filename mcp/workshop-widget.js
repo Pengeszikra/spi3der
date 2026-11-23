@@ -4,6 +4,7 @@
 import { buildInfo } from './build-info.js';
 import { bundleBrowserModel } from './workshop-browser-model.js';
 import { nativeInlineHTML } from './workshop-native-inline.js';
+import { WORKSHOP_TOOLS } from './workshop-tools.js';
 
 export const APP_ORIGIN = 'https://spi3der.cloud.run';
 const template = String.raw`
@@ -117,6 +118,7 @@ async function publishChanges(){
   }
 }
 function nativeChanged(scene){
+  if(scene&&Array.isArray(scene.objects))viewScene=scene;
   if(!sessionId||!scene||!Array.isArray(scene.objects))return;
   const json=JSON.stringify(scene);
   if(json===previousSceneJSON&&!applyingBatch)return;
@@ -160,6 +162,81 @@ async function pollEdits(){
 function startPolling(){
   if(pollTimer||!sessionId)return;
   pollTimer=setInterval(pollEdits,1500);
+}
+
+// ---- App tools (MCP Apps host → view, WebMCP-style) -------------------------------------
+// The host (Claude) lists and calls these on THIS view; the steps run in the browser-local
+// WorkshopModel and are imported through the native editor's own loadScene, exactly like a
+// queued workshop_edit, but without the server queue and the poll. Definitions stay constant:
+// a host's saved "Always allow" is tied to them.
+let viewScene=null,nativeWaiter=null;
+const STEP_TOOLS=__STEP_TOOLS_JSON__;
+const APP_TOOLS=[
+  {name:'get_scene',title:'Read the spi3der scene',
+    description:'Read the scene open in this spi3der view: every object with its bounds, the scene bounds and the shared revision. include_scene=true adds the exact scene JSON.',
+    inputSchema:{type:'object',properties:{include_scene:{type:'boolean',description:'also return the complete 3draft-scene JSON'}}},
+    annotations:{readOnlyHint:true}},
+  {name:'apply_steps',title:'Edit the spi3der scene',
+    description:'Run modelling steps in the scene open in this spi3der view and show the result in its native editor at once; returns each step result and the new object bounds. Steps: {tool, args}, as in build_model.',
+    inputSchema:{type:'object',properties:{steps:{type:'array',minItems:1,maxItems:400,
+      items:{type:'object',properties:{tool:{type:'string',enum:STEP_TOOLS},args:{type:'object'}},required:['tool']}}},required:['steps']},
+    annotations:{readOnlyHint:false,destructiveHint:false}}
+];
+const textResult=(value,isError)=>({content:[{type:'text',text:typeof value==='string'?value:JSON.stringify(value)}],...(isError?{isError:true}:{})});
+function listOf(scene){
+  const r=new WorkshopModel(scene).apply('list',{});
+  return {objects:r.objects||[],bounds:r.scene||null};
+}
+function applyToNative(scene){
+  return new Promise((resolve,reject)=>{
+    if(!sessionId)return reject(Error('this view has no workshop session; reopen it with open_workshop'));
+    if(nativeWaiter||applyingBatch)return reject(Error('the view is still applying a previous edit; try again'));
+    const timer=setTimeout(()=>{nativeWaiter=null;reject(Error('the native editor did not confirm the scene within 20 s'))},20000);
+    nativeWaiter={
+      resolve:v=>{clearTimeout(timer);nativeWaiter=null;resolve(v)},
+      reject:e=>{clearTimeout(timer);nativeWaiter=null;reject(e)}
+    };
+    nativeSceneReady=false;
+    frame.contentWindow.postMessage({source:'spi3der-workshop',phase:'apply_scene',session_id:sessionId,scene},nativeOrigin===APP_ORIGIN?APP_ORIGIN:'*');
+  });
+}
+async function callAppTool(name,args){
+  args=args&&typeof args==='object'?args:{};
+  if(!viewScene)return textResult('The spi3der view has no scene yet; wait until the editor shows it and try again.',true);
+  if(name==='get_scene'){
+    const out={revision,session:!!sessionId,...listOf(viewScene)};
+    if(args.include_scene===true)out.scene=viewScene;
+    return textResult(out);
+  }
+  if(name==='apply_steps'){
+    const steps=args.steps;
+    if(!Array.isArray(steps)||!steps.length||steps.length>400||steps.some(s=>!s||typeof s.tool!=='string'||!STEP_TOOLS.includes(s.tool)))
+      return textResult('Nothing was changed. Pass steps: [{tool, args}] (1-400), tool one of: '+STEP_TOOLS.join(', ')+'.',true);
+    const model=new WorkshopModel(viewScene);
+    const results=model.replay(steps);
+    const errors=results.filter(x=>x.error);
+    if(errors.length)return textResult({changed:false,reason:'a step failed; the view was not changed',errors},true);
+    const scene={...viewScene,...model.data()};
+    const before=modelCounts;
+    modelCounts={objects:scene.objects.length,faces:scene.objects.reduce((n,o)=>n+(o.mesh?.faces?.length||0),0)};
+    try{await applyToNative(scene)}
+    catch(e){modelCounts=before;return textResult('The view was not changed: '+String(e?.message||e),true)}
+    viewScene=scene;
+    report('app_tool_applied',steps.length+' steps');
+    return textResult({changed:true,results,...listOf(scene)});
+  }
+  return textResult('Unknown tool '+name+'. This view offers: '+APP_TOOLS.map(t=>t.name).join(', ')+'.',true);
+}
+async function hostRequest(msg){
+  const reply=(body)=>window.parent.postMessage({jsonrpc:'2.0',id:msg.id,...body},'*');
+  try{
+    if(msg.method==='tools/list'){report('app_tools_listed');return reply({result:{tools:APP_TOOLS}});}
+    if(msg.method==='tools/call')return reply({result:await callAppTool(msg.params?.name,msg.params?.arguments)});
+    if(msg.method==='ping')return reply({result:{}});
+    reply({error:{code:-32601,message:'Method not found: '+msg.method}});
+  }catch(e){
+    reply({result:textResult('spi3der view error: '+String(e?.message||e),true)});
+  }
 }
 
 function bridgeSend(method,params={},id){
@@ -253,6 +330,7 @@ async function receive(){
     const errors=results.filter(x=>x.error);
     if(errors.length)throw Error(errors.slice(0,4).map(x=>'Step '+x.step+' ('+x.tool+'): '+x.error).join('\n'));
     const scene=model.data();
+    viewScene=scene;
     modelCounts={objects:scene.objects.length,faces:scene.objects.reduce((n,o)=>n+(o.mesh?.faces?.length||0),0)};
     const packed=await packScene(scene);
     if(request!==serial)return;
@@ -311,6 +389,7 @@ window.addEventListener('message',event=>{
       report('native_editor_ready');
     }else if(d.phase==='native_scene_loaded' && !nativeSceneReady){
       if(d.objects!==modelCounts.objects){
+        nativeWaiter?.reject(Error('native scene count mismatch ('+d.objects+' vs '+modelCounts.objects+')'));
         errorNode.hidden=false;
         errorNode.textContent='spi3der: native scene count mismatch ('+d.objects+' vs '+modelCounts.objects+')';
         status.hidden=true;
@@ -318,12 +397,14 @@ window.addEventListener('message',event=>{
         return;
       }
       nativeSceneReady=true;
+      nativeWaiter?.resolve(d.objects);
       status.hidden=true;
       report(modelCounts.objects?'widget_rendered':'widget_empty');
       startPolling();
     }else if(d.phase==='native_scene_changed'){
       nativeChanged(d.scene);
     }else if(d.phase==='native_scene_error'){
+      nativeWaiter?.reject(Error('the native editor could not import the scene'));
       errorNode.hidden=false;
       errorNode.textContent='spi3der could not import the workshop scene';
       status.hidden=true;
@@ -336,6 +417,11 @@ window.addEventListener('message',event=>{
   }
   if(event.source!==window.parent)return;
   const msg=event.data;
+  // A request from the host to this view (app tools): it carries both a method and an id.
+  if(msg?.jsonrpc==='2.0'&&typeof msg.method==='string'&&msg.id!==undefined&&msg.id!==null&&!rpcPending.has(msg.id)){
+    hostRequest(msg);
+    return;
+  }
   if(rpcPending.has(msg?.id)){
     const pending=rpcPending.get(msg.id);
     rpcPending.delete(msg.id);
@@ -355,6 +441,7 @@ window.addEventListener('message',event=>{
       diag.host=[h.name,h.version].filter(Boolean).join('@').slice(0,60)||'unknown';
       diag.hostProtocol=msg.result.protocolVersion||null;
       bridgeSend('ui/notifications/initialized');
+      bridgeSend('notifications/tools/list_changed');
       reportSize();
       report('bridge_ready');
       flushReports();
@@ -380,7 +467,7 @@ if(window.parent!==window){
   bridgeSend('ui/initialize',{
     protocolVersion:'2026-01-26',
     appInfo:{name:'spi3der',version:__APP_VERSION_JSON__},
-    appCapabilities:{availableDisplayModes:['inline','fullscreen']}
+    appCapabilities:{availableDisplayModes:['inline','fullscreen'],tools:{listChanged:true}}
   },INIT_ID);
   new ResizeObserver(reportSize).observe(document.getElementById('host'));
 }
@@ -395,6 +482,7 @@ receive();
 const shell=template
   .replace('__MODEL_SOURCE__',()=>bundleBrowserModel())
   .replace('__APP_ORIGIN_JSON__',JSON.stringify(APP_ORIGIN))
+  .replace('__STEP_TOOLS_JSON__',JSON.stringify(WORKSHOP_TOOLS))
   .replace('__APP_VERSION_JSON__',JSON.stringify(buildInfo.version))
   .replace('__BUILD_LABEL_JSON__',JSON.stringify(buildInfo.label));
 // The widget shell without the packaged editor (for contract tests of the widget's own code).

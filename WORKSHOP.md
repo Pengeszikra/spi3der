@@ -17,6 +17,15 @@ This is a browser-native, ChatGPT-embedded collaboration **MVP**. The real spi3d
 
 Since workshop-v12 the widget no longer frames `https://spi3der.cloud.run`. `mcp/workshop-native-inline.js` packages the real `index.html` and its 3Draft engine into one document at resource-build time (scoped modules, no bundler, no network), and the widget loads it into its child frame with `srcdoc`. The editor source, UI and key bindings are unchanged; only its module imports, the worker engine URL (workers fall back to the main thread) and the launch parameters (`window.__spi3der_launch` instead of `location.search` / `location.hash`) are rewired. This works in hosts that sandbox the widget without `allow-same-origin` and ignore `frameDomains` (Claude): the child then reports origin `null` and keeps Web Storage in memory. `tests/mcp-widget-inline-browser.mjs` (local, Playwright) runs the widget in such a sandboxed host and requires `native_editor_ready` and `widget_rendered`.
 
+## App tools (host → view, no queue)
+
+Since 26.11.23.007 the widget declares the MCP Apps `tools` capability in `ui/initialize` and answers the host's `tools/list` / `tools/call` requests itself, so a host that supports app tools (Claude) can edit the open view directly:
+
+- `get_scene({include_scene?})` — object names and bounds of the scene in this view, plus the shared revision.
+- `apply_steps({steps})` — replays the steps in the browser-side `WorkshopModel` built from the last native scene, posts `apply_scene` to the native editor and answers only after `native_scene_loaded` confirms it (20 s timeout). A failing step changes nothing. The native editor then publishes the result to the session as usual, so `workshop_state` stays in step.
+
+The tool definitions are constant (a host's saved "Always allow" is tied to them). Hosts list a newly opened view's tools with the user's next message. The server queue (`workshop_edit` + poll) remains the path for hosts without app tools. `tests/mcp-widget-bridge.mjs` covers the list, read, apply and failure paths.
+
 ## Large model transfer
 
 For tool requests whose declarative command history exceeds 32 KiB, `open_workshop` returns only a compressed `workshop_token` in its structured payload, not duplicate raw steps. The widget unpacks the history locally using `DecompressionStream('deflate-raw')` before executing the same `WorkshopModel`. Small calls still use direct steps for compatibility. This avoids unnecessarily large MCP responses without adding a UI or moving modelling to the server. `tests/mcp-app.mjs` and `tests/mcp-widget-bridge.mjs` exercise both paths.

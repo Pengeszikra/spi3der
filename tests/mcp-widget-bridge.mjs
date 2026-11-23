@@ -51,6 +51,7 @@ const vm=createContext({
   ResizeObserver:class{observe(){}},
   setInterval(fn){timers.push(fn);return timers.length},
   setTimeout(fn){timeouts.push(fn);return timeouts.length},
+  clearTimeout(){},
   CompressionStream:IdentityCompressionStream,
   DecompressionStream:IdentityDecompressionStream,
   atob:value=>Buffer.from(value,'base64').toString('binary'),
@@ -167,4 +168,47 @@ assert.equal(publish.params.arguments.batch_id,'batch-one');
 assert.equal(publish.params.arguments.revision,1);
 onMessage({source:parent,data:{jsonrpc:'2.0',id:publish.id,result:{structuredContent:{revision:2,objects:2}}}});
 await new Promise(resolve=>setImmediate(resolve));
-console.log('spi3der native handshake, shared snapshot, queued agent edit and revision ACK: OK');
+// App tools: the host (Claude) lists and calls tools on THIS view; edits go straight into the native editor.
+assert.equal(JSON.stringify(init.params.appCapabilities.tools),'{"listChanged":true}','the view declares the tools capability');
+const hostReplies=id=>posted.filter(m=>m.id===id&&('result' in m||'error' in m)).at(-1);
+const hostCall=async(id,method,params)=>{
+  onMessage({source:parent,data:{jsonrpc:'2.0',id,method,params}});
+  await new Promise(resolve=>setImmediate(resolve));
+  return hostReplies(id);
+};
+const listed=await hostCall(901,'tools/list',{});
+assert.equal(listed.result.tools.map(t=>t.name).join(),'get_scene,apply_steps');
+for(const t of listed.result.tools){
+  assert.equal(t.inputSchema.type,'object','every app tool schema is an object at the root');
+  assert.match(t.name,/^[A-Za-z0-9._-]{1,128}$/);
+}
+const read=await hostCall(902,'tools/call',{name:'get_scene',arguments:{}});
+const readOut=JSON.parse(read.result.content[0].text);
+assert.equal(readOut.objects.map(o=>o.name).join(),'native-cube,spider');
+assert.equal(readOut.revision,2);
+const four=[{tool:'instance',args:{source:'native-cube',copies:[{name:'A',at:[-2,0,-2]},{name:'B',at:[2,0,-2],color:'#ff6644'},{name:'C',at:[-2,0,2],scale:1.5},{name:'D',at:[2,0,2],scale:.6}]}}];
+const updatesBefore=nativeUpdates.length;
+onMessage({source:parent,data:{jsonrpc:'2.0',id:903,method:'tools/call',params:{name:'apply_steps',arguments:{steps:four}}}});
+await new Promise(resolve=>setImmediate(resolve));
+assert.equal(hostReplies(903),undefined,'the call waits for the native editor to confirm');
+const applied=nativeUpdates.at(-1);
+assert.equal(nativeUpdates.length,updatesBefore+1);
+assert.equal(applied.message.phase,'apply_scene');
+assert.equal(applied.message.scene.objects.length,6);
+native('native_scene_loaded',{objects:6});
+await new Promise(resolve=>setImmediate(resolve));
+const done=hostReplies(903);
+assert.notEqual(done.result.isError,true);
+const doneOut=JSON.parse(done.result.content[0].text);
+assert.equal(doneOut.changed,true);
+assert.equal(doneOut.objects.map(o=>o.name).slice(2).join(),'A,B,C,D');
+native('native_scene_changed',{scene:applied.message.scene});
+publish=posted.filter(m=>m.params?.name==='workshop_publish').at(-1);
+assert.equal(publish.params.arguments.scene.objects.length,6,'an app-tool edit is published to the shared session too');
+assert.equal(publish.params.arguments.batch_id,undefined);
+const bad=await hostCall(904,'tools/call',{name:'apply_steps',arguments:{steps:[{tool:'remove',args:{name:'nope'}}]}});
+assert.equal(bad.result.isError,true,'a failing step changes nothing and reports why');
+assert.equal(nativeUpdates.length,updatesBefore+1);
+const unknownTool=await hostCall(905,'tools/call',{name:'rm_rf',arguments:{}});
+assert.equal(unknownTool.result.isError,true);
+console.log('spi3der native handshake, shared snapshot, queued agent edit, revision ACK and app tools: OK');
