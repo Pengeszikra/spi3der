@@ -77,4 +77,24 @@ assert.equal(r._meta.ui.resourceUri.startsWith('ui://spi3der/'), true);
 r = await call('open_workshop', { story: token, steps: [] });
 assert.ok(r.isError);
 
+// background: stored in presentation.background, player_url carries ?bg=, a bad value is refused
+r = await call('build_story', { steps, motions, background: '#123', preview: false });
+assert.ok(!r.isError, r.content?.[0]?.text);
+out = JSON.parse(r.content[0].text);
+assert.equal(out.background, '#112233');
+assert.ok(out.player_url.startsWith('https://spi3der.test/player.html?bg=%23112233#story='));
+doc = unpack(out.story_token);
+validateBuildDocument(doc);
+assert.equal(doc.presentation.background, '#112233');
+r = await call('build_story', { steps, motions, background: 'transparent', preview_at: [0, 450, 99999] });
+assert.ok(!r.isError, r.content?.[0]?.text);
+out = JSON.parse(r.content[0].text);
+assert.equal(unpack(out.story_token).presentation.background, 'transparent');
+assert.deepEqual(r.content.filter((c) => c.type === 'text' && c.text.startsWith('t = ')).map((c) => c.text), ['t = 0 ms', 't = 450 ms', `t = ${out.duration_ms} ms`], 'preview_at picks the moments (clamped to the end)');
+r = await call('build_story', { steps, motions, background: 'blue' });
+assert.ok(r.isError && /background/.test(r.content[0].text));
+r = await call('build_story', { steps, motions, preview_at: [] });
+assert.ok(r.isError && /preview_at/.test(r.content[0].text));
+assert.throws(() => validateBuildDocument({ ...doc, presentation: { background: 'red' } }), /presentation.background/);
+
 console.log('story: ok');

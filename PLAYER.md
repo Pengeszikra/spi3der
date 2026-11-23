@@ -44,7 +44,7 @@ Without `scene`, the player reads a packed story or scene from its own fragment:
 | Parameter | Default | Meaning |
 |---|---|---|
 | `scene` (or `src`) | — | the scene (`.3draft`, or an older `.scene.json`) or story (`.build.json`) to load |
-| `bg` | `transparent` | `transparent`, or a colour: `1a1a2e`, `#1a1a2e`, `fff` |
+| `bg` | `transparent` (or the story's own `presentation.background`) | `transparent`, or a colour: `1a1a2e`, `#1a1a2e`, `fff`; given, it wins over the story's |
 | `spin` | `20` | the turntable's speed, degrees per second; `0` stands still, negative turns the other way |
 | `yaw` | `30` | the turntable's starting angle round the vertical, degrees |
 | `pitch` | `20` | how far the camera looks down on the model, degrees (−89 … 89) |

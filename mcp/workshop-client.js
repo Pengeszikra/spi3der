@@ -1,5 +1,5 @@
 // Browser-local workshop: the exact same 3Draft modeling operations as build_model.
-// ChatGPT's iframe receives declarative steps; all geometry executes in this model.
+// The host's MCP Apps iframe (ChatGPT, Claude...) receives declarative steps; all geometry executes in this model.
 // No server geometry calculation, networking, browser imports or dynamic loading.
 import { createScene } from './scene.js';
 import { WORKSHOP_TOOLS as SHARED_TOOLS } from './workshop-tools.js';

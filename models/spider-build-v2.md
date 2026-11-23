@@ -23,7 +23,7 @@ chapters             Named timeline ranges for navigation
 tracks.construction  Timestamped commands and authoritative resulting changes
 tracks.camera        Initial pose, keyframes and named inspection presets
 tracks.narration     Timestamped text and optional audio cues
-presentation         Optional cutaway masks and named object inspection views
+presentation         Optional cutaway masks, named object inspection views and background
 result               Optional summary of the finished model
 ```
 
@@ -32,6 +32,8 @@ or disabled without changing construction. They reference global time, never con
 step IDs or chapter IDs. Chapters contain navigation titles and ranges only; descriptive
 chapter narration belongs in `tracks.narration`. All camera coordinates, including inspection
 presets, belong in `tracks.camera`; presentation views reference presets by name.
+`presentation.background` (optional) is `"transparent"` or a `#rrggbb` colour drawn behind the
+model; a player's own background setting (e.g. `player.html?bg=`) overrides it.
 
 ## Construction
 

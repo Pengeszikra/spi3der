@@ -483,6 +483,8 @@
     #stExit { padding: 6px 9px; }
     #storyCaption { position: fixed; left: 0; right: 0; margin-inline: auto; width: fit-content; bottom: 128px; z-index: 5; max-width: min(1600px, calc(100vw - 32px)); display: grid; gap: 10px; justify-items: center; text-align: center; pointer-events: none; font: 500 min(39px, 6.5vw)/1.3 var(--font-mono); color: var(--cream); text-shadow: 0 1px 4px #000, 0 0 12px #000; }
     #storyCaption[hidden] { display: none; }
+    /* a story's presentation.background (build_story background): a colour behind the model, or transparent (the embedding page shows through) */
+    html:has(body.story-bg), body.story-bg, body.story-bg #stage { background: var(--story-bg) !important; }
     /* story text three times the console size, so it reads from across the room (smaller on a phone) */
     /* the chapter title under the text: the box grows upward from the bottom, so the title stays put whether the text runs to
        one, two or three lines */
@@ -1192,6 +1194,7 @@
     // local origin (the middle of its base) carries the grid (the plane under it) and the camera looks at that point.
     let bench = null; // { origin: [x, y, z], base: history length at the start, cam: the view to return to }
     let rebuilds = 0; // how many times the scene was merged (debug: __3draft.sky())
+    let storyBackdrop = null; // a playing story's presentation.background: null | 'transparent' | [r, g, b] (applyStoryBackground)
     let storySkin = null; // stable bind geometry; only animation matrices change during a cinematic story
     let holdRebuild = 0; // inside asOneStep the scene is merged once at the end, not after every object
     let rebuildWanted = false;
@@ -3165,8 +3168,8 @@
             fit: gFit,
             logDepth: sky ? 1e12 : 0,
             planets: shaderPlanets,
-            background: rgb,
-            transparent: Boolean(storySkin && story?.doc.scene.environment),
+            background: Array.isArray(storyBackdrop) ? storyBackdrop : rgb,
+            transparent: Boolean(storySkin && story?.doc.scene.environment) || storyBackdrop === 'transparent',
             glow: filmic,
             smooth: smooth ? 40 : 0,
             studio,
@@ -9670,6 +9673,14 @@
       stShow(story.t, true);
       stPreset(v.cameraPreset);
     };
+    // presentation.background ('transparent' | '#rrggbb'): the GPU clears to it (storyBackdrop) and the page round the canvas follows it
+    const applyStoryBackground = (bg) => {
+      storyBackdrop = bg === 'transparent' ? 'transparent' : /^#[0-9a-f]{6}$/i.test(bg ?? '') ? [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16) / 255) : null;
+      if (!storyBackdrop) bg = null;
+      document.body.classList.toggle('story-bg', Boolean(bg));
+      if (bg) document.documentElement.style.setProperty('--story-bg', bg === 'transparent' ? 'transparent' : bg);
+      else document.documentElement.style.removeProperty('--story-bg');
+    };
     const openStory = async (raw, base = location.href) => {
       let doc;
       try {
@@ -9683,6 +9694,7 @@
       renderOrigin = null;
       story = { doc, base, t: 0, index: -1, playing: false, last: 0, loadedKey: '', cutaway: false, focus: null, raf: 0, count: 0 };
       document.body.classList.add('story');
+      applyStoryBackground(doc.presentation?.background);
       stEl('stTitle').textContent = doc.metadata.title ?? 'Story';
       stEl('stChapter').replaceChildren(...doc.chapters.map((c) => Object.assign(document.createElement('option'), { value: c.id, textContent: c.title })));
       stEl('stChapter').hidden = !doc.chapters.length;
@@ -9708,6 +9720,7 @@
       story = null;
       storySkin = null;
       document.body.classList.remove('story');
+      applyStoryBackground(null);
       stEl('storyCaption').hidden = true;
       storyPanelEl.hidden = true;
       stEl('stInfo').classList.remove('on');

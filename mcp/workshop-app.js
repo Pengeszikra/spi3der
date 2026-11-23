@@ -1,4 +1,4 @@
-// ChatGPT MCP Apps transport for the browser-local spi3der workshop.
+// MCP Apps transport (ChatGPT, Claude and other MCP Apps hosts) for the browser-local spi3der workshop.
 // The server validates/forwards commands and records timing; it does NOT build geometry.
 import { buildInfo } from './build-info.js';
 import { performance } from 'node:perf_hooks';
@@ -14,13 +14,13 @@ import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enque
 
 // Which UI resources hosts actually read from this process (a host may keep an older cached one).
 const resourceReads=[];
-export const RESOURCE_URI='ui://spi3der/workshop-v14.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html','ui://spi3der/workshop-v9.html','ui://spi3der/workshop-v10.html','ui://spi3der/workshop-v11.html','ui://spi3der/workshop-v12.html','ui://spi3der/workshop-v13.html'];
+export const RESOURCE_URI='ui://spi3der/workshop-v15.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html','ui://spi3der/workshop-v9.html','ui://spi3der/workshop-v10.html','ui://spi3der/workshop-v11.html','ui://spi3der/workshop-v12.html','ui://spi3der/workshop-v13.html','ui://spi3der/workshop-v14.html'];
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000, COMPACT_HISTORY_BYTES=32768;
 const displayTool={
   name:'open_workshop',
-  description:'Open the complete native spi3der editor inside ChatGPT. The browser builds the scene and loads the real editor with its original UI and key bindings; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Pass steps to model, from to reopen a workshop_token or #scene link, or omit both to open an empty editor. steps is optional; model results are only confirmed after the embedded widget runs. Pass story (the story_token or open_url of build_story) instead to play an animated story inline in the editor\'s own Stories player.',
+  description:'Open the complete native spi3der editor inline in the conversation (an MCP Apps widget: ChatGPT, Claude and other hosts). The browser builds the scene and loads the real editor with its original UI and key bindings; the MCP server only relays declarative operations. Supported local operations: '+WORKSHOP_TOOLS.join(', ')+'. A box: {tool:"add_box",args:{name:"Cube",size:[1,1,1],at:[0,0.5,0],color:"#44aaff"}}. Pass steps to model, from to reopen a workshop_token or #scene link, or omit both to open an empty editor. steps is optional; model results are only confirmed after the embedded widget runs. Pass story (the story_token or open_url of build_story) instead to play an animated story inline in the editor\'s own Stories player.',
   inputSchema:{
     type:'object',
     properties:{
@@ -34,7 +34,7 @@ const displayTool={
 };
 const storyTool={
   name:'build_story',
-  description:'Make an animated story (a Spider Build v2 recording, models/spider-build-v2.md) from a model and play it on a timeline: assembly, disassembly, explosions, mechanisms, fly-throughs. The model: from (a build_model open_url) and / or steps (build_model steps). motions: [{ object | objects: [names] | match: "pyr-*", pivot: "center" (default) | "foot" | [x, y, z], ease, keys: [{ t (ms), move: [dx, dy, dz] (from the object\'s place in the model), rotate: [x, y, z] (degrees about the pivot), scale, ease: smooth (default) | linear | in | out | cut }] }]: each key is a pose relative to where the object stands in the model; before its first key an object holds that key\'s pose, after its last it holds the last (so disassembly: keys from move [0,0,0] to the far place; assembly: the reverse). One motion per object; one motion can name many objects (they move alike). camera: { orbit: { turns (default 0.25), radius, height, center, start_yaw, fov } } (default: a slow orbit round everything) or { keys: [{ t, eye, look_at | yaw + pitch, transition: smoothstep | linear | cut, fov, roll }] }. captions: [{ start, end (ms), text, channel: voiceover | operation | chapter }]. duration_ms (default: the last key + hold_ms 800). mode: auto (default) | animation (GPU-blended rigid channels, at most 64 distinct motions) | frames (stop-motion every sample_ms, default 80, no limit; only moving objects are stored). Returns open_url (the spi3der editor playing it in its Stories player: play / pause, time slider, speed, recorded camera on/off, captions), player_url (the bare player.html for an iframe), story_token (pass it to open_workshop story to play it inline), a PNG preview of the start, middle and end, and with include_doc the .build.json document itself.',
+  description:'Make an animated story (a Spider Build v2 recording, models/spider-build-v2.md) from a model and play it on a timeline: assembly, disassembly, explosions, mechanisms, fly-throughs. The model: from (a build_model open_url) and / or steps (build_model steps). motions: [{ object | objects: [names] | match: "pyr-*", pivot: "center" (default) | "foot" | [x, y, z], ease, keys: [{ t (ms), move: [dx, dy, dz] (from the object\'s place in the model), rotate: [x, y, z] (degrees about the pivot), scale, ease: smooth (default) | linear | in | out | cut }] }]: each key is a pose relative to where the object stands in the model; before its first key an object holds that key\'s pose, after its last it holds the last (so disassembly: keys from move [0,0,0] to the far place; assembly: the reverse). One motion per object; one motion can name many objects (they move alike). camera: { orbit: { turns (default 0.25), radius, height, center, start_yaw, fov } } (default: a slow orbit round everything) or { keys: [{ t, eye, look_at | yaw + pitch, transition: smoothstep | linear | cut, fov, roll }] }. captions: [{ start, end (ms), text, channel: voiceover | operation | chapter }]. background: "transparent" (nothing behind the model: the page round the player shows through) or a #rrggbb colour (default: the player\'s own). duration_ms (default: the last key + hold_ms 800). mode: auto (default) | animation (GPU-blended rigid channels, at most 64 distinct motions) | frames (stop-motion every sample_ms, default 80, no limit; only moving objects are stored). Returns open_url (the spi3der editor playing it in its Stories player: play / pause, time slider, speed, recorded camera on/off, captions), player_url (the bare player.html for an iframe), story_token (pass it to open_workshop story to play it inline), a PNG preview of the start, middle and end (preview_at: up to 6 chosen times in ms instead), and with include_doc the .build.json document itself.',
   inputSchema:{type:'object',properties:{
     title:{type:'string'},
     from:{type:'string',description:'the model: an open_url of build_model'},
@@ -45,7 +45,9 @@ const storyTool={
     duration_ms:{type:'number'},hold_ms:{type:'number'},
     mode:{type:'string',enum:['auto','animation','frames']},
     sample_ms:{type:'number',description:'sampling step in ms (animation default 50, frames default 80)'},
+    background:{type:'string',description:'"transparent" or a #rrggbb colour behind the model (stored in the story; player_url gets ?bg= too)'},
     preview:{type:'boolean',description:'PNG preview of three moments (default true)'},
+    preview_at:{type:'array',items:{type:'number'},maxItems:6,description:'the preview moments in ms (1 to 6), instead of start / middle / end'},
     include_doc:{type:'boolean',description:'also return the Spider Build v2 document (to save as .build.json)'}
   }},
   annotations:{readOnlyHint:true,openWorldHint:false}
@@ -112,10 +114,10 @@ async function buildStoryCall(id,args,ctx){
   if(args.preview!==false){
     try{
       const { renderPng }=await import('./raster.js');
-      for(const m of storyMoments(made.doc,3)){
+      for(const m of storyMoments(made.doc,3,args.preview_at)){
         if(!m.objects.length)continue;
         content.push({type:'text',text:'t = '+m.t+' ms'});
-        content.push({type:'image',data:renderPng(m.objects,{view:'persp',size:240,palette:made.doc.scene.palette}).toString('base64'),mimeType:'image/png'});
+        content.push({type:'image',data:renderPng(m.objects,{view:'persp',size:240,palette:made.doc.scene.palette,background:made.doc.presentation?.background}).toString('base64'),mimeType:'image/png'});
       }
     }catch(e){out.preview_error=String(e?.message||e).slice(0,200);}
   }
@@ -170,7 +172,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     protocolVersion:params.protocolVersion||'2025-06-18',
     capabilities:{tools:{},resources:{listChanged:false}},
     serverInfo:{name:'spi3der',title:'spi3der',version},
-    instructions:'spi3der builds scenes locally inside the ChatGPT widget and embeds the full native editor from its own origin. open_workshop relays modeling steps, not computed meshes. Model a repeated thing once and place copies with the instance step (source: an object or group; copies: [{ at, scale, rotate_y, color }]). Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
+    instructions:'spi3der builds scenes locally inside its MCP Apps widget in the conversation (ChatGPT, Claude and other hosts) and embeds the full native editor from its own origin. open_workshop relays modeling steps, not computed meshes. Model a repeated thing once and place copies with the instance step (source: an object or group; copies: [{ at, scale, rotate_y, color }]). Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
   });
   if(method==='tools/call'&&sharedTools.some(x=>x.name===params.name)){
     const args=params.arguments||{};

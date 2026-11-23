@@ -4,7 +4,7 @@
 // the edges that mean something are drawn: silhouettes, borders between objects, creases (normal change) and depth
 // steps. Rendered at 2x and box-filtered down, so lines stay sharp but not jagged. Output is deterministic.
 //
-// renderPng(objects, { view, size, palette }) -> Buffer (PNG). objects: [{ name, mesh }] (the scene's export).
+// renderPng(objects, { view, size, palette, background }) -> Buffer (PNG). background: '#rrggbb' or 'transparent' (a checkerboard). objects: [{ name, mesh }] (the scene's export).
 // view: 'sheet' (2x2: front, side, top, persp) or one of front | side | top | persp, or a camera spec { dir, up, ortho }.
 import { deflateSync } from 'node:zlib';
 import { makeCamera, project, VIEW_ORDER } from './engine/camera.js';
@@ -101,7 +101,14 @@ const FONT = {
 };
 
 /** One view into an RGB panel of size x size pixels. */
-const panel = (parts, view, size, palette) => {
+// background: a #rrggbb colour, or 'transparent' (drawn as a light checkerboard, so the preview shows that nothing is behind)
+const backgroundFill = (background) => {
+  if (background === undefined || background === null) return () => BACKGROUND;
+  if (background === 'transparent') return (x, y) => ((((x / (12 * SS)) | 0) + ((y / (12 * SS)) | 0)) & 1 ? [255, 255, 255] : [224, 224, 228]);
+  const c = hex(background);
+  return () => c;
+};
+const panel = (parts, view, size, palette, background) => {
   const S = size * SS;
   const all = merge(...parts.map((p) => p.mesh));
   const cam = makeCamera(view, all, S);
@@ -109,7 +116,8 @@ const panel = (parts, view, size, palette) => {
   const zb = new Float32Array(N).fill(-Infinity); // larger = nearer
   const fid = new Int32Array(N).fill(-1);
   const rgb = new Uint8ClampedArray(N * 3);
-  for (let i = 0; i < N; i++) rgb.set(BACKGROUND, i * 3);
+  const fill = backgroundFill(background);
+  for (let i = 0; i < N; i++) rgb.set(fill(i % S, (i / S) | 0), i * 3);
   // a light that sits up and to the left of the camera, so every view reads the same way
   const L = norm([cam.r[0] * -0.45 + cam.u[0] * 0.75 + cam.f[0] * 0.5, cam.r[1] * -0.45 + cam.u[1] * 0.75 + cam.f[1] * 0.5, cam.r[2] * -0.45 + cam.u[2] * 0.75 + cam.f[2] * 0.5]);
   const faces = []; // { obj, n (facing the eye), color, alpha }
@@ -242,7 +250,7 @@ export const encodePng = (pixels, W, H) => {
 };
 
 /** The scene's objects as a PNG: a 2x2 sheet (front, side / top, persp) or one view. */
-export const renderPng = (objects, { view = 'sheet', size = 280, palette } = {}) => {
+export const renderPng = (objects, { view = 'sheet', size = 280, palette, background } = {}) => {
   const parts = objects.filter((o) => o?.mesh?.positions?.length && o.mesh.faces?.length);
   if (!parts.length) throw new Error('nothing to render');
   const pal = Array.isArray(palette) ? Object.fromEntries(palette.map((m) => [m.name, m])) : palette;
@@ -252,7 +260,7 @@ export const renderPng = (objects, { view = 'sheet', size = 280, palette } = {})
   const H = size * Math.ceil(views.length / cols);
   const img = new Uint8ClampedArray(W * H * 3);
   views.forEach((v, i) => {
-    const { pixels, name } = panel(parts, v, size, pal);
+    const { pixels, name } = panel(parts, v, size, pal, background);
     const ox = (i % cols) * size, oy = Math.floor(i / cols) * size;
     for (let y = 0; y < size; y++) img.set(pixels.subarray(y * size * 3, (y + 1) * size * 3), ((oy + y) * W + ox) * 3);
     for (let k = 0; k < size; k++) {

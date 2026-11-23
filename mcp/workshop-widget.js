@@ -1,4 +1,4 @@
-// ChatGPT MCP Apps shell for the REAL spi3der application.
+// MCP Apps shell (ChatGPT, Claude and other hosts) for the REAL spi3der application.
 // Scene operations still run in the browser; the full editor is loaded from its own origin.
 // Do not build a competing mini toolbar or keyboard system here.
 import { buildInfo } from './build-info.js';

@@ -22,6 +22,16 @@ const MAX_CHANNELS = 64;
 const EASES = { linear: (t) => t, smooth: (t) => t * t * (3 - 2 * t), in: (t) => t * t, out: (t) => 1 - (1 - t) * (1 - t), cut: (t) => (t < 1 ? 0 : 1) };
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
+/** background: "transparent" (also "none") or a #rgb / #rrggbb colour -> "transparent" | "#rrggbb"; undefined stays undefined. */
+export const storyBackground = (v) => {
+  if (v === undefined || v === null || v === '') return undefined;
+  if (typeof v !== 'string') fail('background: "transparent" or a #rrggbb colour');
+  const s = v.trim().toLowerCase();
+  if (s === 'transparent' || s === 'none') return 'transparent';
+  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(s);
+  if (!m) fail(`background: "${v}" is not "transparent" or a #rrggbb colour`);
+  return `#${m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1]}`;
+};
 const vec3 = (v, d, path) => {
   if (v === undefined) return d;
   if (!Array.isArray(v) || v.length !== 3 || v.some((x) => typeof x !== 'number' || !Number.isFinite(x))) fail(`${path}: expected [x, y, z]`);
@@ -163,6 +173,9 @@ const baseScene = async (a, ctx) => {
 };
 
 export async function buildStory(a, ctx) {
+  const background = storyBackground(a.background);
+  if (a.preview_at !== undefined && (!Array.isArray(a.preview_at) || !a.preview_at.length || a.preview_at.length > 6 || a.preview_at.some((t) => typeof t !== 'number' || !Number.isFinite(t) || t < 0)))
+    fail('preview_at: 1 to 6 times in ms, 0 or more');
   const scene = await baseScene(a, ctx);
   const palette = (Array.isArray(scene.palette) ? scene.palette : []).filter((m) => m?.name).map((m) => {
     const out = { name: m.name };
@@ -334,6 +347,7 @@ export async function buildStory(a, ctx) {
       narration: { cues: captions.map((c, i) => ({ id: `cue-${i + 1}`, startMs: c.start, endMs: Math.min(c.end, duration), channel: c.channel, language: 'en', text: c.text })) },
       ...(animation ? { animation } : {}),
     },
+    ...(background ? { presentation: { background } } : {}),
   };
   try {
     validateBuildDocument(doc);
@@ -354,19 +368,21 @@ export async function buildStory(a, ctx) {
       ...(useFrames ? { frames: steps.length, frame_ms: step } : { channels: animation?.channels.length ?? 0, samples: times.length }),
       captions: captions.length,
       camera: camKeys ? `${keyframes.length} keys` : 'orbit',
+      ...(background ? { background } : {}),
       link_chars: open_url.length,
       ...(fits
-        ? { open_url, player_url: `${ctx.origin}/player.html#story=${packed}`, story_token: packed }
+        ? { open_url, player_url: `${ctx.origin}/player.html${background ? `?bg=${encodeURIComponent(background)}` : ''}#story=${packed}`, story_token: packed }
         : { open_url: null, note: `the story is too big for a link (${open_url.length} characters): fewer frames (sample_ms), fewer moving objects, or include_doc and save it as a .build.json` }),
     },
   };
 }
 
-/** Preview: the story at a few moments, as objects to rasterize. */
-export const storyMoments = (doc, count = 3) => {
+/** Preview: the story at a few moments, as objects to rasterize. `at`: chosen times in ms (clamped into the story, at most 6);
+ * without it `count` moments spread evenly from the start to the end. */
+export const storyMoments = (doc, count = 3, at) => {
   const d = doc.timeline.durationMs;
-  return Array.from({ length: count }, (_, i) => {
-    const t = Math.round((d * i) / Math.max(1, count - 1));
-    return { t, objects: sceneAt(doc, t) };
-  });
+  const times = Array.isArray(at) && at.length
+    ? [...new Set(at.filter((t) => typeof t === 'number' && Number.isFinite(t)).map((t) => Math.round(Math.max(0, Math.min(d, t)))))].slice(0, 6)
+    : Array.from({ length: count }, (_, i) => Math.round((d * i) / Math.max(1, count - 1)));
+  return times.map((t) => ({ t, objects: sceneAt(doc, t) }));
 };

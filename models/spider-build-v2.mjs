@@ -271,7 +271,8 @@ export function validateBuildDocument(doc) {
     if (c.startMs < chapterEnd || c.endMs <= c.startMs) fail(c.id, 'overlapping or empty chapter'); chapterEnd = c.endMs;
   }
   if (doc.presentation) {
-    keys(doc.presentation, ['cutaway','views'], 'presentation');
+    keys(doc.presentation, ['cutaway','views','background'], 'presentation');
+    if (doc.presentation.background !== undefined && !(doc.presentation.background === 'transparent' || /^#[0-9a-f]{6}$/i.test(doc.presentation.background))) fail('presentation.background', 'expected "transparent" or a #rrggbb colour');
     const preset = v => {if (!Object.hasOwn(cam.presets, v)) fail('presentation', `unknown camera preset ${v}`);};
     const prefixes = (v, path) => {array(v,path); v.forEach(x => string(x,path));};
     if (doc.presentation.cutaway) {const v=doc.presentation.cutaway; keys(v,['excludePrefixes','cameraPreset'],'presentation.cutaway'); preset(v.cameraPreset); prefixes(v.excludePrefixes,'cutaway.excludePrefixes');}

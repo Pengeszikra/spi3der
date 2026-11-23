@@ -32,7 +32,7 @@ const oldResource=await call(300,'resources/read',{uri:'ui://spi3der/workshop-v1
 assert.equal(oldResource.result.contents[0].uri,'ui://spi3der/workshop-v1.html', 'legacy cached UI must remain readable');
 const oldV2=await call(301,'resources/read',{uri:'ui://spi3der/workshop-v2.html'});
 assert.equal(oldV2.result.contents[0].uri,'ui://spi3der/workshop-v2.html');
-assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v14.html', 'UI changes need a fresh resource to bypass old host cache');
+assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v15.html', 'UI changes need a fresh resource to bypass old host cache');
 const oldV3=await call(302,'resources/read',{uri:'ui://spi3der/workshop-v3.html'});
 assert.equal(oldV3.result.contents[0].uri,'ui://spi3der/workshop-v3.html');
 const oldV4=await call(303,'resources/read',{uri:'ui://spi3der/workshop-v4.html'});
