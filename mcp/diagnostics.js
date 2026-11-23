@@ -7,8 +7,24 @@ const MAX_TRACES = 128;
 const TTL_MS = 15 * 60 * 1000;
 const MAX_EVENTS = 48;
 const traces = new Map();
-const fields = new Set(['stepCount','objects','vertices','faces','payloadBytes','durationMs','phase','reason','httpStatus','widgetObjects','widgetFaces']);
-const phases = new Set(['request_received','steps_validated','model_started','model_finished','scene_unpacked','response_ready','request_failed','widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen']);
+const fields = new Set(['stepCount','objects','vertices','faces','payloadBytes','durationMs','phase','reason','httpStatus','widgetObjects','widgetFaces','widgetMs','host']);
+// Widget phases that describe the MCP Apps host handshake. They exist so a
+// missing editor can be located: no tool result, rejected init, failed calls.
+export const WIDGET_PHASES = ['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen',
+  'widget_boot','bridge_ready','bridge_init_rejected','tool_input_received','tool_result_received','tool_output_missing','host_call_failed','context_push_failed'];
+const phases = new Set(['request_received','steps_validated','model_started','model_finished','scene_unpacked','response_ready','request_failed',...WIDGET_PHASES]);
+// One id per server process. Two calls that disagree about it reached two
+// different processes (Cloud Run instance, restarted local server, other host).
+const INSTANCE = Object.freeze({ id: randomUUID().slice(0, 8), startedMs: Date.now() });
+export function instanceInfo(extra = {}) {
+  return {
+    instance: INSTANCE.id,
+    uptimeS: Math.round((Date.now() - INSTANCE.startedMs) / 1000),
+    runtime: process.env.K_SERVICE ? 'cloud-run' : process.env.VERCEL ? 'vercel' : 'local',
+    ...(process.env.K_REVISION ? { revision: process.env.K_REVISION } : {}),
+    ...extra,
+  };
+}
 const number = value => typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.round(value)) : undefined;
 function trim() {
   const now = Date.now();
@@ -40,7 +56,7 @@ export function recordTrace(id, phase, details = {}) {
   const e = { phase, elapsedMs: Math.round(performance.now() - t.started) };
   for (const [key, value] of Object.entries(details)) {
     if (!fields.has(key)) continue;
-    if (key === 'reason') e.reason = String(value || 'unknown').slice(0, 64).replace(/[^\w .:-]/g, '_');
+    if (key === 'reason' || key === 'host') e[key] = String(value || 'unknown').slice(0, 64).replace(/[^\w .:/@-]/g, '_');
     else if (key === 'phase') continue;
     else { const n = number(value); if (n !== undefined) e[key] = n; }
   }
@@ -53,10 +69,30 @@ export function recordTrace(id, phase, details = {}) {
   if (phase === 'native_editor_ready' && !['widget_rendered','widget_empty'].includes(t.status)) t.status = 'native_editor_ready';
   if (phase === 'native_key_seen' && !['widget_rendered','widget_empty','widget_error'].includes(t.status)) t.status = 'native_key_seen';
   if (phase === 'widget_error') t.status = 'widget_error';
+  if (['widget_boot','bridge_ready','tool_input_received','tool_result_received'].includes(phase) && t.status === 'server_complete') t.status = 'widget_handshake';
+  if (['bridge_init_rejected','tool_output_missing'].includes(phase) && !['widget_rendered','widget_empty'].includes(t.status)) t.status = phase;
   log(t, e);
   return true;
 }
-export function readTrace(id) {
+// Remember which workshop session a trace opened. The id itself is a
+// capability and is never returned; only whether it still exists.
+export function linkTraceSession(id, sessionId) {
+  const t = traces.get(id);
+  if (t) t.sessionId = sessionId;
+}
+export function recentTraces(sessionExists = () => null, limit = 10) {
+  trim();
+  return [...traces.values()].slice(-limit).reverse().map(t => ({
+    trace_id: t.id,
+    status: t.status,
+    created_at: new Date(t.createdMs).toISOString(),
+    events: t.events.length,
+    last_phase: t.events.at(-1)?.phase,
+    widget_events: t.events.filter(e => WIDGET_PHASES.includes(e.phase)).length,
+    ...(t.sessionId ? { session_alive: sessionExists(t.sessionId) } : {}),
+  }));
+}
+export function readTrace(id, sessionExists = () => null) {
   trim();
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(id)) return null;
   const t = traces.get(id);
@@ -66,10 +102,26 @@ export function readTrace(id) {
     status: t.status,
     created_at: new Date(t.createdMs).toISOString(),
     events: t.events.map(e => ({ ...e })),
+    widget_events: t.events.filter(e => WIDGET_PHASES.includes(e.phase)).length,
+    ...(t.sessionId ? { session_alive: sessionExists(t.sessionId) } : {}),
+    server: instanceInfo({ traces: traces.size }),
+    hint: hintFor(t),
     note: 'Instance-local, expires after 15 minutes. Missing client events do not prove a client failure. Cloud Logging provides cross-instance correlation.',
   };
 }
 export function safeErrorCode(error) {
   const s = String(error?.code || error?.name || 'Error');
   return s.replace(/[^a-zA-Z0-9_:-]/g, '_').slice(0, 48) || 'Error';
+}
+
+function hintFor(t) {
+  const seen = new Set(t.events.map(e => e.phase));
+  if (t.status === 'server_error') return 'The server rejected the request; see reason.';
+  if (!WIDGET_PHASES.some(p => seen.has(p))) return 'No widget event reached this server process. Either the host did not render the widget, the widget never got its tool result, or the host refuses widget tools/call for this connector. Read the widget model context (ui/update-model-context) to tell these apart.';
+  if (seen.has('bridge_init_rejected')) return 'The host rejected ui/initialize.';
+  if (seen.has('tool_output_missing')) return 'The widget initialised but received neither tool-result nor usable tool-input.';
+  if (seen.has('host_call_failed')) return 'At least one widget tools/call failed; see reason.';
+  if (!seen.has('native_frame_loaded') && seen.has('widget_loaded')) return 'The native editor iframe did not load; check frame CSP (frameDomains).';
+  if (!seen.has('widget_rendered') && !seen.has('widget_empty') && seen.has('native_frame_loaded')) return 'The editor loaded but did not confirm the scene.';
+  return 'Widget pipeline complete.';
 }

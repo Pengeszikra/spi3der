@@ -37,6 +37,33 @@ For tool requests whose declarative command history exceeds 32 KiB, `open_worksh
 6. Submit a stale revision and verify conflict rejection. Try an invalid object name; verify failure is surfaced, no silent success, and the session remains editable.
 7. For the eight-legged spider demo, identify the tabletop object's top Y and bounds from `workshop_state` first, then place eight low-poly legs and a body with absolute geometry calculated from the real scene. Do not guess which object is the table.
 
+## Diagnosing a silent widget
+A widget that opens but never reports anything is located with three
+independent channels; compare them before concluding anything.
+
+1. **Server trace** — `debug_trace {trace_id}` returns the server phases,
+   every widget phase that reached *this process*, `widget_events`,
+   `session_alive`, a `hint`, and `server.instance` / `uptimeS` / `runtime`.
+   `debug_trace {}` (no id) lists the instance and its recent traces.
+   `workshop_state` errors carry `details.cause` and the same `server` block.
+   Different `instance` ids in two answers mean two server processes
+   (restart, another Cloud Run instance, or a local connector next to the
+   cloud one): process-local sessions cannot be shared between them.
+2. **Widget handshake phases** — `widget_boot`, `bridge_ready` /
+   `bridge_init_rejected`, `tool_input_received`, `tool_result_received`,
+   `tool_output_missing` (8 s after init), `host_call_failed`
+   (`reason` = refused tool and host error) and `context_push_failed`.
+   Phases seen before the trace id arrives are queued and flushed with it.
+   The host name/version from `ui/initialize` travels as `host`.
+3. **Model context** — the widget mirrors the same diagnostics (no meshes,
+   tokens or session ids) with `ui/update-model-context`. A host that lets
+   the agent read widget context (Claude: `widget_context_v0`) shows them
+   even when the host refuses `tools/call` from the widget, which is exactly
+   the case the server trace cannot see.
+
+No widget event in the trace + the host says the widget is loaded =
+the widget's tool calls are not reaching this server; read channel 3.
+
 ## Local automated checks
 
 ```sh

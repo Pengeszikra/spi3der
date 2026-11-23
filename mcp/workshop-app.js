@@ -9,11 +9,11 @@ const pack=value=>b64url(deflateRawSync(Buffer.from(JSON.stringify(value)),{leve
 const unpack=encoded=>JSON.parse(inflateRawSync(Buffer.from(encoded,'base64url'),{maxOutputLength:250000}).toString('utf8'));
 import { widgetHTML, APP_ORIGIN } from './workshop-widget.js';
 import { WORKSHOP_TOOLS } from './workshop-tools.js';
-import { startTrace, recordTrace, readTrace, safeErrorCode } from './diagnostics.js';
-import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enqueueWorkshopEdit, rejectWorkshopEdit } from './workshop-session.js';
+import { startTrace, recordTrace, readTrace, recentTraces, linkTraceSession, instanceInfo, WIDGET_PHASES, safeErrorCode } from './diagnostics.js';
+import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enqueueWorkshopEdit, rejectWorkshopEdit, workshopSessionExists, workshopSessionCount } from './workshop-session.js';
 
-export const RESOURCE_URI='ui://spi3der/workshop-v8.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html'];
+export const RESOURCE_URI='ui://spi3der/workshop-v9.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html'];
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000, COMPACT_HISTORY_BYTES=32768;
 const displayTool={
@@ -31,14 +31,14 @@ const displayTool={
 };
 const debugTool={
   name:'debug_trace',
-  description:'Inspect a recent spi3der MCP workshop trace. Server-side preparation and optional browser widget milestones; traces expire after 15 minutes and are instance-local.',
-  inputSchema:{type:'object',properties:{trace_id:{type:'string'}},required:['trace_id']},
+  description:'Inspect spi3der MCP workshop diagnostics. With trace_id: server preparation, browser widget / host handshake milestones, whether its session still exists, the server instance and a hint. Without trace_id: this server instance (id, uptime, runtime, build) and its recent traces. Two answers with different instance ids came from different server processes. Traces expire after 15 minutes and are instance-local.',
+  inputSchema:{type:'object',properties:{trace_id:{type:'string'}}},
   annotations:{readOnlyHint:true,openWorldHint:false}
 };
 const widgetEventTool={
   name:'report_widget_event',
   description:'Internal diagnostic event from the embedded workshop; not used for normal model building.',
-  inputSchema:{type:'object',properties:{trace_id:{type:'string'},phase:{type:'string',enum:['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen']},widgetObjects:{type:'number'},widgetFaces:{type:'number'}},required:['trace_id','phase']},
+  inputSchema:{type:'object',properties:{trace_id:{type:'string'},phase:{type:'string',enum:WIDGET_PHASES},widgetObjects:{type:'number'},widgetFaces:{type:'number'},widgetMs:{type:'number'},reason:{type:'string'},host:{type:'string'}},required:['trace_id','phase']},
   annotations:{readOnlyHint:false,openWorldHint:false}
 };
 const sharedTools=[
@@ -49,7 +49,7 @@ const sharedTools=[
   {name:'workshop_reject',description:'Internal widget callback: release an invalid queued batch and report the error.',inputSchema:{type:'object',properties:{session_id:{type:'string'},batch_id:{type:'string'},reason:{type:'string'}},required:['session_id','batch_id']},annotations:{readOnlyHint:false,openWorldHint:false}}
 ];
 const sharedResult=(id,value)=>answer(id,{content:[{type:'text',text:JSON.stringify(value)}],structuredContent:value});
-const sharedError=(id,e)=>answer(id,{isError:true,content:[{type:'text',text:JSON.stringify({error:String(e?.message||e).slice(0,200)})}]});
+const sharedError=(id,e)=>answer(id,{isError:true,content:[{type:'text',text:JSON.stringify({error:String(e?.message||e).slice(0,200),...(e?.details?{details:e.details}:{}),server:instanceInfo({build:buildInfo.label})})}]});
 const err=(id,code,message)=>({jsonrpc:'2.0',id,error:{code,message}});
 const answer=(id,result)=>({jsonrpc:'2.0',id,result});
 const toolError=(id,trace_id,reason)=>answer(id,{isError:true,content:[{type:'text',text:JSON.stringify({trace_id,error:'workshop_failed',reason})}]});
@@ -88,7 +88,7 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI&&!LEGACY_RESOURCE_URIS.includes(params.uri))return err(id,-32002,'resource not found');
-    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v7',payloadBytes:Buffer.byteLength(widgetHTML)}));
+    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v9',payloadBytes:Buffer.byteLength(widgetHTML)}));
     return answer(id,{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:widgetHTML,_meta:{ui:{csp:{frameDomains:[APP_ORIGIN]}}}}]});
   }
   if(method==='initialize')return answer(id,{
@@ -115,14 +115,20 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     }catch(e){return sharedError(id,e);}
   }
   if(method==='tools/call'&&params.name==='debug_trace'){
-    const trace=readTrace(params.arguments?.trace_id);
-    return answer(id,{content:[{type:'text',text:JSON.stringify(trace||{status:'not_found_or_expired'})}]});
+    const traceId=params.arguments?.trace_id;
+    const server=instanceInfo({build:buildInfo.label,sessions:workshopSessionCount()});
+    if(traceId===undefined||traceId===''){
+      return answer(id,{content:[{type:'text',text:JSON.stringify({server,recent:recentTraces(workshopSessionExists)})}]});
+    }
+    const trace=readTrace(traceId,workshopSessionExists);
+    return answer(id,{content:[{type:'text',text:JSON.stringify(trace||{status:'not_found_or_expired',server,recent:recentTraces(workshopSessionExists,5),hint:'This process does not know the trace: it expired, or this call reached a different server process than open_workshop (compare instance ids).'})}]});
   }
   if(method==='tools/call'&&params.name==='report_widget_event'){
     const args=params.arguments||{};
-    const allowed=['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen'];
-    const accepted=allowed.includes(args.phase)&&recordTrace(args.trace_id,args.phase,{widgetObjects:args.widgetObjects,widgetFaces:args.widgetFaces});
-    return answer(id,{content:[{type:'text',text:JSON.stringify({accepted})}]});
+    const accepted=WIDGET_PHASES.includes(args.phase)&&recordTrace(args.trace_id,args.phase,{widgetObjects:args.widgetObjects,widgetFaces:args.widgetFaces,widgetMs:args.widgetMs,reason:args.reason,host:args.host});
+    // The widget mirrors this into its model context, so a mismatch between
+    // the widget's server instance and the agent's server instance is visible.
+    return answer(id,{content:[{type:'text',text:JSON.stringify({accepted,server:instanceInfo()})}],structuredContent:{accepted,server:instanceInfo()}});
   }
   if(method==='tools/call'&&params.name==='open_workshop'){
     const args=params.arguments||{};
@@ -143,17 +149,18 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
       // large requests so the host never has to shuttle megabytes of duplicate JSON.
       const compact=Buffer.byteLength(serialized)>COMPACT_HISTORY_BYTES;
       const session_id=createWorkshopSession();
+      linkTraceSession(trace_id,session_id);
       const payload={
         trace_id,engine:'browser',
         ...(!compact?{steps,baseScene:history.baseScene}:{encoding:'deflate-raw+base64url'}),
         workshop_token,session_id,revision:0,requestedSteps:requestedSteps.length,
-        build:buildInfo
+        build:buildInfo,server:instanceInfo()
       };
       const result={
         structuredContent:payload,
         content:[{type:'text',text:JSON.stringify({
           trace_id,engine:'browser',queuedSteps:requestedSteps.length,totalSteps:steps.length,
-          session_id,build:buildInfo.label,gitHash:buildInfo.gitHash,
+          session_id,build:buildInfo.label,gitHash:buildInfo.gitHash,server:instanceInfo(),
           workshop_token,
           note:'Geometry is built by the embedded browser widget, not the MCP server.'
         })}],

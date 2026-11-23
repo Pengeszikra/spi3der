@@ -43,11 +43,14 @@ class MockResponse {
   }
   async text(){return inflateRawSync(this.bytes).toString('utf8')}
 }
+const timeouts=[];
+const runTimeouts=()=>{for(const fn of timeouts.splice(0))fn()};
 const vm=createContext({
   window:win,
   document:{getElementById(id){assert.ok(nodes[id],'unknown node '+id);return nodes[id]}},
   ResizeObserver:class{observe(){}},
   setInterval(fn){timers.push(fn);return timers.length},
+  setTimeout(fn){timeouts.push(fn);return timeouts.length},
   CompressionStream:IdentityCompressionStream,
   DecompressionStream:IdentityDecompressionStream,
   atob:value=>Buffer.from(value,'base64').toString('binary'),
@@ -84,6 +87,22 @@ assert.equal(scene.objects[0].name,'native-cube');
 assert.equal(scene.objects[0].mesh.faces.length,6);
 assert.equal(nodes.error.hidden,true);
 assert.ok(posted.some(m=>m.params?.name==='report_widget_event'&&m.params.arguments.phase==='widget_loaded'));
+// Host handshake diagnostics: phases seen before the trace id arrived are
+// queued and flushed with it, so the server trace shows the whole handshake.
+for(const phase of ['widget_boot','bridge_ready','tool_result_received'])
+  assert.ok(posted.some(m=>m.params?.name==='report_widget_event'&&m.params.arguments.trace_id==='native-test'&&m.params.arguments.phase===phase),'flushed '+phase);
+const failing=posted.find(m=>m.params?.name==='report_widget_event'&&m.params.arguments.phase==='widget_loaded');
+onMessage({source:parent,data:{jsonrpc:'2.0',id:failing.id,error:{code:-32000,message:'tool calls are not allowed for this connector'}}});
+runTimeouts();
+const contexts=posted.filter(m=>m.method==='ui/update-model-context');
+assert.ok(contexts.length,'widget diagnostics are mirrored into the model context');
+const d=contexts.at(-1).params.structuredContent.spi3der_diagnostics;
+assert.equal(d.bridge,'mcp-apps');
+assert.equal(d.trace,'native-test');
+assert.equal(d.toolResult,true);
+assert.ok(d.failedCalls.some(c=>/not allowed/.test(c.error)),'refused widget tool calls are visible to the agent');
+assert.ok(d.events.some(e=>e.phase==='host_call_failed'));
+assert.equal(JSON.stringify(d).includes('scene='),false,'no scene payload in diagnostics');
 
 frameEvents.get('load')();
 assert.equal(nodes.status.hidden,false,'iframe navigation must not claim successful scene loading');

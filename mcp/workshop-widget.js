@@ -43,6 +43,30 @@ let nativeEditorReady=false,nativeSceneReady=false,nativeKeySeen=false;
 let sessionId=null,revision=0,latestScene=null,queuedScene=null,publishing=false,polling=false;
 let applyingBatch=null,pollTimer=null,previousSceneJSON='',rpcSerial=0;
 const rpcPending=new Map();
+// Diagnostics: kept in the widget, mirrored to the server trace when the
+// host lets the widget call tools, and to the model context
+// (ui/update-model-context) so the agent can read it even when tools/call
+// from the widget is refused. No meshes, tokens or session ids leave here.
+const BOOT=Date.now();
+const diag={build:BUILD,trace:null,session:false,host:null,bridge:'none',toolInput:false,toolResult:false,server:null,events:[],failedCalls:[]};
+const earlyReports=[];
+let contextTimer=null,contextSerial=0,contextBroken=false;
+const since=()=>Date.now()-BOOT;
+function note(phase,reason){
+  diag.events.push({phase,ms:since(),...(reason?{reason:String(reason).slice(0,120)}:{})});
+  if(diag.events.length>40)diag.events.shift();
+  scheduleContext();
+}
+function scheduleContext(){
+  if(contextTimer||contextBroken)return;
+  contextTimer=setTimeout(pushContext,250);
+}
+function pushContext(){
+  contextTimer=null;
+  if(!bridgeReady||window.parent===window)return;
+  const text='spi3der workshop widget diagnostics (not a user message): '+JSON.stringify(diag);
+  bridgeSend('ui/update-model-context',{content:[{type:'text',text}],structuredContent:{spi3der_diagnostics:diag}},'spi3der-context-'+(++contextSerial));
+}
 function toolResponse(raw){
   const r=raw?.result||raw;
   if(r?.isError)throw Error(r.content?.[0]?.text||'MCP tool failed');
@@ -134,16 +158,35 @@ function bridgeSend(method,params={},id){
   if(window.parent===window)return;
   window.parent.postMessage({jsonrpc:'2.0',...(id===undefined?{}:{id}),method,params},'*');
 }
-function report(phase){
-  if(!activeTrace)return;
-  const args={trace_id:activeTrace,phase,widgetObjects:modelCounts.objects,widgetFaces:modelCounts.faces};
-  console.debug('[spi3der workshop]',BUILD,activeTrace,phase,modelCounts);
+function report(phase,reason){
+  note(phase,reason);
+  if(!activeTrace){earlyReports.push([phase,reason,since()]);return;}
+  sendReport(phase,reason,since());
+}
+function sendReport(phase,reason,ms){
+  const args={trace_id:activeTrace,phase,widgetObjects:modelCounts.objects,widgetFaces:modelCounts.faces,widgetMs:ms,
+    ...(reason?{reason:String(reason).slice(0,60)}:{}),...(diag.host?{host:diag.host}:{})};
+  console.debug('[spi3der workshop]',BUILD,activeTrace,phase,modelCounts,reason||'');
+  const failed=e=>{
+    const why=String(e?.message||e).slice(0,120);
+    diag.failedCalls.push({tool:'report_widget_event',phase,error:why});
+    if(diag.failedCalls.length>10)diag.failedCalls.shift();
+    note('host_call_failed',phase+': '+why);
+  };
   const call=window.openai?.callTool;
   if(typeof call==='function'){
-    try{Promise.resolve(call.call(window.openai,'report_widget_event',args)).catch(()=>{})}catch(_ignored){}
+    try{Promise.resolve(call.call(window.openai,'report_widget_event',args)).then(r=>{try{const v=toolResponse(r);if(v?.server)diag.server=v.server;}catch(e){failed(e)}},failed)}catch(e){failed(e)}
   }else if(bridgeReady){
-    bridgeSend('tools/call',{name:'report_widget_event',arguments:args},'spi3der-trace-'+phase);
+    const id='spi3der-trace-'+(++rpcSerial);
+    rpcPending.set(id,{resolve:v=>{if(v?.server){diag.server=v.server;scheduleContext();}},reject:failed});
+    bridgeSend('tools/call',{name:'report_widget_event',arguments:args},id);
+  }else{
+    earlyReports.push([phase,reason,ms]);
   }
+}
+function flushReports(){
+  if(!activeTrace||(!bridgeReady&&typeof window.openai?.callTool!=='function'))return;
+  for(const [phase,reason,ms] of earlyReports.splice(0))sendReport(phase,reason,ms);
 }
 function reportSize(){
   if(!bridgeReady)return;
@@ -170,15 +213,23 @@ async function unpackHistory(token){
 }
 async function receive(){
   let output=bridgeOutput||window.openai?.toolOutput||window.openai?.toolResponse?.structuredContent;
+  if(window.openai?.toolOutput&&!diag.toolResult){diag.toolResult=true;diag.bridge=diag.bridge==='none'?'openai':diag.bridge;}
   if(!output||( !Array.isArray(output.steps)&&typeof output.workshop_token!=='string')){
     const args=bridgeInput||window.openai?.toolInput;
     if(!args?.from&&Array.isArray(args?.steps))output={trace_id:'input-fallback',steps:args.steps,baseScene:null};
   }
-  if(!output||(!Array.isArray(output.steps)&&typeof output.workshop_token!=='string'))return;
+  if(!output||(!Array.isArray(output.steps)&&typeof output.workshop_token!=='string')){
+    if(diag.toolInput||diag.toolResult)note('tool_output_unusable',output?'no steps or workshop_token':'no structuredContent');
+    return;
+  }
   const trace=output.trace_id||'input-fallback';
   if(activeTrace===trace&&frame.getAttribute('src'))return;
   const request=++serial;
   activeTrace=trace;
+  diag.trace=trace;
+  diag.session=!!output.session_id;
+  if(output.server)diag.server=output.server;
+  flushReports();
   sessionId=output.session_id||null;
   revision=output.revision||0;
   latestScene=null;queuedScene=null;applyingBatch=null;previousSceneJSON='';
@@ -268,19 +319,36 @@ window.addEventListener('message',event=>{
     return;
   }
   if(!msg||msg.jsonrpc!=='2.0')return;
+  if(typeof msg.id==='string'&&msg.id.startsWith('spi3der-context-')){
+    if(msg.error){contextBroken=true;console.warn('[spi3der] host refused ui/update-model-context',msg.error);report('context_push_failed',msg.error.message||'refused');}
+    return;
+  }
   if(msg.id===INIT_ID){
     if(msg.result){
       bridgeReady=true;
+      diag.bridge='mcp-apps';
+      const h=msg.result.hostInfo||msg.result.serverInfo||{};
+      diag.host=[h.name,h.version].filter(Boolean).join('@').slice(0,60)||'unknown';
+      diag.hostProtocol=msg.result.protocolVersion||null;
       bridgeSend('ui/notifications/initialized');
       reportSize();
-    }else if(msg.error)console.warn('[spi3der] host rejected MCP Apps initialization',msg.error);
+      report('bridge_ready');
+      flushReports();
+      setTimeout(()=>{if(!activeTrace)report('tool_output_missing',(diag.toolInput?'tool-input only':'no tool-input')+', no tool-result after 8 s');},8000);
+    }else if(msg.error){
+      diag.bridge='rejected';
+      console.warn('[spi3der] host rejected MCP Apps initialization',msg.error);
+      report('bridge_init_rejected',msg.error.message||msg.error.code);
+    }
   }
   if(msg.method==='ui/notifications/tool-input'){
     bridgeInput=msg.params?.arguments||null;
+    if(!diag.toolInput){diag.toolInput=true;report('tool_input_received');}
     receive();
   }
   if(msg.method==='ui/notifications/tool-result'){
     bridgeOutput=msg.params?.structuredContent||null;
+    if(!diag.toolResult){diag.toolResult=true;report('tool_result_received',bridgeOutput?null:'tool-result without structuredContent');}
     receive();
   }
 });
@@ -293,6 +361,7 @@ if(window.parent!==window){
   new ResizeObserver(reportSize).observe(document.getElementById('host'));
 }
 window.addEventListener('openai:set_globals',receive);
+report('widget_boot',window.parent===window?'top-level window':(typeof window.openai?.callTool==='function'?'openai globals':'mcp-apps iframe'));
 receive();
 })();
 </script>

@@ -12,9 +12,15 @@ function clean(){
   for(const [id,s] of sessions)if(now-s.touched>TTL)sessions.delete(id);
   while(sessions.size>=MAX_SESSIONS)sessions.delete(sessions.keys().next().value);
 }
+export class WorkshopSessionError extends Error {
+  constructor(code,details={}){super(code);this.code=code;this.details=details;}
+}
+export const workshopSessionCount=()=>sessions.size;
+export function workshopSessionExists(id){clean();return validId(id)&&sessions.has(id);}
 function get(id){
   clean();
-  if(!validId(id)||!sessions.has(id))throw Error('workshop_session_not_found');
+  if(!validId(id))throw new WorkshopSessionError('workshop_session_not_found',{cause:'malformed_session_id'});
+  if(!sessions.has(id))throw new WorkshopSessionError('workshop_session_not_found',{cause:'unknown_in_this_process',sessions:sessions.size,ttl_s:TTL/1000});
   const s=sessions.get(id);s.touched=Date.now();return s;
 }
 const summary=scene=>(scene?.objects||[]).slice(0,150).map(o=>{

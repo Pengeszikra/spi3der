@@ -31,7 +31,7 @@ const oldResource=await call(300,'resources/read',{uri:'ui://spi3der/workshop-v1
 assert.equal(oldResource.result.contents[0].uri,'ui://spi3der/workshop-v1.html', 'legacy cached UI must remain readable');
 const oldV2=await call(301,'resources/read',{uri:'ui://spi3der/workshop-v2.html'});
 assert.equal(oldV2.result.contents[0].uri,'ui://spi3der/workshop-v2.html');
-assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v8.html', 'UI changes need a fresh resource to bypass old host cache');
+assert.equal(RESOURCE_URI, 'ui://spi3der/workshop-v9.html', 'UI changes need a fresh resource to bypass old host cache');
 const oldV3=await call(302,'resources/read',{uri:'ui://spi3der/workshop-v3.html'});
 assert.equal(oldV3.result.contents[0].uri,'ui://spi3der/workshop-v3.html');
 const oldV4=await call(303,'resources/read',{uri:'ui://spi3der/workshop-v4.html'});
@@ -212,5 +212,23 @@ const missing=await call(11,'tools/call',{name:'debug_trace',arguments:{trace_id
 assert.equal(JSON.parse(missing.result.content[0].text).status,'not_found_or_expired');
 const failed=await call(12,'tools/call',{name:'debug_trace',arguments:{trace_id:badTrace.trace_id}});
 assert.equal(JSON.parse(failed.result.content[0].text).status,'server_error');
+// Diagnostics that locate a silent widget: instance identity, session link, hint.
+assert.match(info.server.instance,/^[0-9a-f]{8}$/);
+assert.equal(info.session_alive,true,'the trace knows its session still exists');
+assert.equal(info.widget_events,0);
+assert.match(info.hint,/No widget event/);
+assert.equal(out.server.instance,info.server.instance,'open_workshop and debug_trace report the same process');
+const overview=JSON.parse((await call(13,'tools/call',{name:'debug_trace',arguments:{}})).result.content[0].text);
+assert.equal(overview.server.instance,info.server.instance);
+assert.ok(overview.recent.some(t=>t.trace_id===traceId&&t.widget_events===1));
+const handshake=await call(14,'tools/call',{name:'report_widget_event',arguments:{trace_id:badTrace.trace_id,phase:'host_call_failed',reason:'workshop_publish: refused',host:'Claude@1.0'}});
+assert.equal(JSON.parse(handshake.result.content[0].text).accepted,true);
+const failedWidget=JSON.parse((await call(15,'tools/call',{name:'debug_trace',arguments:{trace_id:badTrace.trace_id}})).result.content[0].text);
+assert.equal(failedWidget.events.at(-1).host,'Claude@1.0');
+assert.match(failedWidget.events.at(-1).reason,/workshop_publish/);
+const gone=await call(16,'tools/call',{name:'workshop_state',arguments:{session_id:'0'.repeat(40)}});
+const goneInfo=JSON.parse(gone.result.content[0].text);
+assert.equal(goneInfo.details.cause,'unknown_in_this_process');
+assert.equal(goneInfo.server.instance,info.server.instance);
 
 console.log('spi3der browser-side MCP workshop contract and geometry: OK');
