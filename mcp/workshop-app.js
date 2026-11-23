@@ -12,8 +12,8 @@ import { WORKSHOP_TOOLS } from './workshop-tools.js';
 import { startTrace, recordTrace, readTrace, recentTraces, linkTraceSession, instanceInfo, WIDGET_PHASES, safeErrorCode } from './diagnostics.js';
 import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enqueueWorkshopEdit, rejectWorkshopEdit, workshopSessionExists, workshopSessionCount } from './workshop-session.js';
 
-export const RESOURCE_URI='ui://spi3der/workshop-v9.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html'];
+export const RESOURCE_URI='ui://spi3der/workshop-v10.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html','ui://spi3der/workshop-v9.html'];
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000, COMPACT_HISTORY_BYTES=32768;
 const displayTool={
@@ -70,7 +70,8 @@ async function buildModelPng(id,args,ctx){
   if(view!=='none'&&out.objects&&out.open_url){
     try{
       const { renderPng }=await import('./raster.js');
-      const scene=unpackScene(/#scene=([A-Za-z0-9_-]+)/.exec(out.open_url)[1]);
+      const { expandInstances }=await import('./scene.js');
+      const scene=expandInstances(unpackScene(/#scene=([A-Za-z0-9_-]+)/.exec(out.open_url)[1]));
       const size=Math.max(64,Math.min(1024,Math.round(Number(args.size)||280)));
       const png=renderPng(scene.objects,{view,size,palette:scene.palette});
       content.push({type:'image',data:png.toString('base64'),mimeType:'image/png'});
@@ -119,14 +120,14 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
   if(method==='resources/list')return answer(id,{resources:[RESOURCE_URI,...LEGACY_RESOURCE_URIS].map(uri=>({uri,name:'spi3der 3D Workshop',mimeType:'text/html;profile=mcp-app',description:'Native spi3der editor and original keyboard controls embedded in the conversation'}))});
   if(method==='resources/read'){
     if(params.uri!==RESOURCE_URI&&!LEGACY_RESOURCE_URIS.includes(params.uri))return err(id,-32002,'resource not found');
-    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v9',payloadBytes:Buffer.byteLength(widgetHTML)}));
+    console.log(JSON.stringify({severity:'INFO',component:'spi3der-mcp',phase:'resource_read',resource:'workshop-v10',payloadBytes:Buffer.byteLength(widgetHTML)}));
     return answer(id,{contents:[{uri:params.uri,mimeType:'text/html;profile=mcp-app',text:widgetHTML,_meta:{ui:{csp:{frameDomains:[APP_ORIGIN]}}}}]});
   }
   if(method==='initialize')return answer(id,{
     protocolVersion:params.protocolVersion||'2025-06-18',
     capabilities:{tools:{},resources:{listChanged:false}},
     serverInfo:{name:'spi3der',title:'spi3der',version},
-    instructions:'spi3der builds scenes locally inside the ChatGPT widget and embeds the full native editor from its own origin. open_workshop relays modeling steps, not computed meshes. Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
+    instructions:'spi3der builds scenes locally inside the ChatGPT widget and embeds the full native editor from its own origin. open_workshop relays modeling steps, not computed meshes. Model a repeated thing once and place copies with the instance step (source: an object or group; copies: [{ at, scale, rotate_y, color }]). Continue by passing the previous workshop_token as from. The server is the MCP bridge only.'
   });
   if(method==='tools/call'&&sharedTools.some(x=>x.name===params.name)){
     const args=params.arguments||{};

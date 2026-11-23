@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT=dirname(fileURLToPath(import.meta.url));
 const ENGINE={
-  skyScene:'sky.js',SKY_TYPES:'sky.js',
+  skyScene:'sky.js',SKY_TYPES:'sky.js',instantiate:'instances.js',
   box:'mesh.js',extrude:'mesh.js',faceNormal:'mesh.js',faceCenter:'mesh.js',
   merge:'mesh.js',rotate:'mesh.js',bounds:'mesh.js',
   extrudeFace:'edit.js',moveVertices:'edit.js',

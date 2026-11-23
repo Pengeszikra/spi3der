@@ -1,6 +1,6 @@
 {
   "name": "spi3der",
-  "version": "26.11.23001",
+  "version": "26.11.23002",
   "description": "Browser-native 3D scene building, WebXR and ViRtuSH, based on 3Draft",
   "license": "MIT",
   "type": "module",
@@ -10,7 +10,7 @@
   },
   "scripts": {
     "start": "node bin/spi3der.mjs",
-    "test": "node tests/math.mjs && node tests/smoke.mjs",
+    "test": "node tests/math.mjs && node tests/smoke.mjs && node tests/instance.mjs",
     "bump": "node scripts/bump.mjs",
     "workshop": "node bin/workshop.mjs",
     "test:workshop": "node tests/workshop.mjs",
