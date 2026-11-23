@@ -14,8 +14,8 @@ import { createWorkshopSession, readWorkshopSession, publishWorkshopScene, enque
 
 // Which UI resources hosts actually read from this process (a host may keep an older cached one).
 const resourceReads=[];
-export const RESOURCE_URI='ui://spi3der/workshop-v13.html';
-const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html','ui://spi3der/workshop-v9.html','ui://spi3der/workshop-v10.html','ui://spi3der/workshop-v11.html','ui://spi3der/workshop-v12.html'];
+export const RESOURCE_URI='ui://spi3der/workshop-v14.html';
+const LEGACY_RESOURCE_URIS=['ui://spi3der/workshop-v1.html','ui://spi3der/workshop-v2.html','ui://spi3der/workshop-v3.html','ui://spi3der/workshop-v4.html','ui://spi3der/workshop-v5.html','ui://spi3der/workshop-v6.html','ui://spi3der/workshop-v7.html','ui://spi3der/workshop-v8.html','ui://spi3der/workshop-v9.html','ui://spi3der/workshop-v10.html','ui://spi3der/workshop-v11.html','ui://spi3der/workshop-v12.html','ui://spi3der/workshop-v13.html'];
 const version=buildInfo.version;
 const MAX_STEPS=400, MAX_PAYLOAD=250000, COMPACT_HISTORY_BYTES=32768;
 const displayTool={
