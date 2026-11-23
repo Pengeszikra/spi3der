@@ -666,6 +666,26 @@
   <script>
     // Before the engine loads, avoid flashing the full editor in an embedded workshop.
     if (window.parent !== window && new URLSearchParams(location.search).has('workshop')) document.body.classList.add('zen');
+    // Embedded workshop boot diagnostics (no UI). Some hosts (Claude) sandbox the widget iframe without
+    // allow-same-origin; this frame inherits that, gets an opaque origin, and Web Storage throws a SecurityError
+    // that would stop the editor module before native_editor_ready. Report the boot, keep storage in memory
+    // for this view, and forward the first uncaught error so the agent sees why the editor did not start.
+    if (window.parent !== window && new URLSearchParams(location.search).has('workshop')) (() => {
+      const say = (phase, data = {}) => { try { window.parent.postMessage({ source: 'spi3der-native', phase, ...data }, '*'); } catch {} };
+      let storage = 'ok';
+      try { localStorage.getItem('3draft.probe'); } catch (e) {
+        storage = 'blocked';
+        const mem = new Map();
+        const shim = { get length() { return mem.size; }, key: (i) => [...mem.keys()][i] ?? null, getItem: (k) => mem.has(String(k)) ? mem.get(String(k)) : null,
+          setItem: (k, v) => { mem.set(String(k), String(v)); }, removeItem: (k) => { mem.delete(String(k)); }, clear: () => mem.clear() };
+        try { Object.defineProperty(window, 'localStorage', { value: shim, configurable: true }); } catch { storage = 'blocked-unshimmed'; }
+      }
+      say('native_boot', { reason: `origin ${location.origin}, storage ${storage}` });
+      let told = false;
+      const fail = (msg) => { if (told) return; told = true; say('native_boot_error', { reason: String(msg).slice(0, 160) }); };
+      window.addEventListener('error', (e) => fail(e.message || (e.target && e.target.src ? 'load failed: ' + e.target.src : 'error')), true);
+      window.addEventListener('unhandledrejection', (e) => fail((e.reason && e.reason.message) || e.reason));
+    })();
   </script>
   <header class="bar">
     <h1>spi3der<span>3Draft</span></h1>

@@ -49,7 +49,7 @@ independent channels; compare them before concluding anything.
    Different `instance` ids in two answers mean two server processes
    (restart, another Cloud Run instance, or a local connector next to the
    cloud one): process-local sessions cannot be shared between them.
-2. **Widget handshake phases** — `widget_boot`, `bridge_ready` /
+2. **Widget handshake phases** — `native_boot` (the native frame's origin and Web Storage state; `origin null` means the host sandbox gave it an opaque origin, storage is then kept in memory), `native_boot_error` (first uncaught error before readiness), `widget_boot`, `bridge_ready` /
    `bridge_init_rejected`, `tool_input_received`, `tool_result_received`,
    `tool_output_missing` (8 s after init), `host_call_failed`
    (`reason` = refused tool and host error) and `context_push_failed`.

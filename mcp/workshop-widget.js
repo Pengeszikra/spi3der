@@ -40,6 +40,9 @@ const errorNode=document.getElementById('error');
 let bridgeOutput=null,bridgeInput=null,bridgeReady=false;
 let activeTrace=null,serial=0,modelCounts={objects:0,faces:0};
 let nativeEditorReady=false,nativeSceneReady=false,nativeKeySeen=false;
+// The native frame's origin as seen here: APP_ORIGIN, or 'null' when the host sandboxes the widget without
+// allow-same-origin (Claude) and the child inherits an opaque origin. Messages are still tied to frame.contentWindow.
+let nativeOrigin=APP_ORIGIN;
 let sessionId=null,revision=0,latestScene=null,queuedScene=null,publishing=false,polling=false;
 let applyingBatch=null,pollTimer=null,previousSceneJSON='',rpcSerial=0;
 const rpcPending=new Map();
@@ -145,7 +148,7 @@ async function pollEdits(){
     modelCounts={objects:scene.objects.length,faces:scene.objects.reduce((n,o)=>n+(o.mesh?.faces?.length||0),0)};
     applyingBatch=batch.batch_id;
     nativeSceneReady=false;
-    frame.contentWindow.postMessage({source:'spi3der-workshop',phase:'apply_scene',session_id:sessionId,scene},APP_ORIGIN);
+    frame.contentWindow.postMessage({source:'spi3der-workshop',phase:'apply_scene',session_id:sessionId,scene},nativeOrigin==='null'?'*':APP_ORIGIN);
   }catch(e){console.warn('[spi3der workshop] poll failed',e)}
   finally{polling=false}
 }
@@ -279,10 +282,22 @@ frame.addEventListener('error',()=>{
 const INIT_ID='spi3der-ui-init';
 window.addEventListener('message',event=>{
   // Accept native editor status only from the actual child window and exact deployed origin.
-  if(event.source===frame.contentWindow && event.origin===APP_ORIGIN){
+  // Accept native editor status only from the actual child window: the deployed origin, or the opaque
+  // origin it inherits from a host sandbox (our own src, set just above; any other origin is ignored).
+  if(event.source===frame.contentWindow && (event.origin===APP_ORIGIN||event.origin==='null')){
     const d=event.data;
     if(d?.source!=='spi3der-native')return;
-    if(d.phase==='native_editor_ready' && !nativeEditorReady){
+    nativeOrigin=event.origin;
+    if(d.phase==='native_boot'){
+      report('native_boot',d.reason);
+    }else if(d.phase==='native_boot_error'){
+      if(!nativeEditorReady){
+        status.hidden=true;
+        errorNode.hidden=false;
+        errorNode.textContent='spi3der editor failed to start: '+String(d.reason||'unknown');
+      }
+      report('native_boot_error',d.reason);
+    }else if(d.phase==='native_editor_ready' && !nativeEditorReady){
       nativeEditorReady=true;
       report('native_editor_ready');
     }else if(d.phase==='native_scene_loaded' && !nativeSceneReady){

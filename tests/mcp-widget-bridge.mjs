@@ -117,6 +117,11 @@ assert.equal(nodes.status.hidden,true,'scene load is confirmed by the native app
 assert.equal(posted.some(m=>m.params?.arguments?.phase==='widget_rendered'),true);
 native('native_key_seen');
 assert.equal(posted.some(m=>m.params?.arguments?.phase==='native_key_seen'),true);
+// A host sandbox without allow-same-origin gives the child an opaque origin ('null'): still the same contentWindow.
+onMessage({source:nodes.spi3der.contentWindow,origin:'null',data:{source:'spi3der-native',phase:'native_boot',reason:'origin null, storage blocked'}});
+assert.ok(posted.some(m=>m.params?.arguments?.phase==='native_boot'&&/storage blocked/.test(m.params.arguments.reason)),'boot diagnostics from a sandboxed child reach the trace');
+onMessage({source:{},origin:'null',data:{source:'spi3der-native',phase:'native_boot_error',reason:'x'}});
+assert.equal(posted.some(m=>m.params?.arguments?.phase==='native_boot_error'),false,'only the real child window is trusted');
 // Compressed large-history payload still reconstructs the exact native scene.
 const packedHistory=deflateRawSync(Buffer.from(JSON.stringify({format:'spi3der-workshop-history',version:1,steps:[cube],baseScene:null}))).toString('base64url');
 onMessage({source:parent,data:{jsonrpc:'2.0',method:'ui/notifications/tool-result',

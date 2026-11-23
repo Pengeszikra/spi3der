@@ -11,7 +11,7 @@ const fields = new Set(['stepCount','objects','vertices','faces','payloadBytes',
 // Widget phases that describe the MCP Apps host handshake. They exist so a
 // missing editor can be located: no tool result, rejected init, failed calls.
 export const WIDGET_PHASES = ['widget_loaded','widget_rendered','widget_error','widget_empty','native_frame_loaded','native_editor_ready','native_key_seen',
-  'widget_boot','bridge_ready','bridge_init_rejected','tool_input_received','tool_result_received','tool_output_missing','host_call_failed','context_push_failed'];
+  'widget_boot','bridge_ready','bridge_init_rejected','tool_input_received','tool_result_received','tool_output_missing','host_call_failed','context_push_failed','native_boot','native_boot_error'];
 const phases = new Set(['request_received','steps_validated','model_started','model_finished','scene_unpacked','response_ready','request_failed',...WIDGET_PHASES]);
 // One id per server process. Two calls that disagree about it reached two
 // different processes (Cloud Run instance, restarted local server, other host).
@@ -121,7 +121,9 @@ function hintFor(t) {
   if (seen.has('bridge_init_rejected')) return 'The host rejected ui/initialize.';
   if (seen.has('tool_output_missing')) return 'The widget initialised but received neither tool-result nor usable tool-input.';
   if (seen.has('host_call_failed')) return 'At least one widget tools/call failed; see reason.';
+  if (seen.has('native_boot_error') && !seen.has('native_editor_ready')) return 'The native editor started but threw before it was ready; see the native_boot_error reason (and native_boot for origin/storage).';
   if (!seen.has('native_frame_loaded') && seen.has('widget_loaded')) return 'The native editor iframe did not load; check frame CSP (frameDomains).';
+  if (seen.has('native_frame_loaded') && !seen.has('native_boot') && !seen.has('native_editor_ready')) return 'The editor frame navigated but no native script reported back: the frame was probably blocked (host frame CSP / frameDomains) or its messages were filtered.';
   if (!seen.has('widget_rendered') && !seen.has('widget_empty') && seen.has('native_frame_loaded')) return 'The editor loaded but did not confirm the scene.';
   return 'Widget pipeline complete.';
 }
