@@ -9,5 +9,14 @@
   "homepage": "https://tuskek-es-gyokerek.vercel.app",
   "repository": "https://github.com/Pengeszikra/spi3der",
   "license": "MIT",
-  "keywords": ["3d", "modeling", "creative-tools", "mcp", "mcp-apps", "3draft", "webxr"]
+  "privacyPolicyUrl": "https://github.com/Pengeszikra/spi3der/blob/main/PRIVACY.md",
+  "keywords": [
+    "3d",
+    "modeling",
+    "creative-tools",
+    "mcp",
+    "mcp-apps",
+    "3draft",
+    "webxr"
+  ]
 }
