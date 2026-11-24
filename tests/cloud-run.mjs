@@ -53,7 +53,7 @@ try {
   const html = await (await fetch(base + '/index.html')).text();
   assert.ok(html.includes("fetch('/api/version'"), 'UI must fetch spi3der version from backend');
   assert.ok(!html.includes("document.getElementById('build').textContent = displayVersion(version)"), 'UI must not display 3Draft version');
-  const brand = await fetch(base + '/media/spi3der-brand.svg');
+  const brand = await fetch(base + '/media/spi3der-logo.svg');
   assert.equal(brand.status, 200);
   assert.match(brand.headers.get('content-type') || '', /image\/svg\+xml/);
   const privateFile = await fetch(base + '/api/mcp.mjs');

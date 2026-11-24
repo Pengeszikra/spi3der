@@ -1,6 +1,6 @@
 # spi3der
 
-![spi3der spider artwork](media/spi3der-brand.svg)
+<img src="media/spi3der-logo.svg" alt="spi3der logo: an animated low-poly spider" width="256">
 
 Interactive 3D creation and exploration, powered by **3Draft**. Based on the 2026 Fifth Percent competition sprint.
 
