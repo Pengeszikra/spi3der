@@ -17,6 +17,9 @@ assert.equal(manifest.name, 'spi3der');
 assert.match(manifest.name, /^[a-z0-9]+(-[a-z0-9]+)*$/);
 assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
 assert.equal(entry.version, manifest.version, 'marketplace and manifest versions match');
+const pkg = json('package.json');
+assert.equal(manifest.version, pkg.version, 'the plugin version is the package.json version (npm run bump writes it)');
+assert.equal(json('plugin.json').version, pkg.version, 'plugin.json carries the package.json version');
 
 const mcp = json(dir + '.mcp.json').mcpServers['spi3der'];
 assert.equal(mcp.type, 'http');
