@@ -12,13 +12,13 @@ commands, and it reports back with events.
 It loads only the renderer (WebGL2), the scene loading and the story format: about 180–200 kB, **50–60 kB gzipped**,
 instead of the whole editor. The scene files themselves are usually the bigger download.
 
-**Address:** `https://spider-paint.vercel.app/player.html` (in the 3Draft repository: `app/player.html`).
+**Address:** `https://spi3der.cloud.run/player.html` (in the 3Draft repository: `app/player.html`).
 
 ## Embedding
 
 ```html
 <iframe
-  src="https://spider-paint.vercel.app/player.html?scene=models/lark-4.scene.json&bg=transparent&spin=20"
+  src="https://spi3der.cloud.run/player.html?scene=models/lark-4.scene.json&bg=transparent&spin=20"
   style="width: 640px; height: 400px; border: 0; background: transparent"
   allowtransparency="true"
   title="LARK-4"></iframe>
@@ -30,7 +30,7 @@ A transparent background works when the iframe itself has no background (as abov
 ### Where scenes come from
 
 - the Spider site's own models: `models/lark-4.scene.json`, `models/bridge.scene.json`, `models/lark-4.build.json`, …;
-- the online store: `scene=/api/store?name=<name>` (a scene saved with ☁ in Spider Paint);
+- the online store: `scene=/api/store?name=<name>` (a scene saved with ☁ in spi3der);
 - any other address that allows cross-origin reading (CORS), e.g. a raw GitHub file
   (`https://raw.githubusercontent.com/<user>/<repo>/main/x.scene.json`).
 

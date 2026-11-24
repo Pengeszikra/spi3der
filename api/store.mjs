@@ -1,4 +1,4 @@
-// The store: scenes and models kept online, for every device (https://spider-paint.vercel.app/api/store).
+// The store: scenes and models kept online, for every device (https://spi3der.cloud.run/api/store).
 // A Vercel Blob store behind this function: connect a Blob store (public or private) to the Vercel project (Storage → Create → Blob → connect:
 // it sets BLOB_READ_WRITE_TOKEN) and set SPIDER_KEY (any secret) in the project's environment variables.
 //   GET    /api/store              the list: { items: [{ name, size, at }] }

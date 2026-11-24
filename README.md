@@ -19,7 +19,7 @@ These are packaging files only. They do **not** change the existing custom MCP c
 ## Native UI refinements (Nov 2026)
 
 - The ChatGPT-embedded editor (`?workshop=1`) starts in spi3der's **existing Zen mode** (model full-screen), with the native **Leave zen** control, **Z**, or **Esc** to restore the full UI. Normal standalone spi3der starts with its full UI unchanged.
-- The **SYS** panel now has an icon-only keyboard button for the **tutorial keycast**, ported from Spider Paint. When enabled, actual pressed keys and modifiers appear briefly at the top, without intercepting events or creating a second toolbar. Its enabled state is local to the browser (`spi3der.tutorial`). To enable it in a Zen-started workshop, exit Zen, activate the keyboard icon in SYS, then return to Zen with Z.
+- The **SYS** panel now has an icon-only keyboard button for the **tutorial keycast**. When enabled, actual pressed keys and modifiers appear briefly at the top, without intercepting events or creating a second toolbar. Its enabled state is local to the browser (`spi3der.tutorial`). To enable it in a Zen-started workshop, exit Zen, activate the keyboard icon in SYS, then return to Zen with Z.
 - **Save** is a disk icon; **Character builder** is a person emoji. Both retain their original actions, titles, and accessible names.
 - `node tests/tutorial-ui.mjs` tests the native controls, Zen activation, and passive keycast; the MCP App CI workflow runs the test.
 
@@ -54,7 +54,6 @@ Open http://localhost:5173. No application build system is needed.
 
 ## Project boundaries and deployments
 
-- **spider-paint** (`Pengeszikra/Spider-Paint`) is the separate legacy project, deployed independently to Vercel and Cloud Run.
 - **spi3der** (`Pengeszikra/spi3der`) is deployed to Cloud Run only, at `spi3der.run.app`, and has the `spi3der` npm package. There is no spi3der Vercel deployment.
 - **3Draft** (`Pengeszikra/3Draft`) is the separate 3D engine repository and npm module.
 
@@ -179,6 +178,6 @@ HTTP interface:
 
 **Test:** `npm run test:workshop` exercises MCP → scene → browser API, instruction acknowledgments, participant presence and static-file protection.
 
-**Current boundaries:** one process / one in-memory shared scene, no persistence across restart; no realtime editing link to the legacy full Spider Paint WebGL editor; no multi-user permission or concurrent edit locks; no agent background execution, no pause/resume coordinator; the HTTP MCP endpoint is a local prototype and is not authenticated. Only bind to 127.0.0.1. A host ChatGPT UI may not support embedding this external live viewer. No npm publish is implied by a Git commit.
+**Current boundaries:** one process / one in-memory shared scene, no persistence across restart; no realtime editing link to the full WebGL editor; no multi-user permission or concurrent edit locks; no agent background execution, no pause/resume coordinator; the HTTP MCP endpoint is a local prototype and is not authenticated. Only bind to 127.0.0.1. A host ChatGPT UI may not support embedding this external live viewer. No npm publish is implied by a Git commit.
 
 Architecture and collaboration invariants live in `AGENTS.md`.

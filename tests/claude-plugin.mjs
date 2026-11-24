@@ -18,9 +18,9 @@ assert.match(manifest.name, /^[a-z0-9]+(-[a-z0-9]+)*$/);
 assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
 assert.equal(entry.version, manifest.version, 'marketplace and manifest versions match');
 
-const mcp = json(dir + '.mcp.json').mcpServers.spi3der;
+const mcp = json(dir + '.mcp.json').mcpServers['spi3der'];
 assert.equal(mcp.type, 'http');
-const legacy = json('mcp.json').mcpServers.spi3der;
+const legacy = json('mcp.json').mcpServers['spi3der'];
 assert.equal(mcp.url, legacy.url, 'Claude and OpenAI packages point to the same MCP endpoint');
 
 const skillPath = new URL(dir + 'skills/spi3der/SKILL.md', root);

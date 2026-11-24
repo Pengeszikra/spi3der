@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Cloud Run entrypoint: serve the spi3der browser app and its MCP endpoint on one origin.
-// This is intentionally independent of spider-paint and of any Vercel deployment.
+// This is intentionally independent of any Vercel deployment.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve, dirname, sep } from 'node:path';

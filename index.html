@@ -874,9 +874,6 @@
         <span class="row">
           <select id="examples" aria-label="Add an example or a saved scene to the scene" title="Add an example or a saved scene to the scene">
           <option value="">+ scene</option>
-        <option value="globe">Globe</option>
-        <option value="deepsky">Deep Sky (1000 galaxies, 400 black holes, 3000 stars)</option>
-        <optgroup label="VR"><option value="game:lark">Fifth Percent VR (LARK + Deep Sky)</option></optgroup>
         <optgroup id="savedGroup" label="saved here" hidden></optgroup>
         <optgroup id="cloudGroup" label="online (the store: from anywhere)" hidden></optgroup></select>
           <button id="mergeSw" type="button" class="sw on" title="Loading a scene (the list, f↑): on adds it to what is there, off clears the scene first and loads it alone"><i></i>merge</button>
@@ -4789,6 +4786,12 @@
         return {};
       }
     };
+    // The scene list (the "+ scene" select and the phone's Exa menu) comes from models/index.json, so every project lists its
+    // own models: { scenes: [{ value, label, group? }], menu: [names], offline: [model files] }. Inline (srcdoc) it is packaged.
+    const MODELS_INDEX = (globalThis.__MODELS_INDEX
+      ? Promise.resolve(globalThis.__MODELS_INDEX)
+      : fetch('./models/index.json').then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    ).then((x) => (x && typeof x === 'object' ? x : { scenes: [], menu: ['empty'] }));
     const sceneOf = async (name) => {
       if (name.startsWith('saved:')) {
         const data = readSaved()[name.slice(6)];
@@ -8961,7 +8964,7 @@
         swap.textContent = document.body.classList.contains('split') ? 'close store' : 'store';
       });
       box.append(swap);
-      for (const name of ['empty', 'globe', 'deepsky']) {
+      MODELS_INDEX.then((idx) => { for (const name of idx.menu ?? ['empty']) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'cream';
@@ -8980,7 +8983,7 @@
           }
         });
         box.append(b);
-      }
+      } });
       exaMenu.append(box);
       document.body.append(exaMenu);
       const exaBtn = document.createElement('button');
@@ -9207,6 +9210,15 @@
     document.getElementById('clear').addEventListener('click', clearScene);
     const exampleEl = document.getElementById('examples');
     const savedGroup = document.getElementById('savedGroup');
+    MODELS_INDEX.then((idx) => {
+      const groups = new Map();
+      for (const s of idx.scenes ?? []) {
+        const o = Object.assign(document.createElement('option'), { value: s.value, textContent: s.label ?? s.value });
+        if (!s.group) { exampleEl.insertBefore(o, savedGroup); continue; }
+        if (!groups.has(s.group)) groups.set(s.group, exampleEl.insertBefore(Object.assign(document.createElement('optgroup'), { label: s.group }), savedGroup));
+        groups.get(s.group).append(o);
+      }
+    });
     const nameEl = document.getElementById('sceneName');
     // The scene file: { format: '3draft-scene', version: 1, name, palette: [the materials the faces use], objects: [{ name, mesh, wire? }] }.
     // The same shape as an example scene, so it loads through the same door: the list holds the examples and what was saved here.
@@ -9237,7 +9249,7 @@
     };
     const nameOrDate = () => nameEl.value.trim() || `scene-${new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-')}`;
     // ---- The store: scenes and models kept online, so every device (the headset, a desktop, a phone) opens them, not only what is
-    // in the repository. On Spider Paint it is /api/store (a Vercel Blob store behind a function; ?store=<url> points elsewhere).
+    // in the repository. On spi3der it is /api/store (a Vercel Blob store behind a function; ?store=<url> points elsewhere).
     // Anyone may read it; saving and taking out need the store's key (asked once, kept in this browser). The list shows it as
     // "online"; ☁ saves the scene there; the VR workshop's own save goes there too when the key is known.
     const STORE = (() => {
@@ -9494,7 +9506,7 @@
         sceneNote(`file: ${e.message}`);
       }
     });
-    // ---- Story mode: a Spider Build v2 file (.build.json, app/story.js; the spec is in Spider Paint: models/spider-build-v2.md).
+    // ---- Story mode: a Spider Build v2 file (.build.json, app/story.js; the spec is models/spider-build-v2.md).
     // A recorded build on a millisecond timeline with three independent tracks: construction (each step's resulting objects:
     // replay applies them, it does not run the tools), camera (keyframes, cut / linear / smoothstep) and narration (text and
     // audio cues; channels chapter, operation, voiceover). Loading one (the + scene list's stories, f↑ with a .build.json, MCP
@@ -10354,7 +10366,7 @@
     // ?autovr: on a headset's browser VR starts by itself: the browser is offered the session at once (navigator.xr.offerSession,
     // its own Enter VR), and the page shows a full-screen Enter VR (a tap or a pinch: requestSession needs a gesture)
     const XR_HANDS_ONLY = true; // (Fifth Percent: the hands only)
-    const XR_AUTO = new URLSearchParams(location.search).has('autovr'); // spi3Der: immersive VR is opt-in
+    const XR_AUTO = new URLSearchParams(location.search).has('autovr'); // spi3der: immersive VR is opt-in
     const XR_HEADSET = /OculusBrowser|Quest|Pico|Wolvic/i.test(navigator.userAgent);
     const XR_TEST = new URLSearchParams(location.search).get('xrtest'); // '1': only a test cube in VR; '2': the cube and the scene
     const xrLog = (msg, err = false) => {
@@ -13252,7 +13264,7 @@
       if (session !== xrState.session) return; // (a frame still on its way after the end)
       session.requestAnimationFrame(xrFrame);
       // A bare XR test must never depend on the heavyweight scene update.
-      // This isolates session/layer/framebuffer/eye rendering from Spider Paint entirely.
+      // This isolates session/layer/framebuffer/eye rendering from the editor entirely.
       if (XR_TEST === '1') {
         const xPressed = [...session.inputSources].some((src) => src.handedness === 'left' && Boolean(src.gamepad?.buttons?.[4]?.pressed));
         if (xPressed && !xrState.testXPressed) {

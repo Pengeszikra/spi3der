@@ -46,7 +46,7 @@ model; a player's own background setting (e.g. `player.html?bg=`) overrides it.
     "args": {"name": "example/block", "min": [-0.5, 0, -0.5], "max": [0.5, 1, 0.5]}
   },
   "changes": [{"type": "put", "object": {"name": "example/block", "meshRef": "block-mesh"}}],
-  "provenance": {"source": "spider-paint MCP", "executedAt": "2026-11-15T12:00:00Z"}
+  "provenance": {"source": "spi3der MCP", "executedAt": "2026-11-15T12:00:00Z"}
 }
 ```
 

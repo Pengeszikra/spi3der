@@ -1,11 +1,13 @@
 // spi3der service worker: the app works offline once it has been opened.
 // The page, models and icons come from the cache first and are refreshed in the background;
 // the engine (pinned to one commit on jsDelivr, so it never changes) and the fonts are kept after the first visit.
-const CACHE = 'spi3der-v5';
-const SHELL = ['./', 'index.html', 'src/tutorial-keycast.js', 'manifest.webmanifest', 'favicon.svg', 'media/spi3der-logo.svg', 'help.md', 'sky.html', 'sky.md', 'models/globe.scene.json', 'models/deepsky.scene.json', 'models/deepsky-lark.scene.json', 'models/lark-4.scene.json', 'models/lark.game.json', 'models/spider-build-v2.mjs'];
+const CACHE = 'spi3der-v6';
+const SHELL = ['./', 'index.html', 'src/tutorial-keycast.js', 'manifest.webmanifest', 'favicon.svg', 'media/spi3der-logo.svg', 'help.md', 'sky.html', 'sky.md', 'models/index.json', 'models/spider-build-v2.mjs'];
+// the models kept offline are the project's own: the "offline" list of models/index.json
+const offlineModels = () => fetch('models/index.json').then((r) => r.json()).then((idx) => (idx.offline ?? []).map((f) => `models/${f}`)).catch(() => []);
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(async (c) => c.addAll([...SHELL, ...(await offlineModels())])).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {

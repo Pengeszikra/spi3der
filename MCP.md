@@ -1,12 +1,12 @@
-# Spider Paint MCP
+# spi3der MCP
 
-This file is for the AI (and the person setting it up). Spider Paint carries an MCP server: `mcp/server.js`, stdio, no dependencies, Node 18+. Through it an AI builds 3D models with tools, looks at them as SVG renders, and steers the live viewer in the browser: the Spider Paint page and, when a 3Draft checkout sits beside this repo, the 3Draft viewer too. The server, its tools and the engine (`mcp/engine/`) are copied from 3Draft by `scripts/sync.mjs`, so it runs from this repo alone.
+This file is for the AI (and the person setting it up). spi3der carries an MCP server: `mcp/server.js`, stdio, no dependencies, Node 18+. Through it an AI builds 3D models with tools, looks at them as SVG renders, and steers the live viewer in the browser: the spi3der page and, when a 3Draft checkout sits beside this repo, the 3Draft viewer too. The server, its tools and the engine (`mcp/engine/`) are copied from 3Draft by `scripts/sync.mjs`, so it runs from this repo alone.
 
 ## Public endpoint (Gemini, ChatGPT, any web MCP client)
 
-**`https://spider-paint.vercel.app/api/mcp`** is a public Streamable HTTP MCP server: no install, no sign-in (choose "no authentication" where a client asks). It is `api/mcp.mjs`, a Vercel function around `mcp/http.js`, and it is stateless: it writes no files and cannot steer an open viewer, so every result carries an `open_url` link that opens the scene in Spider Paint.
+**`https://spi3der.cloud.run/mcp`** is a public Streamable HTTP MCP server: no install, no sign-in (choose "no authentication" where a client asks). It is `api/mcp.mjs`, a Vercel function around `mcp/http.js`, and it is stateless: it writes no files and cannot steer an open viewer, so every result carries an `open_url` link that opens the scene in spi3der.
 
-- **Gemini:** Customize → Connectors → **+ Custom** → MCP Server URL: `https://spider-paint.vercel.app/api/mcp` → Next.
+- **Gemini:** Customize → Connectors → **+ Custom** → MCP Server URL: `https://spi3der.cloud.run/mcp` → Next.
 - **ChatGPT:** Settings → Apps / Connectors → create a custom connector (developer mode) with the same URL, authentication: none.
 - **Claude:** Settings → Connectors → Add custom connector, same URL.
 
@@ -25,17 +25,17 @@ Links hold the scene in the URL fragment (deflate-raw, base64url), so they never
 
 ## Set up
 
-From the Spider Paint folder:
+From the spi3der folder:
 
 ```
-codex mcp add spider-paint -- node "$(pwd)/mcp/server.js"
-claude mcp add spider-paint -- node "$(pwd)/mcp/server.js"
+codex mcp add spi3der -- node "$(pwd)/mcp/server.js"
+claude mcp add spi3der -- node "$(pwd)/mcp/server.js"
 ```
 
 Claude Desktop (`claude_desktop_config.json`):
 
 ```json
-{ "mcpServers": { "spider-paint": { "command": "node", "args": ["/absolute/path/to/Spider-Paint/mcp/server.js"] } } }
+{ "mcpServers": { "spi3der": { "command": "node", "args": ["/absolute/path/to/spi3der/mcp/server.js"] } } }
 ```
 
 Then ask the AI for the `viewer` tool's URL and open it. Environment:
@@ -50,7 +50,7 @@ Then ask the AI for the `viewer` tool's URL and open it. Environment:
 
 ## The viewers
 
-- `http://localhost:5173/?live`: Spider Paint. `?live` turns on the link: it shows the MCP scene and follows the `view_*` commands.
+- `http://localhost:5173/?live`: spi3der. `?live` turns on the link: it shows the MCP scene and follows the `view_*` commands.
 - `http://localhost:5173/3draft/app/`: the 3Draft viewer (only when a 3Draft checkout was found). It listens to the same link.
 
 Every open viewer gets every change and every command. The viewers do not write back into the MCP scene: what the person edits by hand in the page stays in the page. The `viewer` tool lists the URLs and how many tabs are open.
@@ -106,7 +106,7 @@ stateless like `build_model`: the whole story travels packed in the link's `#sto
 - Links over ~200 KB are refused (the result says so): use a larger `sample_ms`, fewer moving objects, or `include_doc`
   and keep the `.build.json` as a file (`player.html?scene=<its address>`).
 - **Inline:** `open_workshop` with `story: <story_token>` (or `story: "story:<name>"` for a story bundled as
-  `models/<name>.build.json`, such as `story:spi3der-sculpt`) plays it inside the chat, in the native editor's Stories player.
+  `models/<name>.build.json`, such as `story:spider-sculpt`) plays it inside the chat, in the native editor's Stories player.
   A story is a recording, not a shared workshop session: `workshop_state` / `workshop_edit` do not apply to it.
 
 A 91-brick pyramid taken apart from the top (frames mode, ~116 000 characters of link):
@@ -148,12 +148,12 @@ A 91-brick pyramid taken apart from the top (frames mode, ~116 000 characters of
 ```json
 { "tool": "add_box", "arguments": { "name": "poster", "size": [1.6, 0.9, 0.04], "at": [0, 1.4, 0], "color": "#202020" } }
 { "tool": "get_mesh", "arguments": { "name": "poster" } }
-{ "tool": "set_screen", "arguments": { "name": "poster", "face": 0, "image": "https://spider-paint.vercel.app/media/spider-web.png" } }
+{ "tool": "set_screen", "arguments": { "name": "poster", "face": 0, "image": "https://spi3der.cloud.run/media/spider-web.png" } }
 ```
 
 ### Steering the viewer
 
-- `view_example` loads one of the viewer's scenes into the browser (beside the MCP objects, or alone with `replace: true`): `deepsky` (1000 galaxies, 11 colliding systems, 400 black holes, 3000 stars), `stars` (500 nearest), `milkyway` (30 000 super-stars), `stars-plain`, `globe`, `bridge`, `ex27`, `betterman`, and in Spider Paint `human`, `tr74`, `station-screen`. These live in the browser only: `render`, `inspect`, `list` do not see them.
+- `view_example` loads one of the viewer's scenes into the browser (beside the MCP objects, or alone with `replace: true`): `deepsky` (1000 galaxies, 11 colliding systems, 400 black holes, 3000 stars), `stars` (500 nearest), `milkyway` (30 000 super-stars), `stars-plain`, `globe`, `bridge`, `ex27`, `betterman`, and in spi3der `human`, `tr74`, `station-screen`. These live in the browser only: `render`, `inspect`, `list` do not see them.
 - `view_target` finds by name like the viewer's Enter search: case and accents do not matter; the whole name ranks first, then the start, a word start, any part. It also takes a kind (`planet`, `black hole`, `spiral galaxy`, `white dwarf`, `hot gas giant`): the nearest one of that kind. It works on everything shown, also the example scenes (`andromeda`, `sirius`, `sgr a`).
 - `view_camera`: `eye` [x, y, z], `yaw` (0 looks towards -z, positive turns towards +x), `pitch` (positive looks down, as in Spider Build), `roll` (starship bank), all in degrees. It lets the target go. In the star maps 1 unit = 1 light year and the Sun is at the origin.
 - `view_vehicle`: `starship` (space flight; speeds in ly/s, braking program, orbit), `car` (drives on the ground), `none` (the model camera).
@@ -204,7 +204,7 @@ Enter: find a target by name. Tab: next target. W/S, A/D, R/F: speed forward, si
 | `view_target` | **name** | Make the open viewer target an object by name (as the viewer's Enter search: case and accents do not matter; the whole name, then the start, a word start, any part). In a star map the starship turns to it and the braking program stops it at the surface when you fly there. Works on everything the viewer shows, also the loaded example scenes (stars, galaxies), not only the MCP objects. |
 | `view_camera` | **eye**, yaw, pitch, roll | Put the open viewer's eye at a point, looking along yaw / pitch (degrees; yaw 0 looks towards -z, positive yaw turns towards +x, positive pitch looks down, as in the Spider Build format). In a star map the units are light years (the Sun at the origin). `roll` (degrees) banks the starship. |
 | `view_vehicle` | **vehicle** | Switch the open viewer's vehicle: "starship" (space flight, light years), "car" (drives on the ground), or "none" (the ordinary model camera). |
-| `view_example` | **name**, replace | Load one of the viewer's bundled scenes into the open viewer (beside the MCP objects, or instead of everything with replace: true). The names are the viewer's scene list, e.g. deepsky (1000 galaxies, 400 black holes, 3000 stars), stars, milkyway, stars-plain, sky:trappist-1 (a sky catalogue), globe, bridge, ex27, betterman (Spider Paint also: human, tr74, station-screen). It is shown in the browser only: render and inspect do not see it. |
+| `view_example` | **name**, replace | Load one of the viewer's bundled scenes into the open viewer (beside the MCP objects, or instead of everything with replace: true). The names are the viewer's scene list, e.g. deepsky (1000 galaxies, 400 black holes, 3000 stars), stars, milkyway, stars-plain, sky:trappist-1 (a sky catalogue), globe, bridge, ex27, betterman (spi3der also: human, tr74, station-screen). It is shown in the browser only: render and inspect do not see it. |
 | `view_sky` | sky, path, replace, save | Make a space scene from a sky catalogue and show it in the open viewer (the format is app/sky.md, "3draft-sky"): stars, planets, moons, dwarf planets, exoplanets, black holes and galaxies in astronomers' units. A place is ra / dec (degrees, or "hh mm ss" / "±dd mm ss" strings, or ra_h hours) with dist + unit (ly, pc, kpc, Mpc, AU, kly, Mly, Gly) or parallax (mas), or at [x, y, z] in scene light years (the Sun at the origin, y = equatorial north). A star: spect (e.g. "G2V", "M5.5Ve", "DA"), temp (K), lum (L☉) or absmag or vmag, radius (R☉). A planet / moon goes round another object with around (its name), a (AU) or a_km, optional incl / node / angle (degrees), radius_earth / radius_km / radius_jup, teq (K, else from the star), surface (a planet shader recipe), ring, orbit: true (draw the orbit). A black hole: mass (M☉), radius_ly (drawn size). A galaxy: kind (spiral, elliptical, irregular, dwarf, interacting, early), diameter_kly or radius_ly, incl / pa, arms, bar. Any object: name, info (shown under the name when targeted), category (the find box's kind), color. start: { near: name, distance: ly } or { eye, yaw, pitch }. Returns the counts and notes about anything left out; save writes the made scene as a .3draft file the viewer opens (f↑). |
 | `view_state` | – | What the open viewer shows now (it reports every 2 seconds): vehicle, eye, yaw / pitch / roll (degrees), the target, the speed, the object count, the loaded scene. null when no viewer is open. |
 | `viewer` | – | The URL of the live viewer: a browser page that shows this scene and updates after every change you make. Tell the user to open it. Returns null when the live viewer is off. |

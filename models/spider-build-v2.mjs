@@ -1,7 +1,7 @@
 // (copied from 3Draft app/story.js by scripts/sync.mjs: change it there)
 /** Spider Build v2 (story files, .build.json): dependency-free, shared by the browser and Node authoring tools.
- * The viewer imports it (story mode); Spider Paint's sync copies it to models/spider-build-v2.mjs there. Its spec, schema
- * and authoring tools live in Spider Paint (models/spider-build-v2.md). */
+ * The viewer imports it (story mode). Its spec, schema
+ * and authoring notes: models/spider-build-v2.md. */
 export const FORMAT = 'spider-build-tutorial';
 export const VERSION = 2;
 const copy = value => structuredClone(value);
@@ -45,7 +45,7 @@ export function migrateV1(old) {
       command: {tool: event.method, args: copy(event.args)},
       changes: event.after ? [{type: 'put', object: {name: event.after.name, meshRef: intern(event.after.mesh)}}] :
         event.method === 'remove' ? [{type: 'remove', name: event.name}] : [],
-      provenance: {source: event.source ?? 'spider-paint MCP', ...(event.executedAt ? {executedAt: event.executedAt} : {})}});
+      provenance: {source: event.source ?? 'spi3der MCP', ...(event.executedAt ? {executedAt: event.executedAt} : {})}});
     cues.push({id: `operation-text-${i + 1}`, channel: 'operation', language: old.language ?? 'en',
       startMs: time, endMs: 0, text: event.label ?? event.method});
   }

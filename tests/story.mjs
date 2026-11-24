@@ -120,7 +120,7 @@ assert.throws(() => validateBuildDocument({ ...doc, presentation: { background: 
 }
 // open_workshop plays a bundled story by name
 {
-  const or = await call('open_workshop', { story: 'story:spi3der-sculpt' });
+  const or = await call('open_workshop', { story: 'story:spider-sculpt' });
   assert.ok(!or.isError, or.content?.[0]?.text);
   assert.ok(or.structuredContent.story_token.length > 1000);
   const miss = await call('open_workshop', { story: 'story:no-such-story' });

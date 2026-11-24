@@ -33,7 +33,7 @@ export function bundleBrowserModel(){
     const file=resolve(ROOT,path);
     if(!file.startsWith(ROOT+sep))throw Error('Unexpected module outside workshop: '+path);
     if(modules.has(file))return modules.get(file);
-    const ns='__spi3der_m'+modules.size;
+    const ns='__native_m'+modules.size;
     modules.set(file,ns);
     let body=readFileSync(file,'utf8');
     const imports=[];

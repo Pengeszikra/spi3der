@@ -50,7 +50,7 @@ export const serve = (input = process.stdin, { live = process.env['3DRAFT_LIVE']
           result: {
             protocolVersion: SUPPORTED.includes(asked) ? asked : SUPPORTED[0],
             capabilities: { tools: {} },
-            serverInfo: { name: 'spider-paint', version },
+            serverInfo: { name: 'spi3der', version },
             instructions: INSTRUCTIONS,
           },
         });
@@ -93,6 +93,6 @@ export const serve = (input = process.stdin, { live = process.env['3DRAFT_LIVE']
 };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  console.error(`Spider Paint MCP server (3Draft ${version}) ready on stdio`);
+  console.error(`spi3der MCP server (3Draft ${version}) ready on stdio`);
   serve();
 }

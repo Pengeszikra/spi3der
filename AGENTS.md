@@ -3,7 +3,7 @@
 ## Purpose and boundaries
 spi3der is the interactive 3D workshop and eyes for AI agents: a bidirectional bridge between AI, a human user, and a shared 3D scene. Its applications include modelling, teaching, scientific visualizations, presentations, simulations, games, and XR.
 
-**3Draft** is the reusable, headless 3D presentation and interaction engine. It must not own keyboard bindings, toolbars, dialogs, or application-specific UI. **spi3der** owns the workshop, viewers, UI input mapping, MCP transports, and human/agent collaboration. Reuse 3Draft rather than fork its core. Changes to engine behavior belong upstream; compatible improvements can later flow to Spider Paint.
+**3Draft** is the reusable, headless 3D presentation and interaction engine. It must not own keyboard bindings, toolbars, dialogs, or application-specific UI. **spi3der** owns the workshop, viewers, UI input mapping, MCP transports, and human/agent collaboration. Reuse 3Draft rather than fork its core. Changes to engine behavior belong upstream; shared code moves between sibling checkouts with `npm run transfer` (see TRANSFER.md).
 
 ## Scene interaction contract
 - AI and human must be able to read the same scene, observe changes, edit it, and inspect results.

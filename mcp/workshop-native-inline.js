@@ -22,7 +22,7 @@ export function bundleModules(entries) {
   function compile(file) {
     if (!file.startsWith(REPO + sep)) throw Error('Module outside the repository: ' + file);
     if (modules.has(file)) return modules.get(file);
-    const ns = '__spi3der_n' + modules.size;
+    const ns = '__native_n' + modules.size;
     modules.set(file, ns);
     let body = readFileSync(file, 'utf8');
     const bindings = [], exports = [];
@@ -59,7 +59,7 @@ const ENGINE_URL = /const ENGINE_URL = new URL\('\.\/engine\/[0-9a-f]+\/index\.j
 const must = (s, re, what) => { if (!re.test(s)) throw Error('Native inline: ' + what + ' not found in index.html'); return s; };
 const scriptSafe = (s) => s.replace(/<\/script/gi, '<\\/script');
 
-/** The native editor as one HTML document. Launch parameters come from window.__spi3der_launch {search, hash}. */
+/** The native editor as one HTML document. Launch parameters come from window.__native_launch {search, hash}. */
 export function nativeInlineHTML() {
   let html = readFileSync(resolve(REPO, 'index.html'), 'utf8');
   const engineDir = must(html, ENGINE_IMPORT, 'engine import').match(/'\.\/(engine\/[0-9a-f]+)\/index\.js'/)[1];
@@ -73,11 +73,13 @@ export function nativeInlineHTML() {
     // Workers cannot import a document-scoped bundle; the editor already falls back to the main thread.
     .replace(ENGINE_URL, () => "const ENGINE_URL = 'data:text/javascript,throw%20Error(%22inline%20workshop%3A%20no%20worker%20engine%22)';");
   // srcdoc documents have no real URL: the launch parameters replace location.search / location.hash.
-  html = html.replace(/\blocation\.search\b/g, '__spi3derSearch').replace(/\blocation\.hash\b/g, '__spi3derHash');
+  html = html.replace(/\blocation\.search\b/g, '__nativeSearch').replace(/\blocation\.hash\b/g, '__nativeHash');
   const keycast = readFileSync(resolve(REPO, 'src/tutorial-keycast.js'), 'utf8');
   html = html.replace('<script defer src="./src/tutorial-keycast.js"></script>', () => '<script>' + scriptSafe(keycast) + '</script>');
   html = html.replace(/^\s*<link rel="(?:icon|apple-touch-icon|manifest)"[^>]*>\s*$/gm, '');
-  const launch = '<script>var __spi3derLaunch=window.__spi3der_launch||{};var __spi3derSearch=String(__spi3derLaunch.search||"");var __spi3derHash=String(__spi3derLaunch.hash||"");window.__spi3der_inline=true;</script>';
+  let modelsIndex = 'null';
+  try { modelsIndex = JSON.stringify(JSON.parse(readFileSync(resolve(REPO, 'models/index.json'), 'utf8'))).replace(/</g, '\\u003c'); } catch { /* no list: the select stays empty */ }
+  const launch = '<script>window.__MODELS_INDEX=' + modelsIndex + ';var __nativeLaunch=window.__native_launch||{};var __nativeSearch=String(__nativeLaunch.search||"");var __nativeHash=String(__nativeLaunch.hash||"");window.__native_inline=true;</script>';
   if (!/<head>/.test(html)) throw Error('Native inline: <head> not found');
   html = html.replace('<head>', () => '<head>\n' + launch);
   if (/\bimport\s*\{[^}]*\}\s*from\s*'\.\//.test(html)) throw Error('Native inline: a relative module import is left');

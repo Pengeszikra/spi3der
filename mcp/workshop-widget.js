@@ -17,7 +17,7 @@ const template = String.raw`
 :root{color-scheme:dark}
 html,body{margin:0;width:100%;height:100%;background:#090d12;color:#d3e5ec;font:13px system-ui,Arial,sans-serif}
 #host{position:relative;width:100%;height:730px;max-height:90vh;min-height:460px;overflow:hidden}
-#spi3der{display:block;width:100%;height:100%;border:0;background:#090d12}
+#native{display:block;width:100%;height:100%;border:0;background:#090d12}
 #status,#error{position:absolute;left:18px;top:16px;right:18px;margin:0;pointer-events:none}
 #status{color:#a5bdc9}
 #error{color:#ff9e8f;white-space:pre-wrap}
@@ -26,7 +26,7 @@ html,body{margin:0;width:100%;height:100%;background:#090d12;color:#d3e5ec;font:
 </head>
 <body>
 <div id="host">
-  <iframe id="spi3der" title="spi3der — complete native 3D editor" allow="fullscreen; xr-spatial-tracking"></iframe>
+  <iframe id="native" title="spi3der — complete native 3D editor" allow="fullscreen; xr-spatial-tracking"></iframe>
   <p id="status" role="status" aria-live="polite">Preparing the native spi3der editor…</p>
   <p id="error" role="alert" hidden></p>
 </div>
@@ -39,7 +39,7 @@ const BUILD=__BUILD_LABEL_JSON__;
 // The complete native editor (index.html + 3Draft engine) packaged as one document. It runs in the child
 // frame via srcdoc, so no host has to allow a nested frame to APP_ORIGIN (Claude does not).
 const NATIVE_HTML=__NATIVE_HTML_JSON__;
-const frame=document.getElementById('spi3der');
+const frame=document.getElementById('native');
 const status=document.getElementById('status');
 const errorNode=document.getElementById('error');
 let bridgeOutput=null,bridgeInput=null,bridgeReady=false;
@@ -74,7 +74,7 @@ function pushContext(){
   contextTimer=null;
   if(!bridgeReady||window.parent===window)return;
   const text='spi3der workshop widget diagnostics (not a user message): '+JSON.stringify(diag);
-  bridgeSend('ui/update-model-context',{content:[{type:'text',text}],structuredContent:{spi3der_diagnostics:diag}},'spi3der-context-'+(++contextSerial));
+  bridgeSend('ui/update-model-context',{content:[{type:'text',text}],structuredContent:{workshop_diagnostics:diag}},'spi3der-context-'+(++contextSerial));
 }
 function toolResponse(raw){
   const r=raw?.result||raw;
@@ -330,7 +330,7 @@ async function receive(){
       const launchHash='#story='+output.story_token;
       frame.setAttribute('data-launch','?workshop=1'+launchHash);
       const launch={search:'?workshop=1&nopickworker',hash:launchHash};
-      frame.srcdoc=NATIVE_HTML.replace('<head>',()=>'<head>\n<script>window.__spi3der_launch='+JSON.stringify(launch).replace(/</g,'\\u003c')+';<\/script>');
+      frame.srcdoc=NATIVE_HTML.replace('<head>',()=>'<head>\n<script>window.__native_launch='+JSON.stringify(launch).replace(/</g,'\\u003c')+';<\/script>');
       status.textContent='Loading the spi3der story'+(output.title?' “'+output.title+'”':'')+'…';
       report('widget_loaded');
       return;
@@ -354,7 +354,7 @@ async function receive(){
     frame.setAttribute('data-launch','?workshop=1'+launchHash);
     // Workers cannot load the document-scoped engine bundle: the editor picks on the main thread instead.
     const launch={search:'?workshop=1&nopickworker',hash:launchHash};
-    frame.srcdoc=NATIVE_HTML.replace('<head>',()=>'<head>\n<script>window.__spi3der_launch='+JSON.stringify(launch).replace(/</g,'\\u003c')+';<\/script>');
+    frame.srcdoc=NATIVE_HTML.replace('<head>',()=>'<head>\n<script>window.__native_launch='+JSON.stringify(launch).replace(/</g,'\\u003c')+';<\/script>');
     status.textContent='Loading spi3der with '+modelCounts.objects+' objects…';
     report('widget_loaded');
   }catch(e){

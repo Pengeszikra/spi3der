@@ -1070,7 +1070,7 @@ export const createScene = () => {
     },
     {
       name: 'view_example',
-      description: 'Load one of the viewer\'s bundled scenes into the open viewer (beside the MCP objects, or instead of everything with replace: true). The names are the viewer\'s scene list, e.g. deepsky (1000 galaxies, 400 black holes, 3000 stars), stars, milkyway, stars-plain, sky:trappist-1 (a sky catalogue), globe, bridge, ex27, betterman (Spider Paint also: human, tr74, station-screen). It is shown in the browser only: render and inspect do not see it.',
+      description: 'Load one of the viewer\'s bundled scenes into the open viewer (beside the MCP objects, or instead of everything with replace: true). The names are the viewer\'s scene list, e.g. deepsky (1000 galaxies, 400 black holes, 3000 stars), stars, milkyway, stars-plain, sky:trappist-1 (a sky catalogue), globe, bridge, ex27, betterman. It is shown in the browser only: render and inspect do not see it.',
       inputSchema: { type: 'object', properties: { name: { type: 'string' }, replace: { type: 'boolean', description: 'clear the viewer first (default false)' } }, required: ['name'] },
       live: true,
       run: (a) => sendView({ cmd: 'example', name: String(a.name ?? fail('name is required')), replace: Boolean(a.replace) }),

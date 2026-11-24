@@ -1,6 +1,6 @@
 ---
 name: spi3der
-description: Use when the user wants to build, model, show, edit or explore something in 3D — "open spi3der", "model a spider / house / chair in 3D", "put a cube on a workbench", "animate this assembly", "fly to Betelgeuse", "show the solar system" — or mentions spi3der, 3Draft, Spider Paint or the spi3der workshop.
+description: Use when the user wants to build, model, show, edit or explore something in 3D — "open spi3der", "model a spider / house / chair in 3D", "put a cube on a workbench", "animate this assembly", "fly to Betelgeuse", "show the solar system" — or mentions spi3der, 3Draft, spi3der or the spi3der workshop.
 ---
 
 # spi3der workshop

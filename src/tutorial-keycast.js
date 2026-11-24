@@ -1,9 +1,9 @@
-/* Original Spider Paint tutorial keycast, adapted for spi3der.
+/* Tutorial keycast for spi3der.
  * Deliberately passive: it never prevents default keys or installs new editing controls.
  */
 (() => {
   'use strict';
-    // Ported from Spider Paint's tutorial keycast. All original key handling stays native.
+    // All original key handling stays native.
     // Tutorial keycast: video-friendly overlay, completely click-through and unselectable.
     // Enabled by the human. Shows keyboard combinations without consuming events.
     const tutorialStyle = document.createElement('style');

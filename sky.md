@@ -217,11 +217,11 @@ Anything the viewer cannot use is left out with a note: a missing place, an unkn
 
 ## With an AI: the MCP server
 
-The MCP server (`mcp/server.js`, Node 18+, no dependencies) lets an AI model, render and steer the open viewer. Set it up from the Spider Paint or 3Draft folder:
+The MCP server (`mcp/server.js`, Node 18+, no dependencies) lets an AI model, render and steer the open viewer. Set it up from the spi3der or 3Draft folder:
 
 ```
-claude mcp add spider-paint -- node "$(pwd)/mcp/server.js"
-codex mcp add spider-paint -- node "$(pwd)/mcp/server.js"
+claude mcp add spi3der -- node "$(pwd)/mcp/server.js"
+codex mcp add spi3der -- node "$(pwd)/mcp/server.js"
 ```
 
 Then ask the AI for the `viewer` URL and open it. The tools for space:
