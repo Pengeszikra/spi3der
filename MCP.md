@@ -81,6 +81,7 @@ stateless like `build_model`: the whole story travels packed in the link's `#sto
 | `duration_ms`, `hold_ms` | the length (default: the last key + `hold_ms`, 800) |
 | `mode` | `auto` (default), `animation` or `frames` (below) |
 | `sample_ms` | the sampling step (animation 50, frames 80) |
+| `shapes`, `shape_ms` | continuous mesh changes: `[{ object, keys: [{ t, shape, ease }] }]`, the mesh stored every `shape_ms` (default 70) |
 | `preview` | PNG frames of the start, middle and end (default true) |
 | `include_doc` | also return the `.build.json` document itself, to save or edit |
 
@@ -96,9 +97,16 @@ stateless like `build_model`: the whole story travels packed in the link's `#sto
   (`tracks.animation`), blended on the GPU: smooth and small, but at most **64** distinct motions (the engine's limit).
   `frames`: stop-motion on the construction track: every `sample_ms` only the objects that moved are put again with their
   moved mesh; no limit, the size grows with how much moves. `auto` takes `animation` when it fits, else `frames`.
+- **Shapes are processes, not jumps.** A modelling operation (an extrusion growing, a face scaling) is shown as a
+  continuous morph: each key names another object of the model whose mesh is the shape at `t` (the object's own name is
+  its model mesh). Those template objects are left out of the story. Between two keys vertex *i* moves from vertex *i*
+  of the previous shape; a vertex the previous shape lacks grows out of its nearest vertex, so an `extrude_face` result
+  rises from the face it was pulled from. To hold a shape, repeat it in the next key. The frames go on the construction
+  track (a `put` of the object every `shape_ms`), so shapes work in both storages. A shaped object has no motion.
 - Links over ~200 KB are refused (the result says so): use a larger `sample_ms`, fewer moving objects, or `include_doc`
   and keep the `.build.json` as a file (`player.html?scene=<its address>`).
-- **Inline:** `open_workshop` with `story: <story_token>` plays it inside the chat, in the native editor's Stories player.
+- **Inline:** `open_workshop` with `story: <story_token>` (or `story: "story:<name>"` for a story bundled as
+  `models/<name>.build.json`, such as `story:spi3der-sculpt`) plays it inside the chat, in the native editor's Stories player.
   A story is a recording, not a shared workshop session: `workshop_state` / `workshop_edit` do not apply to it.
 
 A 91-brick pyramid taken apart from the top (frames mode, ~116 000 characters of link):

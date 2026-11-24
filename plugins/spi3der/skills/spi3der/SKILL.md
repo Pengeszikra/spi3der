@@ -15,7 +15,7 @@ spi3der is a browser-native 3D workshop (engine: 3Draft). The `spi3der` MCP serv
 | Read what is in the open workshop now (also the user's own edits) | `workshop_state` (`session_id`; `include_scene: true` for exact meshes) |
 | Change the **same** open workshop | `workshop_edit` (`session_id`, `revision` from `workshop_state`, `steps`) |
 | Headless model + SVG/PNG preview + `open_url` link, no widget | `build_model` |
-| Animated story (assembly, explosion, mechanism, fly-through) | `build_story`, then `open_workshop({ story: story_token })` to play it inline |
+| Animated story (assembly, explosion, mechanism, fly-through) | `build_story`, then `open_workshop({ story: story_token })` to play it inline. Show a modelling operation (extrude, scale) as a process with `shapes`, not as a cut |
 | Space scenes | read `sky_guide` first, then `sky_scene`; `find` searches the deep-sky catalogue |
 | Bundled sample scenes | `examples` |
 

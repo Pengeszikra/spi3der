@@ -2,6 +2,7 @@
 // The server validates/forwards commands and records timing; it does NOT build geometry.
 import { buildInfo } from './build-info.js';
 import { performance } from 'node:perf_hooks';
+import { readFileSync } from 'node:fs';
 import { deflateRawSync, inflateRawSync } from 'node:zlib';
 // The workshop only compresses the declarative command history; no 3Draft imports.
 const b64url=buffer=>Buffer.from(buffer).toString('base64url');
@@ -26,7 +27,7 @@ const displayTool={
     properties:{
       steps:{type:'array',description:'Optional modeling operations; omit or pass [] to open an existing scene without editing it',items:{type:'object',properties:{tool:{type:'string',enum:WORKSHOP_TOOLS},args:{type:'object'}},required:['tool']}}, 
       from:{type:'string',description:'workshop_token from previous open_workshop; older #scene links also accepted'},
-      story:{type:'string',description:'play a story: the story_token (or open_url) returned by build_story; not combined with steps / from'}
+      story:{type:'string',description:'play a story: the story_token (or open_url) returned by build_story, or "story:<name>" for a story bundled with spi3der (models/<name>.build.json); not combined with steps / from'}
     }
   },
   annotations:{readOnlyHint:false,openWorldHint:false},
@@ -34,7 +35,7 @@ const displayTool={
 };
 const storyTool={
   name:'build_story',
-  description:'Make an animated story (a Spider Build v2 recording, models/spider-build-v2.md) from a model and play it on a timeline: assembly, disassembly, explosions, mechanisms, fly-throughs. The model: from (a build_model open_url) and / or steps (build_model steps). motions: [{ object | objects: [names] | match: "pyr-*", pivot: "center" (default) | "foot" | [x, y, z], ease, keys: [{ t (ms), move: [dx, dy, dz] (from the object\'s place in the model), rotate: [x, y, z] (degrees about the pivot), scale, ease: smooth (default) | linear | in | out | cut }] }]: each key is a pose relative to where the object stands in the model; before its first key an object holds that key\'s pose, after its last it holds the last (so disassembly: keys from move [0,0,0] to the far place; assembly: the reverse). One motion per object; one motion can name many objects (they move alike). camera: { orbit: { turns (default 0.25), radius, height, center, start_yaw, fov } } (default: a slow orbit round everything) or { keys: [{ t, eye, look_at | yaw + pitch, transition: smoothstep | linear | cut, fov, roll }] }. captions: [{ start, end (ms), text, channel: voiceover | operation | chapter }]. background: "transparent" (nothing behind the model: the page round the player shows through) or a #rrggbb colour (default: the player\'s own). duration_ms (default: the last key + hold_ms 800). mode: auto (default) | animation (GPU-blended rigid channels, at most 64 distinct motions) | frames (stop-motion every sample_ms, default 80, no limit; only moving objects are stored). Returns open_url (the spi3der editor playing it in its Stories player: play / pause, time slider, speed, recorded camera on/off, captions), player_url (the bare player.html for an iframe), story_token (pass it to open_workshop story to play it inline), a PNG preview of the start, middle and end (preview_at: up to 6 chosen times in ms instead), and with include_doc the .build.json document itself.',
+  description:'Make an animated story (a Spider Build v2 recording, models/spider-build-v2.md) from a model and play it on a timeline: assembly, disassembly, explosions, mechanisms, fly-throughs. The model: from (a build_model open_url) and / or steps (build_model steps). motions: [{ object | objects: [names] | match: "pyr-*", pivot: "center" (default) | "foot" | [x, y, z], ease, keys: [{ t (ms), move: [dx, dy, dz] (from the object\'s place in the model), rotate: [x, y, z] (degrees about the pivot), scale, ease: smooth (default) | linear | in | out | cut }] }]: each key is a pose relative to where the object stands in the model; before its first key an object holds that key\'s pose, after its last it holds the last (so disassembly: keys from move [0,0,0] to the far place; assembly: the reverse). One motion per object; one motion can name many objects (they move alike). camera: { orbit: { turns (default 0.25), radius, height, center, start_yaw, fov } } (default: a slow orbit round everything) or { keys: [{ t, eye, look_at | yaw + pitch, transition: smoothstep | linear | cut, fov, roll }] }. captions: [{ start, end (ms), text, channel: voiceover | operation | chapter }]. background: "transparent" (nothing behind the model: the page round the player shows through) or a #rrggbb colour (default: the player\'s own). duration_ms (default: the last key + hold_ms 800). shapes: [{ object, keys: [{ t, shape }] }] morphs an object\'s mesh continuously between other objects of the model used as shapes (an extrusion grows, a face scales; the templates are left out). mode: auto (default) | animation (GPU-blended rigid channels, at most 64 distinct motions) | frames (stop-motion every sample_ms, default 80, no limit; only moving objects are stored). Returns open_url (the spi3der editor playing it in its Stories player: play / pause, time slider, speed, recorded camera on/off, captions), player_url (the bare player.html for an iframe), story_token (pass it to open_workshop story to play it inline), a PNG preview of the start, middle and end (preview_at: up to 6 chosen times in ms instead), and with include_doc the .build.json document itself.',
   inputSchema:{type:'object',properties:{
     title:{type:'string'},
     from:{type:'string',description:'the model: an open_url of build_model'},
@@ -45,6 +46,8 @@ const storyTool={
     duration_ms:{type:'number'},hold_ms:{type:'number'},
     mode:{type:'string',enum:['auto','animation','frames']},
     sample_ms:{type:'number',description:'sampling step in ms (animation default 50, frames default 80)'},
+    shapes:{type:'array',description:'continuous mesh changes (an extrusion growing, a face scaling): [{ object, keys: [{ t, shape, ease }] }]. shape names another object of the model whose mesh is the shape at t (those template objects are left out of the story); between keys the mesh morphs: vertex i from vertex i of the previous shape, extra vertices grow out of the nearest previous vertex (extrude_face results grow). The object\'s own name is its model mesh. A shaped object has no motion.',items:{type:'object',properties:{object:{type:'string'},ease:{type:'string',enum:['smooth','linear','in','out','cut']},keys:{type:'array',items:{type:'object',properties:{t:{type:'number'},shape:{type:'string'},ease:{type:'string',enum:['smooth','linear','in','out','cut']}},required:['t','shape']}}},required:['object','keys']}},
+    shape_ms:{type:'number',description:'how often a morphing mesh is stored, ms (default 70)'},
     background:{type:'string',description:'"transparent" or a #rrggbb colour behind the model (stored in the story; player_url gets ?bg= too)'},
     preview:{type:'boolean',description:'PNG preview of three moments (default true)'},
     preview_at:{type:'array',items:{type:'number'},maxItems:6,description:'the preview moments in ms (1 to 6), instead of start / middle / end'},
@@ -217,7 +220,14 @@ export async function handleWorkshopMcp(request,{origin,fetchText}) {
     try {
       if(args.story!==undefined){
         if(args.steps!==undefined||args.from!==undefined)throw Error('story_is_not_combined_with_steps_or_from');
-        const story_token=typeof args.story==='string'?(/#story=([A-Za-z0-9_-]+)/.exec(args.story)?.[1]||(/^[A-Za-z0-9_-]+$/.test(args.story)?args.story:null)):null;
+        const bundled=typeof args.story==='string'?/^story:([a-z0-9][a-z0-9-]{0,63})$/.exec(args.story)?.[1]:null;
+        let story_token;
+        if(bundled){
+          let text;
+          try{text=readFileSync(new URL(`../models/${bundled}.build.json`,import.meta.url),'utf8');}catch{throw Error('unknown_bundled_story');}
+          if(text.length>2000000)throw Error('bundled_story_too_large');
+          story_token=pack(JSON.parse(text));
+        }else story_token=typeof args.story==='string'?(/#story=([A-Za-z0-9_-]+)/.exec(args.story)?.[1]||(/^[A-Za-z0-9_-]+$/.test(args.story)?args.story:null)):null;
         if(!story_token||story_token.length>400000)throw Error('invalid_story_token');
         let doc;
         try{doc=unpackScene(story_token);}catch{throw Error('invalid_story_token');}

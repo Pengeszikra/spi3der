@@ -186,7 +186,34 @@ export async function buildStory(a, ctx) {
   });
   const materials = new Set(palette.map((m) => m.name));
   const rest = new Map(scene.objects.filter((o) => o?.mesh?.positions?.length).map((o) => [o.name, cleanMesh(o.mesh, materials)]));
-  const names = [...rest.keys()];
+  if (!rest.size) fail('the model has no mesh objects');
+
+  // ---- shapes: an object's mesh changes continuously between shapes, other objects of the model (the shape
+  // templates themselves are left out of the story). Vertex i morphs from vertex i of the previous shape; a vertex
+  // the previous shape lacks grows out of the previous shape's nearest vertex (so an extrude_face result grows).
+  if (a.shapes !== undefined && !Array.isArray(a.shapes)) fail('shapes must be a list');
+  const templates = new Set();
+  const shaping = new Map(); // object -> sorted keys [{ t, shape, ease }]
+  (a.shapes ?? []).forEach((sh, i) => {
+    const path = `shapes[${i}]`;
+    if (!sh || typeof sh !== 'object' || typeof sh.object !== 'string' || !rest.has(sh.object)) fail(`${path}.object: the name of an object of the model`);
+    if (shaping.has(sh.object)) fail(`${path}: "${sh.object}" already has shapes (one shapes entry per object)`);
+    if (!Array.isArray(sh.keys) || !sh.keys.length) fail(`${path}.keys: give at least one key { t, shape }`);
+    const keys = sh.keys.map((k, j) => {
+      const p = `${path}.keys[${j}]`;
+      const t = num(k?.t ?? k?.time_ms, NaN);
+      if (!(t >= 0)) fail(`${p}.t: a time in ms, 0 or more`);
+      if (typeof k.shape !== 'string' || !rest.has(k.shape)) fail(`${p}.shape: the name of an object of the model (its mesh is the shape)`);
+      const ease = k.ease ?? sh.ease ?? 'smooth';
+      if (!EASES[ease]) fail(`${p}.ease: one of ${Object.keys(EASES).join(', ')}`);
+      if (k.shape !== sh.object) templates.add(k.shape);
+      return { t, shape: k.shape, ease };
+    }).sort((x, y) => x.t - y.t);
+    keys.forEach((k, j) => j && k.t === keys[j - 1].t && fail(`${path}.keys: two keys at ${k.t} ms`));
+    shaping.set(sh.object, keys);
+  });
+  for (const o of shaping.keys()) if (templates.has(o)) fail(`shapes: "${o}" is both a shaped object and a shape`);
+  const names = [...rest.keys()].filter((n) => !templates.has(n));
   if (!names.length) fail('the model has no mesh objects');
 
   // ---- motions -> per object: keys + pivot
@@ -228,7 +255,8 @@ export async function buildStory(a, ctx) {
     return { ...k, t, transition };
   }).sort((x, y) => x.t - y.t) : null;
 
-  const lastKey = Math.max(0, ...[...moving.values()].map((m) => m.keys.at(-1).t), ...captions.map((c) => c.end), ...(camKeys ?? []).map((k) => k.t));
+  for (const o of shaping.keys()) if (moving.has(o)) fail(`shapes: "${o}" also has a motion (a shaped object cannot move as well)`);
+  const lastKey = Math.max(0, ...[...moving.values()].map((m) => m.keys.at(-1).t), ...[...shaping.values()].map((k) => k.at(-1).t), ...captions.map((c) => c.end), ...(camKeys ?? []).map((k) => k.t));
   const duration = Math.round(num(a.duration_ms, lastKey + num(a.hold_ms, 800)));
   if (duration <= 0) fail('duration_ms: give a positive length (or keys later than 0)');
   if (duration > 600000) fail('duration_ms: at most 10 minutes');
@@ -263,7 +291,7 @@ export async function buildStory(a, ctx) {
   const objects = names.map((name) => {
     const m = moving.get(name);
     // in frames mode an object starts in its pose at time 0 (its first key may already move it)
-    const mesh = useFrames && m ? movedMesh(rest.get(name), matrixAt(m, 0)) : rest.get(name);
+    const mesh = useFrames && m ? movedMesh(rest.get(name), matrixAt(m, 0)) : shaping.has(name) ? rest.get(shaping.get(name)[0].shape) : rest.get(name);
     return { name, meshRef: meshRef(mesh) };
   });
 
@@ -294,8 +322,33 @@ export async function buildStory(a, ctx) {
     };
   }
 
+  // ---- shapes -> construction steps that put the morphing mesh every shape_ms
+  const shapeStep = Math.max(20, Math.round(num(a.shape_ms, 70)));
+  let shapeFrames = 0;
+  const r3 = (v) => Math.round(v * 1e3) / 1e3;
+  for (const [name, keys] of shaping) {
+    for (let j = 1; j < keys.length; j++) {
+      const A = keys[j - 1], B = keys[j];
+      if (A.shape === B.shape || A.t > duration) continue;
+      const pa = rest.get(A.shape).positions, target = rest.get(B.shape);
+      const nearest = (q) => pa.reduce((best, p) => ((p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2 < best.d ? { p, d: (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2 } : best), { p: q, d: Infinity }).p;
+      const start = target.positions.map((q, i) => (i < pa.length ? pa[i] : nearest(q)));
+      const span = B.t - A.t, ease = EASES[B.ease];
+      const at = [];
+      for (let t = A.t + shapeStep; t < B.t; t += shapeStep) at.push(Math.round(t));
+      at.push(B.t);
+      for (const t of at) {
+        if (t > duration) break;
+        const f = ease((t - A.t) / span);
+        const mesh = t === B.t || f >= 1 ? target : { positions: target.positions.map((q, i) => q.map((v, c) => r3(start[i][c] + (v - start[i][c]) * f))), faces: target.faces };
+        steps.push({ id: `shape-${String(++shapeFrames).padStart(5, '0')}`, timeMs: t, command: { tool: 'shape', args: { object: name, shape: B.shape } }, changes: [{ type: 'put', object: { name, meshRef: meshRef(mesh) } }] });
+      }
+    }
+  }
+  if (shapeFrames) steps.sort((x, y) => x.timeMs - y.timeMs);
+
   // ---- camera: explicit keys, or an orbit (default: one slow turn round the whole motion)
-  const swept = [...rest.values()];
+  const swept = [...rest.entries()].filter(([n]) => !templates.has(n) || [...shaping.values()].some((k) => k.some((x) => x.shape === n))).map(([, m]) => m);
   for (const [name, m] of moving) for (const t of [times[Math.floor(times.length / 2)], duration]) swept.push(movedMesh(rest.get(name), matrixAt(m, t)));
   const b = boundsOf(swept);
   let initialPose, keyframes = [];
@@ -365,7 +418,8 @@ export async function buildStory(a, ctx) {
       duration_ms: duration,
       objects: names.length,
       animated: moving.size,
-      ...(useFrames ? { frames: steps.length, frame_ms: step } : { channels: animation?.channels.length ?? 0, samples: times.length }),
+      ...(useFrames ? { frames: steps.length - shapeFrames, frame_ms: step } : { channels: animation?.channels.length ?? 0, samples: times.length }),
+      ...(shaping.size ? { shaped: shaping.size, shape_frames: shapeFrames, shape_ms: shapeStep } : {}),
       captions: captions.length,
       camera: camKeys ? `${keyframes.length} keys` : 'orbit',
       ...(background ? { background } : {}),

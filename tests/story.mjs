@@ -97,4 +97,34 @@ r = await call('build_story', { steps, motions, preview_at: [] });
 assert.ok(r.isError && /preview_at/.test(r.content[0].text));
 assert.throws(() => validateBuildDocument({ ...doc, presentation: { background: 'red' } }), /presentation.background/);
 
+// shapes: a box morphs into its extruded shape (the template is left out; new vertices grow from the old top)
+{
+  const shapeSteps = [
+    { tool: 'add_box', args: { name: 'block', size: [1, 1, 1], at: [0, 0.5, 0] } },
+    { tool: 'add_box', args: { name: 'tall', size: [1, 1, 1], at: [3, 0.5, 0] } },
+    { tool: 'extrude_face', args: { name: 'tall', face: 4, distance: 1 } },
+    { tool: 'transform', args: { name: 'tall', move: [-3, 0, 0] } },
+  ];
+  const sr = await call('build_story', { steps: shapeSteps, shapes: [{ object: 'block', keys: [{ t: 0, shape: 'block' }, { t: 700, shape: 'tall', ease: 'linear' }] }], shape_ms: 100 });
+  assert.ok(!sr.isError, sr.content?.[0]?.text);
+  const so = JSON.parse(sr.content[0].text);
+  assert.equal(so.objects, 1, 'the shape template is not in the story');
+  assert.equal(so.shaped, 1);
+  assert.equal(so.shape_frames, 7);
+  const sdoc = unpack(so.story_token);
+  validateBuildDocument(sdoc);
+  const top = (t) => Math.max(...sceneAt(sdoc, t).find((o) => o.name === 'block').mesh.positions.map((p) => p[1]));
+  assert.ok(Math.abs(top(0) - 1) < 1e-6 && Math.abs(top(300) - (1 + 3 / 7)) < 0.002 && Math.abs(top(700) - 2) < 1e-6, 'the extrusion grows continuously');
+  const bad = await call('build_story', { steps: shapeSteps, shapes: [{ object: 'block', keys: [{ t: 0, shape: 'nope' }] }] });
+  assert.ok(bad.isError && /shape/.test(bad.content[0].text));
+}
+// open_workshop plays a bundled story by name
+{
+  const or = await call('open_workshop', { story: 'story:spi3der-sculpt' });
+  assert.ok(!or.isError, or.content?.[0]?.text);
+  assert.ok(or.structuredContent.story_token.length > 1000);
+  const miss = await call('open_workshop', { story: 'story:no-such-story' });
+  assert.ok(miss.isError || /unknown_bundled_story/.test(JSON.stringify(miss)));
+}
+
 console.log('story: ok');
