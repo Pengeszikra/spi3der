@@ -10,3 +10,6 @@ gha-creds-*.json
 .env
 .env.*
 .DS_Store
+# Claude plugin package (not part of the Cloud Run image)
+.claude-plugin
+plugins

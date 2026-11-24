@@ -1,0 +1,13 @@
+{
+  "name": "spi3der",
+  "version": "1.0.0",
+  "description": "Build and explore editable 3D scenes with Claude: the real spi3der editor (3Draft engine) opens inline in the conversation, and Claude models, inspects and edits the same scene you see.",
+  "author": {
+    "name": "Péter Vívó",
+    "url": "https://tuskek-es-gyokerek.vercel.app"
+  },
+  "homepage": "https://tuskek-es-gyokerek.vercel.app",
+  "repository": "https://github.com/Pengeszikra/spi3der",
+  "license": "MIT",
+  "keywords": ["3d", "modeling", "creative-tools", "mcp", "mcp-apps", "3draft", "webxr"]
+}

@@ -47,6 +47,7 @@ jobs:
           node tests/workshop-session.mjs
           node tests/raster.mjs
           node tests/story.mjs
+          node tests/claude-plugin.mjs
       - name: Test native tutorial controls and workshop Zen startup
         run: node tests/tutorial-ui.mjs
       - name: Test npm version release lifecycle

@@ -10,3 +10,6 @@ package-lock.json
 gha-creds-*.json
 .env
 .env.*
+# Claude plugin package (not part of the Cloud Run image)
+.claude-plugin
+plugins

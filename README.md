@@ -12,6 +12,10 @@ The portable [plugin.json](plugin.json) defines the **spi3der** listing: display
 
 These are packaging files only. They do **not** change the existing custom MCP connection or automatically publish the plugin. For a public directory submission, use the plugin submission flow **With MCP** and complete domain verification, tool checks, and review materials. The currently absent `privacyPolicyURL` and `termsOfServiceURL` must be added only after genuine public pages exist; do not use placeholders. The manifest's semantic version (`1.0.0`) is the **plugin package version**, independent of spi3der's date-based npm version.
 
+## Claude plugin
+
+[plugins/spi3der](plugins/spi3der) is the Claude plugin: a manifest, the same remote MCP endpoint and a `spi3der` skill that teaches the shared-workshop workflow. The repository root is also a Claude plugin marketplace ([.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)), so in Claude Code: `/plugin marketplace add Pengeszikra/spi3der` then `/plugin install spi3der@spi3der`. `node tests/claude-plugin.mjs` checks the package. Public Claude directory listing is a separate submission and is not done.
+
 ## Native UI refinements (Nov 2026)
 
 - The ChatGPT-embedded editor (`?workshop=1`) starts in spi3der's **existing Zen mode** (model full-screen), with the native **Leave zen** control, **Z**, or **Esc** to restore the full UI. Normal standalone spi3der starts with its full UI unchanged.

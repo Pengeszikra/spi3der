@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "spi3der": {
+      "type": "http",
+      "url": "https://spi3der.cloud.run/mcp"
+    }
+  }
+}
