@@ -30,6 +30,7 @@
   "scripts": {
     "start": "node bin/spi3der.mjs",
     "test": "node tests/math.mjs && node tests/smoke.mjs && node tests/instance.mjs",
+    "test:all": "node scripts/test-all.mjs",
     "bump": "node scripts/bump.mjs",
     "workshop": "node bin/workshop.mjs",
     "test:workshop": "node tests/workshop.mjs",
