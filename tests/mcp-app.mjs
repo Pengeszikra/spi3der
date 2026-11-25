@@ -14,7 +14,7 @@ const ctx={origin:'https://spi3der.example',fetchText:async()=>{throw Error('no 
 const call=(id,method,params={})=>handleWorkshopMcp({jsonrpc:'2.0',id,method,params},ctx);
 const init=await call(1,'initialize',{protocolVersion:'2025-06-18'});
 assert.equal(init.result.serverInfo.name,'spi3der');
-const liveVersion=(await import('../package.json',{with:{type:'json'}})).default.version;
+const liveVersion=JSON.parse((await import('node:fs')).readFileSync(new URL('../package.json',import.meta.url),'utf8')).version; // (read, not imported: a JSON import needs Node 22's syntax)
 assert.equal(init.result.serverInfo.version,liveVersion,'MCP must advertise spi3der own version');
 
 const listed=await call(2,'tools/list');
