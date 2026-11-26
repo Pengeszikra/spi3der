@@ -12,7 +12,7 @@
       "name": "spi3der",
       "source": "./plugins/spi3der",
       "description": "Build and explore editable 3D scenes; the real spi3der editor opens inline in the conversation.",
-      "version": "26.11.24004",
+      "version": "26.11.26001",
       "category": "creativity",
       "homepage": "https://tuskek-es-gyokerek.vercel.app",
       "keywords": ["3d", "modeling", "mcp-apps", "3draft"]
