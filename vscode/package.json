@@ -1,0 +1,73 @@
+{
+  "name": "spi3der",
+  "displayName": "spi3der",
+  "description": "The spi3der 3D workshop (3Draft) inside VS Code: fly, model, paint, every key of the app; a scene file you edit is shown live and reloaded on save.",
+  "version": "0.1.0",
+  "publisher": "pengeszikra",
+  "license": "MIT",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Pengeszikra/spi3der"
+  },
+  "homepage": "https://github.com/Pengeszikra/spi3der#in-vs-code",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "3d",
+    "modeling",
+    "webgpu",
+    "scene",
+    "3draft",
+    "spi3der"
+  ],
+  "main": "./extension.js",
+  "activationEvents": [
+    "onWebviewPanel:spi3der"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "spi3der.open",
+        "title": "Open",
+        "category": "spi3der"
+      },
+      {
+        "command": "spi3der.openScene",
+        "title": "Open a scene from the list…",
+        "category": "spi3der"
+      },
+      {
+        "command": "spi3der.showFile",
+        "title": "Show this scene file in 3D",
+        "category": "spi3der",
+        "icon": "$(symbol-structure)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "spi3der.showFile",
+          "when": "resourceExtname == .json || resourceExtname == .3draft",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "spi3der.showFile",
+          "when": "resourceExtname == .json || resourceExtname == .3draft",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "app": "node ../scripts/vscode-app.mjs",
+    "package": "node ../scripts/vscode-app.mjs && npx -y @vscode/vsce package --no-dependencies"
+  }
+}

@@ -2,10 +2,35 @@
   "format": "models-index",
   "version": 1,
   "scenes": [
-    { "value": "globe", "label": "Globe" },
-    { "value": "deepsky", "label": "Deep Sky (1000 galaxies, 400 black holes, 3000 stars)" },
-    { "value": "game:lark", "label": "Fifth Percent VR (LARK + Deep Sky)", "group": "VR" }
+    {
+      "value": "globe",
+      "label": "Globe"
+    },
+    {
+      "value": "deepsky",
+      "label": "Deep Sky (1000 galaxies, 400 black holes, 3000 stars)"
+    },
+    {
+      "value": "game:lark",
+      "label": "Fifth Percent VR (LARK + Deep Sky)",
+      "group": "VR"
+    },
+    {
+      "value": "story:lark-4",
+      "label": "Story: LARK–4C lander build (746 steps)"
+    }
   ],
-  "menu": ["empty", "globe", "deepsky"],
-  "offline": ["globe.scene.json", "deepsky.scene.json", "deepsky-lark.scene.json", "lark-4.scene.json", "lark.game.json"]
+  "menu": [
+    "empty",
+    "globe",
+    "deepsky"
+  ],
+  "offline": [
+    "globe.scene.json",
+    "deepsky.scene.json",
+    "deepsky-lark.scene.json",
+    "lark-4.scene.json",
+    "lark.game.json",
+    "lark-4.build.json"
+  ]
 }

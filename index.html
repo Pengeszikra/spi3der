@@ -187,7 +187,7 @@
     /* P: the material palette. Data first: every entry is a plain object, the swatches are drawn from the list. */
     /* the side panels (palette, help): one vertical panel on the right, one at a time; the desktop console lies over their foot */
     .side { position: fixed; top: 0; right: 0; bottom: 0; z-index: 9; width: min(88vw, 320px); box-sizing: border-box; padding: 12px 14px 104px; overflow-y: auto; background: color-mix(in srgb, #0b0b0a 95%, transparent); border-left: 1.5px solid var(--outline); display: grid; align-content: start; gap: 8px; font: 500 12px/1.3 var(--font-mono); color: var(--muted); }
-    .side[hidden] { display: none; }
+    .side[hidden] { display: none !important; } /* a panel's own #id layout (e.g. #svgPanel: flex) must not show it when hidden */
     .side.wide { width: min(92vw, 430px); }
     /* the character builder */
     #charView { width: 100%; height: 340px; flex: none; border-radius: 10px; overflow: hidden; background: #1b1c17; cursor: grab; touch-action: none; }
@@ -196,13 +196,20 @@
     #charView canvas { display: block; margin: 0 auto; }
     #charPanel .crow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     #charPanel .crow button { padding: 6px 10px; border-radius: 8px; }
-    #charPanel #charPoseRow button.on { background: var(--teal); color: #04181a; }
     #charPanel #charName { flex: 1; min-width: 90px; }
     #charPanel #charLib { max-width: 140px; }
     #charControls { display: grid; gap: 8px; }
     #charControls .cgroup { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; padding: 8px; border: 1px solid #ffffff14; border-radius: 10px; }
     #charControls .cgroup > b { grid-column: 1 / -1; color: var(--cream); font: 600 11px/1 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; }
     #charControls .cgroup > select { grid-column: 1 / -1; }
+    /* the svg export: label and control on one row per setting */
+    #svgPanel { display: flex; flex-direction: column; gap: 10px; }
+    #svgPanel .cgroup { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; padding: 8px; border: 1px solid #ffffff14; border-radius: 10px; }
+    #svgPanel .cgroup > b { grid-column: 1 / -1; color: var(--cream); font: 600 11px/1 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; }
+    #svgPanel .cgroup > input, #svgPanel .cgroup > select { width: 100%; box-sizing: border-box; min-width: 0; }
+    #svgPanel .crow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    #svgPanel .crow[hidden] { display: none; }
+    #svgPanel .crow button { padding: 6px 10px; border-radius: 8px; }
     #charControls .slider { grid-column: 1 / -1; display: grid; grid-template-columns: 84px 1fr 36px; gap: 6px; align-items: center; }
     #charControls .slider em { font-style: normal; text-align: right; color: var(--cream); }
     #charControls .lab { color: var(--muted); }
@@ -218,6 +225,15 @@
     @media (min-width: 641px) { .side { z-index: 6; } }
     /* the help page: Markdown rendered into plain HTML */
     #helpDoc { color: #c9cdc2; line-height: 1.5; font-size: 12px; }
+    #helpNav { display: flex; flex-wrap: wrap; gap: 4px; position: sticky; top: -12px; z-index: 1; margin: -12px -14px 4px; padding: 10px 14px 8px; background: #0b0b0a; border-bottom: 1px solid var(--line); }
+    #helpNav button { padding: 3px 7px; border-radius: 6px; border: 1px solid #2a2d27; background: #141512; color: var(--muted); font: 500 11px var(--font-mono); cursor: pointer; }
+    #helpNav button.on { background: var(--teal); border-color: var(--teal); color: #04181a; }
+    #helpDoc .brand { display: block; width: 100%; max-width: 360px; aspect-ratio: 1; height: auto; object-fit: contain; margin: 0 auto 24px; border-radius: 16px; }
+    #helpDoc pre { margin: 8px 0; padding: 10px 12px; border-radius: 8px; background: #121311; color: #c9cdc2; overflow-x: auto; font: 11.5px/1.45 var(--font-mono); tab-size: 2; }
+    #helpDoc pre code { padding: 0; background: none; color: inherit; font: inherit; }
+    #helpDoc blockquote { margin: 8px 0; padding: 2px 0 2px 10px; border-left: 2px solid #3b4a3b; color: var(--muted); }
+    #helpDoc img { max-width: 100%; }
+    #helpDoc hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
     #helpDoc h1 { margin: 0 0 6px; font: 600 18px/1.2 var(--font-display); color: var(--cream); }
     #helpDoc h2 { margin: 18px 0 6px; padding-top: 8px; border-top: 1px solid var(--line); font: 600 13px/1.2 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); }
     #helpDoc p, #helpDoc ul, #helpDoc ol { margin: 6px 0; }
@@ -435,6 +451,8 @@
     #findList div i { font-style: normal; color: #8a8d80; font-size: 11px; margin-left: 6px; }
     #findList div.sel { background: #2fb8c033; color: var(--cream); }
     #findList b { color: #39ff14; font-weight: 600; }
+    #findList div em.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; vertical-align: -1px; box-shadow: 0 0 0 1px #0008; }
+    #helpDoc .found { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 4px; }
     input[type=text], input[type=search], textarea { -webkit-user-select: text; user-select: text; }
 
     /* no frame round the 3D view, and the target readout floats without a box */
@@ -657,11 +675,11 @@
     .page-ask span { opacity: 0.8; font-size: 0.9em; line-height: 1.4; }
     .page-ask div { display: flex; gap: 8px; justify-content: flex-end; }
     .page-ask .danger { background: #8a2a14; color: #ffe2d6; }
-    #cloudToast { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 40; max-width: min(640px, 92vw); padding: 8px 14px; border-radius: 6px; font: inherit; font-size: 0.9em; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5); pointer-events: none; }
-    #cloudToast.busy { background: #24303a; color: #cfe6f0; }
-    #cloudToast.ok { background: #1d3a26; color: #c9f2d4; }
-    #cloudToast.info { background: #33332c; color: #e6e2d0; }
-    #cloudToast.err { background: #5a1c10; color: #ffd9cc; }
+    #cmdToast, #cloudToast { position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 40; max-width: min(640px, 92vw); padding: 8px 14px; border-radius: 6px; font: inherit; font-size: 0.9em; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5); pointer-events: none; }
+    #cmdToast.busy, #cloudToast.busy { background: #24303a; color: #cfe6f0; }
+    #cmdToast.ok, #cloudToast.ok { background: #1d3a26; color: #c9f2d4; }
+    #cmdToast.info, #cloudToast.info { background: #33332c; color: #e6e2d0; }
+    #cmdToast.err, #cloudToast.err { background: #5a1c10; color: #ffd9cc; }
 </style>
 </head>
 <body>
@@ -696,7 +714,7 @@
 
   <main id="stage" tabindex="0" role="img" aria-label="Empty space for prisms. 9 switches between the SVG and the WebGPU view, L turns the light, C switches the filmic look, N smooth shading, K the studio light. Drag, or use the arrow keys, to rotate the view. The cross follows the surface under the pointer. M puts a prism down there, or shoots one into empty space; Space stops the movement. B drags a box round objects to select them (B twice: a lasso), then G, R, S move, turn and size them together; the bool button asks for a boolean operation on two selected objects (union, A minus B, B minus A, intersect). V joins two surface points with a thin bar (P over empty space forgets a pending first point), X deletes the object under the cross, W A S D R F fly, / shows only the model under the cross (/ again: the whole scene), P shows the material palette (Ctrl+click (Cmd on a Mac) paints a face, Ctrl+double click the whole model), T flies the camera to the object under the cross, H puts the move gizmo (helper) on the object under the cross with the world axes, the next H switches to the object's own axes, the third takes it off; drag an arrow to move the object; E toggles edges and points, U or Backspace takes the last one back."><div id="frame"><canvas id="gpu" hidden></canvas><canvas id="bridge" hidden></canvas><div id="layer"></div><div id="screens"></div><svg id="selArea" aria-hidden="true"></svg></div><div id="hud" aria-hidden="true"></div><button id="gameBtn" type="button" class="teal" hidden title="Switch between flying the ship (at the helm) and walking on the bridge (C)">helm ⇄ walk · C</button><div id="loader" hidden role="status"><div class="orb" aria-hidden="true"><i></i><b></b><b></b><b></b></div><span>loading…</span><em id="loaderStep"></em><s id="loaderBar"><u></u></s></div><div id="workNote" hidden aria-live="polite"></div></main>
 
-  <div id="findBox" hidden><input id="findInput" type="text" placeholder="find a target (↑↓ choose, Enter: target, Esc: close)" maxlength="60" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Find a target by name"><div id="findList"></div></div>
+  <div id="findBox" hidden><input id="findInput" type="text" placeholder="find a target · / for commands (/l /s /svg /add /help …) · Esc: close" maxlength="60" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Find a target by name"><div id="findList"></div></div>
   <input id="textBox" type="text" placeholder="text (Enter: make it, Esc: cancel)" maxlength="80" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="The words to put on the face" hidden>
   <div id="editbar" hidden><b id="editText"></b><button id="editHelp" type="button" title="Show / hide the edit help" aria-pressed="false" hidden>?</button><span id="editHelpText" hidden>V: sketch lines (nothing happens yet) · 6: the lathe (select a face first; V draws a contour on it above its bottom line, the axis; Enter, then the number of segments, Enter again = 7) · 1 / 2 / 3: select points / lines / faces (click; Shift+click adds or takes away; A selects all, A A clears) · G: grab the selection (X / Y / Z lock the axis, type metres, click or Enter confirms, Esc cancels) · S: scale (same keys) · E: extrude the selected faces · 4: the saw: V puts 2 points on one face = a cut square to the face, or 3 points = a cut through the triangle; Enter cuts · Shift+W A S D R F fly · Ctrl/Cmd+click paints · Shift+X deletes the object under the cross · U undo · Esc back, then leave · Q leave</span></div>
 
@@ -731,15 +749,37 @@
   </aside>
   <div id="storyCaption" hidden><b id="stCapTitle"></b><span id="stCapText"></span></div>
 
-  <aside id="charPanel" class="side wide" hidden aria-label="Character builder">
+  <aside id="charPanel" class="side wide" hidden aria-label="Characters">
     <div class="sidehead"><b>characters</b><button id="charClose" type="button" class="slate" aria-label="Close">✕</button></div>
+    <!-- the actions first: place, take back, apply (the preview and the choices follow) -->
+    <div class="crow"><button id="charPlace" type="button" class="red" title="Put the character down at the cross, facing you (one undo step): a group of instances of the library's modules">place</button><button id="charPick" type="button" class="slate" title="Take the placed character under the cross (or the target) back into the panel">edit selected</button><button id="charApply" type="button" class="cream" disabled>apply to selected</button></div>
     <div id="charView" title="Drag: turn the figure round"></div>
-    <div class="crow" id="charPoseRow"><button type="button" data-pose="stand" class="slate">stand</button><button type="button" data-pose="sit" class="slate">sit</button><button type="button" data-pose="walk" class="slate">walk</button></div>
-    <div class="crow" id="charPresets"><button type="button" data-preset="scientist" class="cream">Scientist</button><button type="button" data-preset="mechanic" class="cream">Mechanic</button><button type="button" data-preset="crew" class="cream">Space crew</button><button type="button" data-preset="astronaut" class="cream">Astronaut</button><button type="button" id="charVary" class="teal" title="Another person in the same role: face, hair, build, skin and hair change, the outfit and the prop stay">variate</button></div>
+    <div class="crow"><button type="button" id="charRandom" class="teal" title="Another character: every part and colour chosen at random (humans stay human, robots robot)">random</button><button type="button" id="charDesigner" class="slate" title="The modular character designer page (models/modular-characters/): every module, the line-up, the face and exploded views">designer ↗</button></div>
     <div id="charControls"></div>
-    <div class="crow"><input id="charName" type="text" placeholder="name" maxlength="40" spellcheck="false" autocapitalize="off" aria-label="Character name"><button id="charSave" type="button" class="cream" title="Save these settings under the name (this browser)">save</button><select id="charLib" aria-label="Open a saved character"></select><button id="charForget" type="button" class="slate" title="Forget the saved character with this name">✕</button></div>
-    <div class="crow"><button id="charPlace" type="button" class="red" title="Put the figure down at the cross, facing you (one undo step)">place</button><button id="charPick" type="button" class="slate" title="Edit the placed character under the cross (or the target)">edit selected</button><button id="charApply" type="button" class="teal" disabled title="Give the edited settings to that placed character only (one undo step)">apply to selected</button></div>
+    <div class="crow"><input id="charName" type="text" placeholder="name" maxlength="40" spellcheck="false" autocapitalize="off" aria-label="Character name"><button id="charSave" type="button" class="cream" title="Save this selection under the name (this browser)">save</button><select id="charLib" aria-label="Saved characters"></select><button id="charForget" type="button" class="slate" title="Forget the saved character of this name">forget</button></div>
     <p id="charNote" class="note"></p>
+  </aside>
+  <aside id="svgPanel" class="side" hidden aria-label="SVG export">
+    <div class="sidehead"><b>svg export</b><button id="svgClose" type="button" class="slate" aria-label="Close">✕</button></div>
+    <p class="note">The view as you see it, drawn as vectors: flat-coloured faces in the palette's colours, far to near.</p>
+    <div class="cgroup"><b>picture</b>
+      <span class="lab">size (px)</span><input id="svgSize" type="number" min="128" max="2400" step="16" value="800">
+      <span class="lab">background</span><select id="svgBg"><option value="none" selected>none (transparent)</option><option value="dark">dark</option><option value="light">light</option></select>
+      <span class="lab">edges</span><select id="svgEdges"><option value="off" selected>no lines</option><option value="on">lines</option></select>
+      <span class="lab">colours</span><select id="svgColors" title="lit: every face gets its colour from a GPU frame of the same view (the light, the studio rig); flat: the palette's colours"><option value="lit" selected>lit (GPU)</option><option value="flat">flat (palette)</option></select>
+    </div>
+    <div class="crow"><button id="svgSave" type="button" class="red" title="Save the view as one SVG picture">save svg</button></div>
+    <div class="cgroup"><b>animated</b>
+      <span class="lab">motion</span><select id="svgKind"><option value="turntable">turntable: round the middle</option><option value="story">the story's timeline</option></select>
+      <span class="lab" id="svgFromLab">from (°)</span><input id="svgFrom" type="number" step="any" value="0">
+      <span class="lab" id="svgToLab">to (°)</span><input id="svgTo" type="number" step="any" value="360">
+      <span class="lab">frames</span><input id="svgFrames" type="number" min="2" max="240" step="1" value="36">
+      <span class="lab">seconds</span><input id="svgSeconds" type="number" min="0.1" max="600" step="0.1" value="4">
+      <span class="lab">repeat</span><select id="svgLoop"><option value="1">loop</option><option value="0">once, stop at the end</option></select>
+    </div>
+    <div class="crow" id="svgStoryRow" hidden><button id="svgFromNow" type="button" class="slate" title="from = the story's time now (the Stories slider)">from ← now</button><button id="svgToNow" type="button" class="slate" title="to = the story's time now (the Stories slider)">to ← now</button><button id="svgWhole" type="button" class="slate" title="The whole story, in its own time">whole</button></div>
+    <div class="crow"><button id="svgAnim" type="button" class="red" title="Save the frames as one animated SVG (SMIL: it plays in any browser, without script)">save animated svg</button><button id="svgGif" type="button" class="cream" title="The same motion as an animated GIF: GPU frames, a see-through background, cut to the model with a little room">save gif</button></div>
+    <p id="svgNote" class="note"></p>
   </aside>
   <aside id="palette" class="side" hidden aria-label="Material palette">
     <div class="sidehead"><b>materials</b><button id="palClose" type="button" class="slate" aria-label="Close">✕</button></div>
@@ -890,9 +930,10 @@
           <button id="sceneCloud" type="button" class="teal" hidden title="Save the scene online, in the store, under that name: then every device opens it from the list (online). The first time it asks for the store's key. Shift+click: take that name out of the store">☁</button>
           <button id="sceneDown" type="button" class="cream" title="Download the scene as a .3draft file (3Draft scene JSON)">f↓</button>
           <button id="sceneOpen" type="button" class="cream" title="Add a scene from a .json file">f↑</button>
+          <button id="svgBtn" type="button" class="cream" title="SVG export: the view as an SVG picture, or an animated SVG (a turntable, or a part of the story's timeline)">svg</button>
           <button id="sceneForget" type="button" class="slate" title="Forget the saved scene with the name in the box">✕</button>
           <button id="boolBtn" type="button" class="slate" title="Boolean: select two objects (B), then this; the first taken is A, the second B">bool</button>
-          <button id="charBtn" type="button" class="teal ic" title="Assets: the character builder. Make a figure from a few sliders, hair, clothes and a prop (presets: scientist, mechanic, space crew, astronaut; every part a palette material), then place it at the cross; edit a placed one" aria-label="Character builder">🧍</button>
+          <button id="charBtn" type="button" class="teal ic" title="Characters: modular low-poly humans and robots (models/modular-characters/): 20 ready ones, or every part and colour chosen; placed as a group of instances of the library's modules" aria-label="Character builder">🧍</button>
           <input id="sceneFile" type="file" accept=".3draft,.json,application/json" hidden>
         </span>
       </span>
@@ -935,6 +976,7 @@
           <button id="stEnd" type="button" class="slate ic" title="Story: the end, the finished model (End)" aria-label="To the end"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 5v14M6 6l8 6-8 6z"/></svg></button>
           <select id="stSpeed" aria-label="Playback speed" title="Playback speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="8">8×</option></select>
           <button id="stHelp" type="button" class="teal ic" title="Help: every mode and key (?)" aria-label="Help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.6 2.2c-.7.4-1.1 1-1.1 1.8M12 17h.01"/></svg></button>
+          <button id="stSvg" type="button" class="cream" title="SVG export of the story: a picture of this moment, or an animated SVG of a part of its timeline">svg</button>
           <button id="stExit" type="button" class="slate" title="Leave the story: the scene and the system controls come back (the scene is cleared)">✕</button>
         </span>
         <span class="row story-only">
@@ -956,8 +998,27 @@
   </footer>
 
   <script type="module">
-    import { createTsh, readHands, TSH_BONES, TSH_JOINTS, boolean, health, validate, mergeFlat, saw, planeThroughLine, planeThroughTriangle, sectionSegments, moveVertexSet, reshape, outlineOf, extrudeFace, faceNormal, project, initKernel, createGpu, createGl, buildInstances, bounds, orbit as orbitView, makeCamera, ray, pick, crosshair, standOn, instantiate, lodLevel, box, merge, textMesh, faceFrame, lathe, bevel, renderView, version, displayVersion, humanoidRig, posed, posedJoints, walkPose, HUMANOID_POSES, boneMatrices, poseLift, galaxyPoints, mul4, skyScene, buildCharacter, normalizeCharacter, variateCharacter, CHARACTER_VERSION, CHARACTER_PRESETS, CHARACTER_RANGES, FACE_SHAPES, HAIR_STYLES, BEARD_STYLES, OUTFITS, PROPS as CHAR_PROPS, CHARACTER_SKINS, CHARACTER_HAIRS, CHARACTER_CLOTHS, characterPalette, jointNow, hingeTo, pivotTurn, railNear, springStep, springMesh, carried as carriedBy, holderOf, moveMesh } from './engine/8fa668821759/index.js';
+    import { createTsh, readHands, TSH_BONES, TSH_JOINTS, boolean, health, validate, mergeFlat, saw, planeThroughLine, planeThroughTriangle, sectionSegments, moveVertexSet, reshape, outlineOf, extrudeFace, faceNormal, project, initKernel, createGpu, createGl, buildInstances, bounds, orbit as orbitView, makeCamera, ray, pick, crosshair, standOn, instantiate, lodLevel, box, merge, textMesh, faceFrame, lathe, bevel, renderView, version, displayVersion, humanoidRig, posed, posedJoints, walkPose, HUMANOID_POSES, boneMatrices, poseLift, galaxyPoints, mul4, skyScene, buildCharacter, normalizeCharacter, variateCharacter, CHARACTER_VERSION, CHARACTER_PRESETS, CHARACTER_RANGES, FACE_SHAPES, HAIR_STYLES, BEARD_STYLES, OUTFITS, PROPS as CHAR_PROPS, CHARACTER_SKINS, CHARACTER_HAIRS, CHARACTER_CLOTHS, characterPalette, jointNow, hingeTo, pivotTurn, railNear, springStep, springMesh, carried as carriedBy, holderOf, moveMesh } from './engine/45789c908f86/index.js';
     import * as storyFormat from './models/spider-build-v2.mjs'; // Spider Build v2 story files (.build.json)
+    import { animatedSvg, spread, storyView, svgBackground, titledSvg } from './src/svg-anim.js';
+    import { cropSvg, litSvg } from './src/svg-lit.js';
+    import { encodeGif, visibleBox } from './src/gif.js';
+    import { SHAPES } from './src/shapes.js';
+    import { toHtml, codeCss } from './src/md/markdown.js';
+    document.head.append(Object.assign(document.createElement('style'), { textContent: codeCss('#helpDoc pre') })); // (the code colours: one palette with the terminal)
+    import { helpSections, helpBlocks } from './src/md/help.js';
+    import { zignal, batch, plain } from './src/state.js'; // the UI state: zignal (from flogon-galaxy), seen in batches
+
+    // ---- the UI state: one object for what the switches say. Every write to it is seen (zignal), and the page follows it once
+    // per task (batch -> uiRender). Only small values live here; meshes, the scene and the render loop stay outside it.
+    // view: the look switches; render: which renderer draws (mode 'svg' | 'gpu', kind 'webgpu' | 'webgl2', note and why: what
+    // the label says when the asked one is missing); edit: the edit mode (1-5, L) and the gizmo's axes; paint: the chosen material.
+    const ui = zignal(batch((root, changes) => uiRender(root, changes)))({
+      view: { frozen: false, smooth: true, studio: true, glow: false, light: true, edges: false, merge: true },
+      render: { mode: 'svg', kind: 'webgpu', note: '', why: '' },
+      edit: { mode: 'draw', gizmoLocal: false },
+      paint: { current: 0 },
+    });
     window.__booted = true; // (the engine and the module loaded: the check at the end of the page waits for the scene, not for this)
     // (the camera orbit helper; `orbit` is the space orbit state). The starship's roll ([ / ő, ] / ú) rides along on every camera.
     const orbit_ = (o = {}) => orbitView({ roll, ...o });
@@ -976,7 +1037,7 @@
       if (!WORKSHOP_EMBED || !workshopSessionId || !workshopSceneReady) return;
       clearTimeout(workshopDirtyTimer);
       workshopDirtyTimer = setTimeout(() => {
-        if (workshopSceneReady) workshopNotice('native_scene_changed', { scene: sceneFile('workshop') });
+        if (workshopSceneReady) workshopNotice('native_scene_changed', { scene: sceneFile('workshop', { plain: true }) });
       }, 350);
     };
     if (WORKSHOP_EMBED) window.addEventListener('message', async (e) => {
@@ -1004,7 +1065,6 @@
     const stage = document.getElementById('stage');
     const frame = document.getElementById('frame');
     let canvas = document.getElementById('gpu');
-    let activeKind = 'webgpu';
     const layer = document.getElementById('layer');
     const modeEl = document.getElementById('mode');
     const hudEl = document.getElementById('hud');
@@ -1182,6 +1242,7 @@
     let joints = []; // the joints of the scene (src/joints.ts; a / b are object ids here, names in a scene file), see Mechanics
     let game = null; // a running game (3draft-game: a universe scene and a ship drawn over it), see loadGame
     let gcam = null; // the camera of every frame (cam only exists while the pointer is over the view)
+    let svgCam = null; // the view of the last frame: { yaw, pitch, fit } (the svg export draws it)
     let drawing = { left: 0, top: 0 }; // where the square drawing starts, in client pixels
     let solo = null; // `/` isolates one object: its id, null shows everything
     const benchRadius = () => Math.max(editing && has(editing) ? bounds(editing.mesh).radius * 1.4 : 0, 1e-3);
@@ -1206,7 +1267,7 @@
       if (solo && !objs.some((o) => o.id === solo)) solo = null;
       if (solo) objs = objs.filter((o) => o.id === solo);
       if (skinned()) objs = objs.filter((o) => !posing.ids.has(o.id)); // the posed figure is drawn as a GPU skin, not from the scene
-      if (storySkin && mode === 'gpu' && gpu) objs = objs.filter((o) => !storySkin.names.has(o.name) && !isHole(o.inst));
+      if (storySkin && ui.render.mode === 'gpu' && gpu) objs = objs.filter((o) => !storySkin.names.has(o.name) && !isHole(o.inst));
       if (walkHidden.size) objs = objs.filter((o) => !walkHidden.has(o.id)); // so are the walking characters
       if (!skyShow.mine || !skyShow.iau) objs = objs.filter((o) => !o.skyLine || skyShow[o.skyLine]); // the sky switches
       let n = 0;
@@ -1688,7 +1749,7 @@
     };
     // 0 / ö
     const toggleOrbit = () => {
-      if (!space() || frozen) return;
+      if (!space() || ui.view.frozen) return;
       const o = lockedObject();
       if (orbit) {
         // leaving: a swing round the target is kept as cruise, and gravity mode takes it on
@@ -1834,7 +1895,7 @@
     let lastFrame = performance.now();
     // Freeze (touch pad): everything that moves stands still, so the cursor can work. The speed vector is kept as it was
     // and carries on when the freeze is lifted.
-    let frozen = false;
+    // ui.view.frozen (;): everything that moves stands still
     // VR (a phone in a headset holder): the view is split into two eyes side by side, the head (the phone's sensors) turns the
     // view, a tap speeds up, a double tap stops, a long press leaves. Both eyes are the same camera shifted by half the
     // eye distance along its right vector (parallel axes). WebGL2 draws it (its canvas can be copied right after the draw).
@@ -1854,7 +1915,7 @@
       const fz = -Math.cos(b) * Math.cos(g);
       const heading = Math.atan2(fx, fy); // clockwise from north: the viewer's yaw grows the same way
       if (vrBase === null) vrBase = yaw - heading;
-      if (frozen) return;
+      if (ui.view.frozen) return;
       yaw = heading + vrBase;
       pitch = -Math.asin(Math.max(-1, Math.min(1, fz))); // the viewer's pitch is positive looking down
       redraw();
@@ -1885,9 +1946,9 @@
     const toggleVr = async (on = !vr) => {
       if (on === vr) return;
       if (on) {
-        vrBack = { mode, kind: activeKind };
+        vrBack = { ...ui.render };
         await setMode('gl');
-        if (mode !== 'gpu' || activeKind !== 'webgl2') return; // no WebGL2: no VR
+        if (ui.render.mode !== 'gpu' || ui.render.kind !== 'webgl2') return; // no WebGL2: no VR
         try {
           if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') await DeviceOrientationEvent.requestPermission();
         } catch {}
@@ -1913,14 +1974,9 @@
       }
       redraw();
     };
-    const toggleFreeze = () => {
-      frozen = !frozen;
-      for (const id of ['padFreeze', 'freeze']) document.getElementById(id)?.classList.toggle('on', frozen);
-      stage.classList.toggle('frozen', frozen);
-      redraw();
-    };
+    const toggleFreeze = () => (ui.view.frozen = !ui.view.frozen); // (the buttons, the stage and the picture follow: uiRender)
     const stop = () => {
-      if (!frozen) ((level.f = level.r = level.u = 0), (throttle = 1), (cruise = { f: 0, r: 0, u: 0 }), (gravity = null), (orbit = null));
+      if (!ui.view.frozen) ((level.f = level.r = level.u = 0), (throttle = 1), (cruise = { f: 0, r: 0, u: 0 }), (gravity = null), (orbit = null));
     };
     let backoff = 1; // how far the eye is backed off for a wide stage right now (eases to its goal, so nothing jumps)
     let fovNow = (35 * Math.PI) / 180; // the lens: wide while flying inside the scene, eased both ways
@@ -1943,7 +1999,7 @@
       focused = true;
     };
     const speed = (axis, d) => {
-      if (frozen || drive()) return; // (the car: the two-finger wheel and throttle)
+      if (ui.view.frozen || drive()) return; // (the car: the two-finger wheel and throttle)
       throttle = 1; // a new speed: the braking program (still on while there is a target) brakes again from here
       if (!locked || (space() && !orbitOn())) enterFly();
       level[axis] += d;
@@ -1952,7 +2008,7 @@
     const stepFly = (now) => {
       const dt = Math.min(0.05, (now - lastFrame) / 1000);
       lastFrame = now;
-      if (frozen) return;
+      if (ui.view.frozen) return;
       if (!findBox.hidden) return; // searching (Enter): everything holds still until a target is taken or the box closes
       if (drive()) return stepCar(dt, now);
       if (!space()) roll = 0;
@@ -2169,7 +2225,106 @@
       const s = (gcam?.eye ? [...gcam.eye] : eyeNow());
       return Math.hypot(...vsub(o.figure ? o.figure.centre : ballOf(o).center, s));
     };
+    // Commands in the same box (the UI-less way): a text starting with / is a command, its rest is searched in the command's own
+    // list. "/" alone lists the commands. /l or /load: the scenes of the + scene list (examples, stories, saved here, online),
+    // Enter opens the chosen one as the list does (merge on: added to the scene, off: alone).
+    let findRows = null; // the rows of a command (null: the objects of the scene)
+    const sceneRows = (q, how) => {
+      const rows = [...exampleEl.querySelectorAll('option')].filter((o) => o.value).map((o, k) => {
+        const group = o.parentElement?.tagName === 'OPTGROUP' ? o.parentElement.label.replace(/\s*\(.*\)$/, '') : '';
+        return { k, label: o.textContent.trim(), cat: group, value: o.value };
+      });
+      const ranked = rows.map((r) => {
+        if (!q) return [0, r];
+        const a = findRank(fold(r.label), q), b = findRank(fold(r.value.replace(/^[a-z]+:/, '')), q), c = findRank(fold(r.cat), q);
+        const all = [a, b, c >= 0 && c <= 1 ? 2 : -1].filter((x) => x >= 0 && x <= 3); // (no loose letters-in-order hits: a list of scenes is short)
+        return [all.length ? Math.min(...all) : -1, r];
+      });
+      return ranked.filter(([x]) => x >= 0).sort((p, q2) => p[0] - q2[0] || p[1].k - q2[1].k).map(([, r]) => ({
+        ...r,
+        right: how === 'merge' ? 'add' : 'open alone',
+        take: () => {
+          if (r.value.startsWith('saved:') || r.value.startsWith('cloud:')) nameEl.value = r.value.slice(6);
+          addExample(r.value, how).catch((e) => sceneNote(`scene: ${e.message}`));
+        },
+      }));
+    };
+    // A command is { names, hint, rows(q) } (its own list) or { names, hint, run(arg), choices?, free?, bare? }: `choices()` lists
+    // what the argument can be ({ label, value, cat, right, sw }), `free` takes any typed text too, `bare` is what Enter does with
+    // no argument (a toggle flips). run's answer (or error) shows as a toast. The table grows further down (FIND_CMDS.push).
+    const FIND_CMDS = [
+      { names: ['load', 'l'], hint: 'open a scene alone (the scene before goes; U brings it back)', rows: (q) => sceneRows(q, 'replace') },
+      { names: ['merge'], hint: 'add a scene to this one', rows: (q) => sceneRows(q, 'merge') },
+    ];
+    let cmdToastEl = null, cmdToastTimer = 0;
+    const cmdToast = (state, text) => {
+      cmdToastEl ??= Object.assign(document.createElement('div'), { id: 'cmdToast', role: 'status' });
+      if (!cmdToastEl.isConnected) document.body.append(cmdToastEl);
+      clearTimeout(cmdToastTimer);
+      cmdToastEl.className = state; // busy | ok | info | err
+      cmdToastEl.textContent = text;
+      if (state !== 'busy') cmdToastTimer = setTimeout(() => cmdToastEl.remove(), state === 'err' ? 8000 : 4000);
+    };
+    const runCmd = async (c, arg) => {
+      try {
+        const said = await c.run(arg);
+        if (said) cmdToast('ok', said);
+      } catch (e) {
+        cmdToast('err', `/${c.names[0]}: ${e.message}`);
+      }
+    };
+    const cmdRows = (c, argText) => {
+      const arg = argText.trim(), q = fold(arg);
+      const list = c.choices ? c.choices() : [];
+      const rank = (t) => {
+        const r = findRank(fold(t), q);
+        return r < 0 || r > 3 ? 99 : r;
+      };
+      const rows = list
+        .map((x, k) => [q ? Math.min(rank(x.label), rank(String(x.value))) : 0, k, x])
+        .filter((h) => h[0] < 99)
+        .sort((a, b) => a[0] - b[0] || a[1] - b[1])
+        .map(([, , x]) => ({ label: x.label, cat: x.cat ?? '', right: x.right ?? '', sw: x.sw, take: () => runCmd(c, x.value) }));
+      const own = `/${c.names[0]}${arg ? ` ${arg}` : ''}`;
+      const free = typeof c.free === 'function' ? c.free(arg, rows.length) : c.free; // (a function: whether the typed text comes first)
+      if (!c.choices || (free && arg && !list.some((x) => fold(String(x.value)) === q))) rows.unshift({ label: own, cat: c.hint, right: '↵', take: () => runCmd(c, arg) });
+      else if (!arg && c.bare) rows.unshift({ label: own, cat: c.bare, right: '↵', take: () => runCmd(c, '') });
+      return rows;
+    };
+    const commandRows = (text) => {
+      const m = /^\/(\S*)(\s+(.*))?$/.exec(text);
+      const word = fold(m[1]);
+      const cmd = FIND_CMDS.find((c) => c.names.includes(word));
+      if (cmd) return cmd.rows ? cmd.rows(fold((m[3] ?? '').trim())) : cmdRows(cmd, m[3] ?? '');
+      return FIND_CMDS.filter((c) => c.names.some((n) => n.startsWith(word))).map((c) => ({
+        label: `/${c.names[0]}`,
+        cat: `${c.hint} · /${c.names.slice(1).join(' /')}`,
+        right: '',
+        keep: true,
+        take: () => {
+          findInput.value = `/${c.names[0]} `;
+          foundAt = 0;
+          findShow();
+        },
+      }));
+    };
     const findShow = () => {
+      const text = findInput.value.trimStart();
+      if (text.startsWith('/')) {
+        findRows = commandRows(text);
+        foundAt = Math.min(foundAt, Math.max(0, findRows.length - 1));
+        const q = fold((/^\/\S*\s+(.*)$/.exec(text)?.[1] ?? '').trim());
+        const mark = (name) => {
+          const at = q ? fold(name).indexOf(q) : -1;
+          return at < 0 ? hudText(name) : `${hudText(name.slice(0, at))}<b>${hudText(name.slice(at, at + q.length))}</b>${hudText(name.slice(at + q.length))}`;
+        };
+        const first = Math.max(0, Math.min(foundAt - FIND_SHOW + 2, findRows.length - FIND_SHOW - 4)); // (a longer list scrolls with the choice)
+        findList.innerHTML = findRows.length
+          ? findRows.slice(first, first + FIND_SHOW + 4).map((r, j) => `<div class="${first + j === foundAt ? 'sel' : ''}" data-i="${first + j}"><span>${r.sw ? `<em class="sw" style="background:${hudText(r.sw)}"></em>` : ''}${mark(r.label)}${r.cat ? ` <i>${hudText(r.cat)}</i>` : ''}</span><span>${hudText(r.right)}</span></div>`).join('')
+          : '<div><span>no such command or scene</span><span></span></div>';
+        return;
+      }
+      findRows = null;
       const q = fold(findInput.value.trim());
       found = [];
       if (q) {
@@ -2205,8 +2360,9 @@
       };
       findList.innerHTML = found.map((f, i) => `<div class="${i === foundAt ? 'sel' : ''}" data-i="${i}"><span>${mark(String(f.o.name ?? f.o.id))}${f.o.figure ? '' : (() => { const c = categoryOf(f.o); return c ? ` <i>${mark(c)}</i>` : ''; })()}</span><span>${fmt(f.d)}</span></div>`).join('');
     };
-    const openFind = () => {
-      if (editing || posing || xf || vr) return;
+    // inEdit: Shift+Enter, the Enter box in the edit mode too (there Enter itself builds / cuts / turns)
+    const openFind = (inEdit = false) => {
+      if ((editing && !inEdit) || posing || xf || vr) return;
       findBox.hidden = false;
       findInput.value = '';
       foundAt = 0;
@@ -2231,6 +2387,13 @@
       lookAt(o);
     };
     const findTake = (i = foundAt) => {
+      if (findRows) {
+        const r = findRows[i];
+        if (!r) return;
+        if (r.keep) return r.take(); // (a command name: the box stays, its list opens)
+        closeFind();
+        return r.take();
+      }
       const f = found[i];
       closeFind();
       if (f) takeFound(f.o);
@@ -2240,8 +2403,9 @@
       e.stopPropagation(); // typing is not a command
       if (e.key === 'Escape') return void (e.preventDefault(), closeFind());
       if (e.key === 'Enter') return void (e.preventDefault(), findTake());
-      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) return void (e.preventDefault(), (foundAt = (foundAt + 1) % Math.max(1, found.length)), findShow());
-      if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) return void (e.preventDefault(), (foundAt = (foundAt - 1 + found.length) % Math.max(1, found.length)), findShow());
+      const count = () => Math.max(1, (findRows ?? found).length);
+      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) return void (e.preventDefault(), (foundAt = (foundAt + 1) % count()), findShow());
+      if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) return void (e.preventDefault(), (foundAt = (foundAt - 1 + count()) % count()), findShow());
     });
     findInput.addEventListener('keyup', (e) => e.stopPropagation());
     findInput.addEventListener('blur', () => setTimeout(() => document.activeElement !== findInput && !findBox.hidden && closeFind(), 150));
@@ -2296,7 +2460,7 @@
     const PICK_ASYNC_FACES = 4000;
     let kernelFull = false;
     const PICK_HANG_MS = 5000;
-    const ENGINE_URL = new URL('./engine/8fa668821759/index.js', import.meta.url).href;
+    const ENGINE_URL = new URL('./engine/45789c908f86/index.js', import.meta.url).href;
     const PICK_WORKER_SRC = `
       let api = null, kernel = null, mesh = null, ver = -1;
       const ready = import(ENGINE_URL).then(async (m) => {
@@ -2561,7 +2725,7 @@
       try {
         const u = new URL(location.pathname, location.href);
         u.searchParams.set('show', new URL(file, location.href).href);
-        if (mode === 'gl') u.searchParams.set('gl', '');
+        if (ui.render.mode === 'gpu' && ui.render.kind === 'webgl2') u.searchParams.set('gl', ''); // (the same backend)
         return u.href;
       } catch {
         return undefined;
@@ -2648,7 +2812,7 @@
     };
     let screenClock = performance.now();
     const sceneScreens = () => {
-      if (SHOW || !(mode === 'gpu' && gpu) || !gcam) return undefined;
+      if (SHOW || !(ui.render.mode === 'gpu' && gpu) || !gcam) return undefined;
       const now = performance.now();
       const dt = Math.min(0.1, (now - screenClock) / 1000);
       screenClock = now;
@@ -2699,7 +2863,7 @@
         if (!drawn.has(spot)) {
           // the picture is square; a wide face shows its middle band, so the scene is framed for that band
           drawn.add(spot);
-          if (!frozen) spot.yaw += dt * SHOW_SPIN;
+          if (!ui.view.frozen) spot.yaw += dt * SHOW_SPIN;
           spot.gl.render(spot.mesh, orbit_({ yaw: spot.yaw, pitch: 0.25 }), {
             size: SCREEN_PX, dpr: 1, palette: spot.palette, smooth: 40, studio: true, background: [0.02, 0.02, 0.03],
             fit: { center: spot.fit.center, radius: spot.fit.radius * Math.max(1, aspect) },
@@ -2744,7 +2908,7 @@
         scene.faces.forEach((face, fi) => {
           const mat = face.mat !== undefined ? pal[face.mat] : undefined;
           // a scene screen is drawn by the GPU (sceneScreens); in the SVG view it falls back to this viewer as a player in the iframe
-          const gpuOn = !SHOW && mode === 'gpu' && gpu;
+          const gpuOn = !SHOW && ui.render.mode === 'gpu' && gpu;
           const url = mat?.url ?? (mat?.image && (!gpuOn || imageFailed(mat.image)) ? mat.image : undefined) ?? (mat?.scene && !gpuOn ? showUrl(mat.scene) : undefined);
           if (!url || face.v.length !== 4 || used >= 6) return;
           const o = owner(fi);
@@ -2874,7 +3038,7 @@
       const dtDraw = Math.min(0.1, (performance.now() - lastDraw) / 1000);
       const ease1 = 1 - Math.exp(-dtDraw * 9);
       lastDraw = performance.now();
-      if (SHOW && !frozen && !travel && !fly) ((yaw += dtDraw * SHOW_SPIN), redraw()); // the turntable: round the model's middle, like A / D on a target
+      if (SHOW && !ui.view.frozen && !travel && !fly) ((yaw += dtDraw * SHOW_SPIN), redraw()); // the turntable: round the model's middle, like A / D on a target
       const storyFov = story?.cameraFov;
       const fovGoal = storyFov ?? (space() ? SPACE_FOV : fly && eyeInScene() ? INSIDE_FOV : FOV0); // a story's recorded lens is independent of flight controls
       if (storyFov !== undefined) fovNow = storyFov;
@@ -2894,6 +3058,7 @@
       const shown_fit = backoff !== 1 ? { ...fit, ...inside, dist: dist * backoff } : { ...fit, ...inside };
 
       gcam = makeCamera(view, nothing, size, shown_fit);
+      svgCam = { yaw, pitch, fit: shown_fit }; // (the svg export draws this view)
       applyLod(); // finer or coarser meshes for the instances, by their size on screen (before anything reads `scene`)
       const now = performance.now();
       land(now);
@@ -2941,8 +3106,8 @@
       snapE = null;
       snapF = -1;
       if (editing && !xf) {
-        if (emode === 'draw' || emode === 'vertex' || emode === 'saw') snapV = findSnap();
-        else if (emode === 'edge') snapE = findEdge();
+        if (ui.edit.mode === 'draw' || ui.edit.mode === 'vertex' || ui.edit.mode === 'saw') snapV = findSnap();
+        else if (ui.edit.mode === 'edge') snapE = findEdge();
         else if (hit && owner(hit.face) === editing) snapF = hit.face - owners.find((o) => o.obj === editing).start;
       }
       const handles = gizmoHandles();
@@ -3046,11 +3211,11 @@
         const dot = (q) => [[q, q]]; // a zero-length line with round caps is a point
         const cross = (q, k = 1) => [[[q[0] - e * k, q[1], q[2]], [q[0] + e * k, q[1], q[2]]], [[q[0], q[1] - e * k, q[2]], [q[0], q[1] + e * k, q[2]]], [[q[0], q[1], q[2] - e * k], [q[0], q[1], q[2] + e * k]]];
         const wire = (editing.wire ?? []).filter(([a, b]) => a < P.length && b < P.length);
-        if (emode === 'vertex' && P.length <= 600) marks.push({ name: 'verts', color: '#aeb4bb', width: 2, lines: P.map(dot).flat() });
+        if (ui.edit.mode === 'vertex' && P.length <= 600) marks.push({ name: 'verts', color: '#aeb4bb', width: 2, lines: P.map(dot).flat() });
         if (wire.length) marks.push({ name: 'wire', color: '#ff4d3d', width: 2, lines: wire.map(([a, b]) => [P[a], P[b]]) });
         const ends = [...new Set(wire.flat())];
         if (ends.length) marks.push({ name: 'wire-ends', color: '#ff4d3d', width: 5, lines: ends.flatMap((i) => dot(P[i])) });
-        if (emode === 'lathe' && lathePlan) {
+        if (ui.edit.mode === 'lathe' && lathePlan) {
           const { frame, axisLen, pts } = lathePlan;
           const at = (u, r) => lathePoint([u, r]);
           marks.push({ name: 'lathe-axis', color: '#2f9e44', width: 3, lines: [[at(0, 0), at(axisLen, 0)]] });
@@ -3067,7 +3232,7 @@
           marks.push({ name: 'sketch-start', color: '#2f9e44', width: 6, lines: dot(sketchFrom) });
           if (to) marks.push({ name: 'sketch-rubber', color: '#ff4d3d', width: 1.5, lines: [[sketchFrom, to]] });
         }
-        if (emode === 'saw' && sawPts.length) {
+        if (ui.edit.mode === 'saw' && sawPts.length) {
           const pts = sawPts.map((q) => q.p);
           marks.push({ name: 'saw-pts', color: '#ff4d3d', width: 6, lines: pts.flatMap((q) => dot(q)) });
           const lines = pts.slice(1).map((q, k) => [pts[k], q]);
@@ -3138,8 +3303,8 @@
       }
 
       frame.style.width = frame.style.height = `${size}px`;
-      frame.classList.toggle('story-sky', Boolean(storySkin && story?.doc.scene.environment && mode === 'gpu' && gpu));
-      if (mode === 'gpu' && gpu) {
+      frame.classList.toggle('story-sky', Boolean(storySkin && story?.doc.scene.environment && ui.render.mode === 'gpu' && gpu));
+      if (ui.render.mode === 'gpu' && gpu) {
         canvas.style.width = canvas.style.height = `${size}px`;
         const bg = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
         const rgb = /^#[0-9a-f]{6}$/i.test(bg) ? [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16) / 255) : undefined;
@@ -3167,11 +3332,11 @@
             planets: shaderPlanets,
             background: Array.isArray(storyBackdrop) ? storyBackdrop : rgb,
             transparent: Boolean(storySkin && story?.doc.scene.environment) || storyBackdrop === 'transparent',
-            glow: filmic,
-            smooth: smooth ? 40 : 0,
-            studio,
-            edges: !stage.classList.contains('clean'),
-            unlit: !lightOn,
+            glow: ui.view.glow,
+            smooth: ui.view.smooth ? 40 : 0,
+            studio: ui.view.studio,
+            edges: ui.view.edges,
+            unlit: !ui.view.light,
             marks: gpuMarks,
             skin: skinNow(),
             material: sceneMaterial,
@@ -3189,7 +3354,7 @@
             gpu.render(scene, view, {
               palette: paletteMap, parts: sceneParts, instances: { mesh: PROTO, data: instances(now, flights.length > 0) },
               size: square, dpr: 1, fit: { ...fit, center: fit.center.map((c, i) => c + cam0.r[i] * shift) },
-              unlit: !lightOn, background: [0.02, 0.02, 0.03], glow: filmic, smooth: smooth ? 40 : 0, studio, skin: skinNow(), screens,
+              unlit: !ui.view.light, background: [0.02, 0.02, 0.03], glow: ui.view.glow, smooth: ui.view.smooth ? 40 : 0, studio: ui.view.studio, skin: skinNow(), screens,
               light: { direction: [Math.sin(a) * 0.6, 0.8, Math.cos(a) * 0.6] },
             });
             if (cv.width !== half || cv.height !== H) ((cv.width = half), (cv.height = H));
@@ -3284,11 +3449,10 @@
         : 'surface <b>–</b>';
     };
     // WebGPU is the starting view (set up right after the first frame); it falls back to SVG if it is unavailable or lost.
-    let mode = 'svg';
     let gpu = null;
     let lightAngle = 0.8;
-    let smooth = true; // N: smooth shading on the WebGPU view (faces within 40 degrees share normals)
-    let studio = true; // K: studio light (key, fill, rim) that follows the camera
+    // ui.view.smooth (N): smooth shading on the WebGPU view (faces within 40 degrees share normals)
+    // ui.view.studio (K): studio light (key, fill, rim) that follows the camera
     let sceneMaterial = {}; // saved scene lighting strengths, independent of surface materials
     // the installed app (or ?pwa) has no keyboard and is meant for small screens: no filmic look there
     const EMBED = /[?&]store\b/.test(location.search); // ?store: this page is the store pane of another one (its own engine, its own scene)
@@ -3304,7 +3468,7 @@
     })();
     if (SHOW) document.body.classList.add('zen', 'show');
     const isApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true || /[?&]pwa\b/.test(location.search);
-    let filmic = false; // C: filmic look on the WebGPU view (linear light, tone mapping, glowing emission)
+    // ui.view.glow (C): filmic look on the WebGPU view (linear light, tone mapping, glowing emission)
     let renderGpu = null;
     const gpuErrors = [];
     // Two GPU backends, each with its own canvas (a canvas keeps the first kind of context it was given):
@@ -3338,11 +3502,8 @@
         g.device.lost.then((info) => {
           if (gpu !== g) return;
           gpu = null;
-          mode = 'svg';
           cv.hidden = true;
-          stage.classList.remove('gpu');
-          modeEl.textContent = `svg (${kind} lost)`;
-          modeEl.title = String(info.message ?? info.reason);
+          Object.assign(ui.render, { mode: 'svg', note: `${kind} lost`, why: String(info.message ?? info.reason) });
           backends[kind] = null;
           if (posing) showPose(posing.pose);
           if (story?.doc.tracks.animation) stShow(story.t, true);
@@ -3367,27 +3528,13 @@
           entry = await ensure('webgl2');
           if (entry) ((kind = 'webgl2'), (note = first));
         }
-        if (!entry) {
-          modeEl.textContent = `svg (${kind} unavailable)`;
-          modeEl.title = why;
-          return;
-        }
+        if (!entry) return void Object.assign(ui.render, { note: `${kind} unavailable`, why });
         gpu = entry.g;
         canvas = entry.canvas;
-        modeEl.title = note;
         for (const e of Object.values(backends)) if (e && e !== entry) e.canvas.hidden = true;
-        activeKind = kind;
-      }
-      mode = next === 'svg' ? 'svg' : 'gpu';
-      canvas.hidden = mode !== 'gpu';
-      stage.classList.toggle('gpu', mode === 'gpu');
-      modeEl.textContent = mode !== 'gpu' ? 'svg' : activeKind === 'webgl2' ? (modeEl.title ? 'webgl2 (no webgpu)' : 'webgl2') : 'webgpu';
-      if (mode !== 'gpu') modeEl.title = '';
-      const btn = document.getElementById('gpuBtn');
-      if (btn) {
-        btn.querySelector('span').textContent = mode !== 'gpu' ? 'SVG' : activeKind === 'webgpu' ? 'WebGPU' : 'WebGL2'; // the switch names the view that is on
-        btn.classList.toggle('on', mode === 'gpu');
-      }
+        Object.assign(ui.render, { mode: 'gpu', kind, note: note ? 'no webgpu' : '', why: note });
+      } else Object.assign(ui.render, { mode: 'svg', note: '', why: '' });
+      // (the canvas, the label and the switch follow ui.render in uiRender)
       if (posing) showPose(posing.pose); // the figure moves over to a GPU skin, or back to CPU-bent meshes
       if (story?.doc.tracks.animation) stShow(story.t, true);
       redraw();
@@ -3395,28 +3542,43 @@
     // G / the button: svg -> webgpu -> webgl2 -> svg (without WebGPU: svg -> webgl2 -> svg)
     const toggleMode = () => {
       if (document.body.classList.contains('pwa')) return; // the installed app stays in the GPU view
-      if (mode !== 'gpu') return setMode('gpu');
-      setMode(activeKind === 'webgpu' ? 'gl' : 'svg');
+      if (ui.render.mode !== 'gpu') return setMode('gpu');
+      setMode(ui.render.kind === 'webgpu' ? 'gl' : 'svg');
     };
-    const toggleFilmic = () => {
-      filmic = !filmic;
-      document.getElementById('filmic').classList.toggle('on', filmic);
-      redraw();
-    };
-    const toggleSmooth = () => {
-      smooth = !smooth;
-      document.getElementById('smooth').classList.toggle('on', smooth);
-      redraw();
-    };
-    const toggleStudio = () => {
-      studio = !studio;
-      document.getElementById('studio').classList.toggle('on', studio);
-      redraw();
-    };
-    let lightOn = true;
-    const turnLight = () => {
-      lightOn = !lightOn;
-      document.getElementById('light').classList.toggle('on', lightOn);
+    // the view switches only write the state; uiRender shows it
+    const toggleFilmic = () => (ui.view.glow = !ui.view.glow);
+    const toggleSmooth = () => (ui.view.smooth = !ui.view.smooth);
+    const toggleStudio = () => (ui.view.studio = !ui.view.studio);
+    const turnLight = () => (ui.view.light = !ui.view.light);
+    // what the UI state says, on the page: the switches lit, the frozen stage, a new picture. Called once per task, after the
+    // writes of that task (batch), so three switches turned at once draw once.
+    // Each part of the page follows only its own part of the state (the first time, everything: changes is null then).
+    const uiRender = (root, changes = null) => {
+      const touched = new Set(changes ? changes.map((c) => c.path[0]) : ['view', 'render', 'edit', 'paint']);
+      if (touched.has('view')) {
+        const v = root.view;
+        for (const id of ['padFreeze', 'freeze']) document.getElementById(id)?.classList.toggle('on', v.frozen);
+        stage.classList.toggle('frozen', v.frozen);
+        stage.classList.toggle('clean', !v.edges);
+        for (const [id, on] of [['filmic', v.glow], ['smooth', v.smooth], ['studio', v.studio], ['light', v.light], ['lines', v.edges], ['mergeSw', v.merge]]) document.getElementById(id)?.classList.toggle('on', on);
+        try {
+          localStorage.setItem('3draft.merge', v.merge ? '1' : '0');
+        } catch {}
+      }
+      if (touched.has('render')) {
+        const r = root.render, on = r.mode === 'gpu';
+        canvas.hidden = !on;
+        stage.classList.toggle('gpu', on);
+        modeEl.textContent = !on ? (r.note ? `svg (${r.note})` : 'svg') : r.kind === 'webgl2' ? (r.note ? `webgl2 (${r.note})` : 'webgl2') : 'webgpu';
+        modeEl.title = r.why;
+        const btn = document.getElementById('gpuBtn');
+        if (btn) {
+          btn.querySelector('span').textContent = !on ? 'SVG' : r.kind === 'webgpu' ? 'WebGPU' : 'WebGL2'; // the switch names the view that is on
+          btn.classList.toggle('on', on);
+        }
+      }
+      if (touched.has('edit')) showBar();
+      if (touched.has('paint') && !paletteEl.hidden) showPalette();
       redraw();
     };
     // Glow without a mesh: stars whose instance has a `glow` radius (world units) get a soft additive sprite on a 2D canvas over the
@@ -4355,7 +4517,7 @@
       }
     };
     const turn = (dYaw, dPitch) => {
-      if (frozen) return;
+      if (ui.view.frozen) return;
       travel = null; // the hand takes over from the glide
       if (steer && space()) steer = null; // and from the steering (T again steers)
       if (drive() && car) {
@@ -4469,7 +4631,7 @@
       const ex = cam.u.map((c, i) => c - dir[i] * along);
       const exLen = Math.hypot(...ex) || 1;
       const axes = [ex.map((c) => c / exLen), dir, cross(ex.map((c) => c / exLen), dir)];
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       let mesh = box({ size: [LEG.base, L, LEG.base], at: end, axes, color: m.color });
       mesh = { ...mesh, faces: mesh.faces.map((f) => ({ ...f, mat: m.name })) };
       const back = Math.hypot(...end.map((c, i) => c - origin[i])); // it starts at the camera point
@@ -4542,7 +4704,7 @@
       const ex = [ey[1] * ez[2] - ey[2] * ez[1], ey[2] * ez[0] - ey[0] * ez[2], ey[0] * ez[1] - ey[1] * ez[0]];
       const base = LEG.base / 4;
       const at = a.map((c, i) => c + d[i] / 2);
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       const solid = box({ size: [base, length, base], at, axes: [ex, ey, ez], color: m.color });
       const mesh = { ...solid, faces: solid.faces.map((f) => ({ ...f, mat: m.name })) };
       // the shared prototype is base x 3*base x base: scaled axes turn it into this bar
@@ -4705,7 +4867,11 @@
     };
     const change = (stale, mesh, wire = stale.wire) => {
       const obj = live(stale) ?? stale;
-      delete obj.inst; // an edited instance is an ordinary object from now on
+      if (obj.inst) {
+        const next = fitInst(obj.inst, mesh); // moved, turned about y or sized: still an instance; edited: an ordinary object
+        if (next) obj.inst = next;
+        else delete obj.inst;
+      }
       charHooks.follow?.(obj, mesh); // a character's frame follows a move, an edit makes it a plain object
       if (obj.textFrame && obj.mesh.positions.length === mesh.positions.length && mesh.positions.length) {
         // a text model that is only moved takes the place its words stand in along
@@ -4812,6 +4978,31 @@
     // coarsest level of detail and `applyLod` swaps in the finer ones as the eye comes closer
     const placement = (i) => ({ at: i.at, scale: i.scale, mats: i.mats, color: i.color, rot: i.rot });
     const instSize = (i, slot) => (typeof i.scale === 'number' ? i.scale : (i.scale[slot] ?? i.scale['*'] ?? 1));
+    // The placement of an instance whose mesh is now `mesh`: its turn about x stays; a turn about y, a uniform size and a shift
+    // are read from the mesh. null when the mesh is not such a copy of the prototype (an edit, a tilt, a stretch): then it is an
+    // ordinary object. So G, R, S, G G, U keep an instance an instance (and it is saved as one).
+    const fitInst = (i, mesh) => {
+      if (!i?.proto?.lods || typeof i.scale !== 'number' || !(i.level >= -1)) return null;
+      const lod = i.proto.lods[i.level >= 0 ? i.level : i.proto.lods.length - 1];
+      const b = mesh.positions;
+      if (!lod || lod.positions.length !== b.length || b.length < 2) return null;
+      const ax = i.rot?.[0] ?? 0;
+      const a = instantiate(lod, { at: [0, 0, 0], scale: 1, rot: [ax, 0] }).positions;
+      const mid = (ps) => ps.reduce((m, q) => [m[0] + q[0] / ps.length, m[1] + q[1] / ps.length, m[2] + q[2] / ps.length], [0, 0, 0]);
+      const ca = mid(a), cb = mid(b);
+      let far = 0;
+      a.forEach((q, k) => { if (Math.hypot(q[0] - ca[0], q[2] - ca[2]) > Math.hypot(a[far][0] - ca[0], a[far][2] - ca[2])) far = k; });
+      const ra = Math.hypot(a[far][0] - ca[0], a[far][1] - ca[1], a[far][2] - ca[2]);
+      if (Math.hypot(a[far][0] - ca[0], a[far][2] - ca[2]) < 1e-9) return null;
+      const s = Math.hypot(b[far][0] - cb[0], b[far][1] - cb[1], b[far][2] - cb[2]) / ra;
+      const th = Math.atan2(b[far][0] - cb[0], b[far][2] - cb[2]) - Math.atan2(a[far][0] - ca[0], a[far][2] - ca[2]);
+      const c = Math.cos(th), sn = Math.sin(th);
+      const at = [cb[0] - s * (ca[0] * c + ca[2] * sn), cb[1] - s * ca[1], cb[2] - s * (-ca[0] * sn + ca[2] * c)];
+      const next = { ...i, at, rot: [ax, th], scale: s };
+      const test = instantiate(lod, placement(next)).positions;
+      const tol = 1e-5 * Math.max(1, ra * s);
+      return test.every((q, k) => Math.hypot(q[0] - b[k][0], q[1] - b[k][1], q[2] - b[k][2]) < tol) ? next : null;
+    };
     const LOD_NONE = 0.3; // pixels: a solid smaller than this on screen is not in the scene
     // a big scene (more than LOD_BIG instances) changes its levels at most every LOD_EVERY ms while you move: every change merges
     // the whole scene again, and with thousands of stars some level changes in nearly every frame
@@ -4870,20 +5061,19 @@
       }
     };
     // merge on: a loaded scene is added to what is there; off: the scene is cleared first (one U brings it back) and the loaded one stands alone
-    let mergeOn = true;
     try {
-      mergeOn = localStorage.getItem('3draft.merge') !== '0';
+      ui.view.merge = localStorage.getItem('3draft.merge') !== '0';
     } catch {}
     // a saved scene also keeps the view: the switches (the view's renderer, edges, light, glow, smooth, studio; not freeze, store,
     // palette and edit, which are about the work, not the look) and the camera. They come back when the scene
     // stands alone (merge off, or nothing was there); a merged scene keeps the view you have.
     const viewOf = () => ({
-      render: mode === 'gpu' ? activeKind : 'svg', // 'webgpu' | 'webgl2' | 'svg'
-      edges: !stage.classList.contains('clean'),
-      light: lightOn,
-      glow: filmic,
-      smooth,
-      studio,
+      render: ui.render.mode === 'gpu' ? ui.render.kind : 'svg', // 'webgpu' | 'webgl2' | 'svg'
+      edges: ui.view.edges,
+      light: ui.view.light,
+      glow: ui.view.glow,
+      smooth: ui.view.smooth,
+      studio: ui.view.studio,
       material: { ...sceneMaterial },
       cam: { center: [...fit.center], radius: fit.radius, ...(fit.dist !== undefined ? { dist: fit.dist } : {}), yaw, pitch },
     });
@@ -4892,13 +5082,13 @@
       for (const k of ['ambient', 'diffuse', 'specular', 'shininess']) if (Number.isFinite(v.material?.[k]) && v.material[k] >= 0) sceneMaterial[k] = v.material[k];
       // the renderer: a GPU view falls back to WebGL2 (or SVG) where the asked one is missing; the installed app stays on the GPU
       const want = { svg: 'svg', webgl2: 'gl', webgpu: 'gpu' }[v.render];
-      const now = mode === 'gpu' ? (activeKind === 'webgl2' ? 'gl' : 'gpu') : 'svg';
+      const now = ui.render.mode === 'gpu' ? (ui.render.kind === 'webgl2' ? 'gl' : 'gpu') : 'svg';
       if (want && want !== now && !(want === 'svg' && document.body.classList.contains('pwa')) && !SHOW) setMode(want);
-      if (typeof v.edges === 'boolean' && v.edges === stage.classList.contains('clean')) (stage.classList.toggle('clean'), syncLines());
-      if (typeof v.light === 'boolean' && v.light !== lightOn) turnLight();
-      if (typeof v.glow === 'boolean' && v.glow !== filmic) toggleFilmic();
-      if (typeof v.smooth === 'boolean' && v.smooth !== smooth) toggleSmooth();
-      if (typeof v.studio === 'boolean' && v.studio !== studio) toggleStudio();
+      if (typeof v.edges === 'boolean') ui.view.edges = v.edges;
+      if (typeof v.light === 'boolean' && v.light !== ui.view.light) turnLight();
+      if (typeof v.glow === 'boolean' && v.glow !== ui.view.glow) toggleFilmic();
+      if (typeof v.smooth === 'boolean' && v.smooth !== ui.view.smooth) toggleSmooth();
+      if (typeof v.studio === 'boolean' && v.studio !== ui.view.studio) toggleStudio();
       if (Array.isArray(v.cam?.center) && Number.isFinite(v.cam.radius)) jumpTo(v.cam);
       redraw();
     };
@@ -4944,16 +5134,17 @@
         if (--loading <= 0) ((loading = 0), (loaderEl.hidden = true));
       }
     };
-    const loadScene = async (data, replace = false) =>
+    // merge: added to the scene (the MERGE switch by default; /merge says true, /load replace)
+    const loadScene = async (data, replace = false, merge = ui.view.merge) =>
       withLoader(data?.name ?? 'scene', async () => {
         const had = allObjects().length > 0;
-        if ((replace || !mergeOn) && had) clearScene();
+        if ((replace || !merge) && had) clearScene();
         await addScene(data);
-        if (data.view && (replace || !mergeOn || !had)) applyView(data.view);
+        if (data.view && (replace || !merge || !had)) applyView(data.view);
         workshopNotice('native_scene_loaded', { objects: allObjects().length });
         if (WORKSHOP_EMBED && workshopSessionId) {
           workshopSceneReady = true;
-          workshopNotice('native_scene_changed', { scene: sceneFile('workshop') });
+          workshopNotice('native_scene_changed', { scene: sceneFile('workshop', { plain: true }) });
         }
       });
     // a sky catalogue ('3draft-sky', src/sky.ts) -> a scene; its warnings go to the scene note
@@ -4962,7 +5153,8 @@
       if (warnings.length) sceneNote(`sky: ${warnings.length} note${warnings.length > 1 ? 's' : ''}: ${warnings.slice(0, 3).join('; ')}${warnings.length > 3 ? ' …' : ''}`);
       return scene;
     };
-    const addExample = async (name) =>
+    // how: undefined (the MERGE switch decides), 'replace' (/load: the scene before goes), 'merge' (/merge: added)
+    const addExample = async (name, how) =>
       name.startsWith('game:')
         ? loadGame(name.slice(5))
         : name.startsWith('story:')
@@ -4970,14 +5162,14 @@
             const url = new URL(`./models/${name.slice(6)}.build.json`, location.href).href; // (a story's audio is relative to it)
             return openStory(await readJson(await fetch(url)), url);
           })
-        : ((startScene = startScene === name ? name : null), withLoader(name.replace(/^saved:/, ''), async () => loadScene(await sceneOf(name))));
+        : ((startScene = startScene === name ? name : null), withLoader(name.replace(/^saved:/, ''), async () => loadScene(await sceneOf(name), how === 'replace', how === 'merge' ? true : how === 'replace' ? false : ui.view.merge)));
     const centroid = (ps) => ps.reduce((s, p) => s.map((c, i) => c + p[i] / ps.length), [0, 0, 0]);
     const addScene = async ({ objects: raw, palette: extra, prototypes, start, cloud: points, cloudProtos, vehicle: ride, figures, skyLines, paths, joints: rawJoints, backdrop }) => {
       if (backdrop !== undefined) sceneBackdrop = backdrop; // (a sky far behind a ground scene, in the headset)
       const madeIds = new Map(); // name -> id of the objects made by this load (for the joints)
       loaderStep(`building ${raw.length} objects`);
       await new Promise((r) => requestAnimationFrame(() => r()));
-      const objects = raw.map((o) => (o.proto ? { name: o.name, inst: { ...o, proto: prototypes[o.proto] }, mesh: instantiate(prototypes[o.proto].lods.at(-1), placement(o)), ...(o.pickable === false ? { pickable: false } : {}) } : o));
+      const objects = raw.map((o) => (o.proto ? { name: o.name, inst: { ...o, key: o.proto, proto: prototypes[o.proto] }, ...(o.group ? { group: o.group } : {}), ...(o.modular ? { modular: o.modular } : {}), mesh: instantiate(prototypes[o.proto].lods.at(-1), placement(o)), ...(o.pickable === false ? { pickable: false } : {}) } : o));
       // a scene may bring its own materials; the ones the palette lacks are added (and saved with a db)
       for (const m of extra ?? []) {
         if (materials.some((x) => x.name === m.name)) continue;
@@ -5004,6 +5196,7 @@
           if (o.inst) (live(made) ?? made).inst = { ...o.inst, at: [o.inst.at[0] + dx, o.inst.at[1], o.inst.at[2]], level: -1 };
           if (o.pickable === false) (live(made) ?? made).pickable = false;
           if (o.skyLine) (live(made) ?? made).skyLine = o.skyLine;
+          if (o.modular) (live(made) ?? made).modular = o.modular; // a member of a modular character (the character panel)
           if (o.character) {
             const rec = charHooks.read?.(o.character); // a placed character (character builder)
             if (rec) ((rec.frame.at[0] += dx), ((live(made) ?? made).character = rec));
@@ -5176,7 +5369,7 @@
       rebuild();
       redraw();
     };
-    let current = 0;
+    // ui.paint.current: the index of the chosen material in `materials`
     let paletteCol = null; // db collection "palette"
     const paletteEl = document.getElementById('palette');
     let pickerSet = null; // set by the colour picker below
@@ -5190,15 +5383,15 @@
       materials.forEach((m, i) => {
         const b = document.createElement('button');
         b.type = 'button';
-        b.className = `sw${i === current ? ' on' : ''}`;
+        b.className = `sw${i === ui.paint.current ? ' on' : ''}`;
         // a see-through material shows its color over a checker
         b.style.background = m.alpha < 1 ? `linear-gradient(${m.color}${Math.round(m.alpha * 255).toString(16).padStart(2, '0')}, ${m.color}${Math.round(m.alpha * 255).toString(16).padStart(2, '0')}), repeating-conic-gradient(#888 0 25%, #ccc 0 50%) 0 0 / 8px 8px` : m.color;
         if (m.metal > 0.5) b.style.boxShadow = 'inset 0 0 0 2px #ffffff55, inset 0 -6px 8px #00000044';
         b.title = `${m.name}: metal ${m.metal} rough ${m.rough} alpha ${m.alpha} emit ${m.emit}${m.soft ? ` soft ${m.soft}` : ''}`;
-        b.addEventListener('click', () => ((current = i), showPalette()));
+        b.addEventListener('click', () => (ui.paint.current = i)); // (the palette follows in uiRender)
         swatchesEl.append(b);
       });
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       currentEl.textContent = m.name;
       document.getElementById('custom').value = m.color;
       if (pickerSet) pickerSet(m.color);
@@ -5208,14 +5401,33 @@
       }
       document.getElementById('p-url').value = m.url ?? m.scene ?? m.image ?? '';
     };
+    // the palette for the terminal's text panel (bin/term-palette.mjs): what it shows, and a change as the panel would make it
+    globalThis.__palette = () => ({
+      current: ui.paint.current,
+      items: materials.map((m) => ({ name: m.name, color: m.color, alpha: m.alpha ?? 1, metal: m.metal ?? 0 })),
+      props: PROPS.map((k) => {
+        const el = document.getElementById(`p-${k}`);
+        return { key: k, value: Number(materials[ui.paint.current]?.[k] ?? 0), min: Number(el.min), max: Number(el.max), step: Number(el.step) };
+      }),
+    });
+    globalThis.__paletteSet = (a) => {
+      if (Number.isInteger(a?.current) && materials[a.current]) ui.paint.current = a.current;
+      if (a?.key && PROPS.includes(a.key)) {
+        const el = document.getElementById(`p-${a.key}`);
+        el.value = a.value;
+        el.dispatchEvent(new Event('input'));
+        el.dispatchEvent(new Event('change'));
+      }
+      return globalThis.__palette();
+    };
     for (const k of PROPS) {
       document.getElementById(`p-${k}`).addEventListener('input', (e) => {
-        const m = materials[current];
+        const m = materials[ui.paint.current];
         m[k] = Number(e.target.value);
         document.getElementById(`v-${k}`).textContent = m[k].toFixed(2);
         syncPalette();
       });
-      document.getElementById(`p-${k}`).addEventListener('change', () => saveMaterial(materials[current]));
+      document.getElementById(`p-${k}`).addEventListener('change', () => saveMaterial(materials[ui.paint.current]));
     }
     const urlEl = document.getElementById('p-url');
     const cleanUrl = (v) => {
@@ -5236,7 +5448,7 @@
       return /^[a-z][a-z0-9+.-]*:/i.test(t) && !/^https?:\/\//i.test(t) ? '' : t;
     };
     urlEl.addEventListener('input', () => {
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       const sc = sceneAddr(urlEl.value);
       const im = sc ? '' : imageAddr(urlEl.value);
       const u = sc || im ? '' : cleanUrl(urlEl.value);
@@ -5248,15 +5460,15 @@
       else delete m.image;
       syncPalette();
     });
-    urlEl.addEventListener('change', () => saveMaterial(materials[current]));
+    urlEl.addEventListener('change', () => saveMaterial(materials[ui.paint.current]));
     urlEl.addEventListener('keydown', (e) => e.stopPropagation()); // typing an address is not a command
     document.getElementById('custom').addEventListener('input', (e) => {
       if (!/^#[0-9a-f]{6}$/i.test(e.target.value)) return; // a half-typed colour waits
-      materials[current].color = e.target.value;
+      materials[ui.paint.current].color = e.target.value;
       showPalette();
       syncPalette();
     });
-    document.getElementById('custom').addEventListener('change', () => saveMaterial(materials[current]));
+    document.getElementById('custom').addEventListener('change', () => saveMaterial(materials[ui.paint.current]));
     // the colour picker: HSV <-> hex, writing into the hex field and telling the palette through its own events
     const hexEl = document.getElementById('custom');
     const svEl = document.getElementById('pickSV');
@@ -5314,7 +5526,7 @@
     const helpEl = document.getElementById('helpPanel');
     const helpDoc = document.getElementById('helpDoc');
     const storyPanelEl = document.getElementById('storyPanel');
-    const sidePanels = [paletteEl, helpEl, storyPanelEl, document.getElementById('charPanel')];
+    const sidePanels = [paletteEl, helpEl, storyPanelEl, document.getElementById('charPanel'), document.getElementById('svgPanel')];
     const syncScrim = () => (scrim.hidden = keyPanel.hidden);
     const closeModals = () => toggleKeys(false);
     const closeSide = () => {
@@ -5327,72 +5539,59 @@
     };
     document.getElementById('palClose').addEventListener('click', closeSide);
     document.getElementById('helpClose').addEventListener('click', closeSide);
-    // Markdown -> HTML: just what help.md uses (headings, lists, tables, code, bold, italic, links). The text is escaped first.
-    const md = (src) => {
-      const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const inline = (t) =>
-        esc(t)
-          .replace(/`([^`]+)`/g, '<code>$1</code>')
-          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-          .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, l, h) => `<a href="${h}"${/^https?:|\.html\b/.test(h) ? ' target="_blank" rel="noopener"' : ''}>${l}</a>`); // (another page: a new tab, the scene stays)
-      const out = [];
-      const lines = src.replace(/\r/g, '').split('\n');
-      for (let i = 0; i < lines.length; i++) {
-        const l = lines[i];
-        let m;
-        if (!l.trim()) continue;
-        if ((m = l.match(/^(#{1,3}) (.*)/))) out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);
-        else if (l.startsWith('|')) {
-          const rows = [];
-          while (i < lines.length && lines[i].startsWith('|')) rows.push(lines[i++]);
-          i--;
-          const cells = (r) => r.replace(/^\||\|$/g, '').split('|').map((c) => inline(c.trim()));
-          const [head, , ...body] = rows;
-          out.push(`<table><thead><tr>${cells(head).map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${body.map((r) => `<tr>${cells(r).map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`);
-        } else if (/^[-*] /.test(l)) {
-          const items = [];
-          while (i < lines.length && /^[-*] /.test(lines[i])) items.push(lines[i++].slice(2));
-          i--;
-          out.push(`<ul>${items.map((t) => `<li>${inline(t)}</li>`).join('')}</ul>`);
-        } else if (/^\d+\. /.test(l)) {
-          const items = [];
-          while (i < lines.length && /^\d+\. /.test(lines[i])) items.push(lines[i++].replace(/^\d+\. /, ''));
-          i--;
-          out.push(`<ol>${items.map((t) => `<li>${inline(t)}</li>`).join('')}</ol>`);
-        } else {
-          const para = [l];
-          while (i + 1 < lines.length && lines[i + 1].trim() && !/^(#|\||[-*] |\d+\. )/.test(lines[i + 1])) para.push(lines[++i]);
-          out.push(`<p>${inline(para.join(' '))}</p>`);
-        }
-      }
-      return out.join('\n');
-    };
     let helpLoaded = false;
     const toggleHelp = async () => {
       openSide(helpEl);
-      if (helpEl.hidden || helpLoaded) return;
+      if (!helpEl.hidden) await ensureHelp();
+    };
+    // The help: help/index.md lists the sections (one markdown file each); the panel shows a row of them and one section.
+    // All are read once (the /help command searches them all).
+    let helpIndex = [], helpMd = {}, helpAt = 'index.md';
+    const helpLink = (h) => (/^(https?:|#|mailto:)/.test(h) || h.endsWith('.html') || /\.md(#|$)/.test(h) ? h : `help/${h}`); // (a picture beside the files)
+    const helpNav = document.createElement('nav');
+    helpNav.id = 'helpNav';
+    helpDoc.before(helpNav);
+    const showHelp = (file = helpAt, anchor = '') => {
+      if (!helpMd[file]) file = 'index.md';
+      helpAt = globalThis.__helpAt = file; // (the terminal's help view follows the page's section)
+      helpDoc.innerHTML = toHtml(helpMd[file], { link: helpLink });
+      if (file === 'index.md') {
+        const brand = Object.assign(document.createElement('img'), { src: 'media/spi3der-logo.svg', alt: 'spi3der logo — animated spider', decoding: 'async' });
+        brand.className = 'brand';
+        brand.onerror = () => (brand.src = 'favicon.svg');
+        helpDoc.prepend(brand);
+      }
+      helpNav.replaceChildren(
+        ...[{ file: 'index.md', title: 'Help' }, ...helpIndex].map((x) => Object.assign(document.createElement('button'), { type: 'button', textContent: x.title.replace(/\s*\(.*\)$/, ''), className: x.file === file ? 'on' : '', onclick: () => showHelp(x.file) })),
+      );
+      const target = anchor && helpDoc.querySelector(`#${CSS.escape(anchor)}`);
+      if (target) target.scrollIntoView({ block: 'start' });
+      else helpEl.scrollTop = 0;
+    };
+    const ensureHelp = async () => {
+      if (helpLoaded) return;
       try {
-        const res = await fetch('help.md');
-        if (!res.ok) throw new Error(res.status);
-        helpDoc.innerHTML = md(await res.text());
-        const helpBrand = document.createElement('img');
-        helpBrand.src = 'media/spi3der-logo.svg';
-        helpBrand.alt = 'spi3der logo — animated spider';
-        helpBrand.decoding = 'async';
-        helpBrand.style.cssText = 'display:block;width:100%;max-width:360px;aspect-ratio:1;height:auto;object-fit:contain;margin:0 auto 24px;border-radius:16px';
-        helpBrand.onerror = () => { helpBrand.src = 'favicon.svg'; };
-        helpDoc.prepend(helpBrand);
+        const get = async (f) => {
+          const res = await fetch(`help/${f}`);
+          if (!res.ok) throw new Error(`${f}: ${res.status}`);
+          return res.text();
+        };
+        helpMd['index.md'] = await get('index.md');
+        helpIndex = helpSections(helpMd['index.md']);
+        await Promise.all(helpIndex.map(async (x) => (helpMd[x.file] = await get(x.file).catch((e) => `# ${x.title}\n\nThis section could not be loaded (${e.message}).`))));
         helpLoaded = true;
+        showHelp('index.md');
       } catch (err) {
-        helpDoc.textContent = `The help page could not be loaded (${err.message}).`;
+        helpDoc.textContent = `The help could not be loaded (${err.message}).`;
       }
     };
     helpDoc.addEventListener('click', (e) => {
-      const a = e.target.closest('a[href="#keys"]');
+      const a = e.target.closest('a[href]');
       if (!a) return;
-      e.preventDefault();
-      toggleKeys(true); // the keyboard map is a modal over the page
+      const href = a.getAttribute('href');
+      if (href === '#keys') return void (e.preventDefault(), toggleKeys(true)); // the keyboard map is a modal over the page
+      const md = /^([\w./-]+\.md)?(?:#(.+))?$/.exec(href);
+      if (md && (md[1] || md[2])) (e.preventDefault(), showHelp(md[1] ?? helpAt, md[2] ?? '')); // another section, or a heading in this one
     });
     const paletteBtn = document.getElementById('paletteBtn');
     const syncPaletteSwitch = () => {
@@ -5410,9 +5609,9 @@
       // a new material starts as a copy of the selected one
       let n = materials.length;
       while (materials.some((m) => m.name === `m${n}`)) n++;
-      const m = { ...materials[current], name: `m${n}`, color: document.getElementById('custom').value };
+      const m = { ...materials[ui.paint.current], name: `m${n}`, color: document.getElementById('custom').value };
       materials.push(m);
-      current = materials.length - 1;
+      ui.paint.current = materials.length - 1;
       saveMaterial(m);
       showPalette();
       syncPalette();
@@ -5589,20 +5788,20 @@
       if (i < 0) {
         let n = materials.length;
         while (materials.some((m) => m.name === `m${n}`)) n++;
-        const m = { ...materials[current], name: `m${n}`, color: face.color ?? '#c8c8c8' };
+        const m = { ...materials[ui.paint.current], name: `m${n}`, color: face.color ?? '#c8c8c8' };
         materials.push(m);
         saveMaterial(m);
         i = materials.length - 1;
         syncPalette();
       }
-      current = i;
+      ui.paint.current = i;
       if (paletteEl.hidden) paletteEl.hidden = false;
       showPalette();
       return true;
     };
     pickBtn.addEventListener('click', () => armPick(!picking));
     const paintFaces = (obj, faces) => {
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       const base = owners.find((o) => o.obj === obj).start;
       const before = obj.mesh;
       history.push(() => has(obj) && change(obj, before));
@@ -5647,7 +5846,7 @@
       if (!obj || base === undefined) return;
       const i = hit.face - base;
       const f = obj.mesh.faces[i];
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       if (!f || (f.color === m.color && f.mat === m.name)) return;
       if (!stroke.has(obj.id)) stroke.set(obj.id, { obj, before: obj.mesh });
       change(obj, { ...obj.mesh, faces: obj.mesh.faces.map((g, k) => (k === i ? { ...g, color: m.color, mat: m.name } : g)) });
@@ -5674,7 +5873,7 @@
     // object's own axes, the third takes it off; there is only one.
     // Drag one of its three arrows to slide the object along that axis.
     let gizmo = null; // the object that carries it
-    let gLocal = false; // false: the world axes, true: the object's own axes
+    // ui.edit.gizmoLocal: false: the world axes, true: the object's own axes
     let gTurn = { mesh: null, angle: 0 }; // cached: the object's own turn around y
     let gHover = null; // the axis under the pointer
     let gdrag = null; // { obj, axis, from, mesh0, dir, unit, d }
@@ -5689,7 +5888,7 @@
       const c = lo.map((v, i) => (v + hi[i]) / 2);
       const L = Math.max(...hi.map((v, i) => v - lo[i]), fit.radius * 0.1) * 0.6;
       let axes = AXES;
-      if (gLocal) {
+      if (ui.edit.gizmoLocal) {
         // objects carry no transform, so "own" axes are found from the shape: y stays up, x and z follow the turn
         // around y that gives the smallest footprint box
         if (gTurn.mesh !== gizmo.mesh) {
@@ -5754,9 +5953,9 @@
     };
     const toggleGizmo = () => {
       // H cycles: world axes -> the object's own axes -> off
-      if (gizmo && !gLocal) gLocal = true;
+      if (gizmo && !ui.edit.gizmoLocal) ui.edit.gizmoLocal = true;
       else if (gizmo) gizmo = null;
-      else if (hitObj()) ((gizmo = hitObj()), (gLocal = false));
+      else if (hitObj()) ((gizmo = hitObj()), (ui.edit.gizmoLocal = false));
       gHover = null;
       redraw();
     };
@@ -5787,10 +5986,11 @@
     // detail where you draw. Points in the air extend the model: Enter closes a loop of lines into a face.
     // A vertex can be dragged (or moved with the gizmo arrows) and everything that uses it follows.
     let editing = null; // the object being edited
+    globalThis.__editing = () => (editing ? { name: String(editing.name ?? editing.id ?? ''), mode: ui.edit.mode } : null); // (the terminal's info line)
         let sawPts = []; // saw mode: up to 3 points { p, n } (n: the face normal where it was put, when known)
     // What the mouse does in edit mode, as in Blender: V draws lines (nothing can be moved while drawing); 1 moves points,
     // 2 moves lines (edges), 3 moves faces.
-    let emode = 'draw'; // 'draw' (the default: sketch lines, they do nothing yet) | 'vertex' | 'edge' | 'face' | 'saw' (4)
+    // ui.edit.mode: 'draw' (the default: sketch lines, they do nothing yet) | 'vertex' | 'edge' | 'face' | 'saw' (4) | 'lathe'
     let sketchFrom = null; // draw mode: the point the next V continues from
     let snapV = -1; // the vertex the pointer snaps to (drawing, moving points)
     let snapE = null; // the edge under the pointer (moving lines)
@@ -5814,10 +6014,10 @@
       else sel = { kind, items: [...(same ? sel.items : []), item] };
     };
     const selectAll = () => {
-      if (!['vertex', 'edge', 'face'].includes(emode)) return noteEdit('select with 1 (points), 2 (lines) or 3 (faces) first');
+      if (!['vertex', 'edge', 'face'].includes(ui.edit.mode)) return noteEdit('select with 1 (points), 2 (lines) or 3 (faces) first');
       const m = editing.mesh;
-      if (emode === 'vertex') sel = { kind: 'vertex', items: m.positions.map((_, i) => i) };
-      else if (emode === 'face') sel = { kind: 'face', items: m.faces.map(faceKey) };
+      if (ui.edit.mode === 'vertex') sel = { kind: 'vertex', items: m.positions.map((_, i) => i) };
+      else if (ui.edit.mode === 'face') sel = { kind: 'face', items: m.faces.map(faceKey) };
       else {
         const seen = new Set();
         const items = [];
@@ -5849,7 +6049,7 @@
       const dist = gcam.ortho ? 1 : Math.max(1e-6, vdot(vsub(c, gcam.eye), gcam.f));
       return ((hi - lo) * gcam.k) / dist;
     };
-    const skinned = () => Boolean(posing && mode === 'gpu' && gpu);
+    const skinned = () => Boolean(posing && ui.render.mode === 'gpu' && gpu);
     const skinNow = () => storySkin ?? (skinned() ? { meshes: posing.bind, weights: posing.rig.skin, bones: posing.bones } : walkSkin && walkHidden.size ? { meshes: walkSkin.meshes, weights: walkSkin.weights, bones: walkSkin.bones } : undefined);
     let poseHint = ''; // a note of pose mode, or why J did nothing
     let objNote = ''; // a line for the object selection (outside edit mode)
@@ -5959,7 +6159,7 @@
       if (!o) {
         // nothing under the cross and no target: a new 1 x 1 x 1 m cube of the selected material, standing on the bench
         wasEmpty = !scene.positions.length;
-        const m = materials[current];
+        const m = materials[ui.paint.current];
         const c = fit.center; // in front of the eye (or the middle of the view); the cube stands with its base middle there
         const mesh = box({ size: [1, 1, 1], at: [c[0], c[1] + 0.5, c[2]], color: m.color });
         mesh.faces.forEach((f) => (f.mat = m.name));
@@ -5984,7 +6184,7 @@
       sawPts = [];
       sketchFrom = null;
       xf = null;
-      emode = 'draw';
+      ui.edit.mode = 'draw';
       barNote = '';
       if (!bench.stay) goTo({ center: benchLook(), radius: benchRadius(), yaw, pitch });
       showBar();
@@ -5997,7 +6197,7 @@
       sketchFrom = null;
       sel = emptySel();
       xf = null;
-      emode = 'draw';
+      ui.edit.mode = 'draw';
       bench = null;
       if (b?.fresh) focused = false;
       if (b && !b.stay) goTo(b.fresh ? { ...overview(), yaw: b.cam.yaw, pitch: b.cam.pitch } : { ...b.cam });
@@ -6050,7 +6250,7 @@
       const f = editing.mesh.faces[faceAt(sel.items[0])];
       const axisLen = Math.max(...f.v.map((i) => vdot(vsub(P[i], fr.origin), fr.right)));
       lathePlan = { frame: fr, axisLen: Math.max(axisLen, fr.height), pts: [] };
-      emode = 'lathe';
+      ui.edit.mode = 'lathe';
       sel = emptySel();
       sawPts = [];
       sketchFrom = null;
@@ -6071,7 +6271,7 @@
     };
     const buildLathe = (n) => {
       const plan = lathePlan;
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       let mesh;
       try {
         mesh = lathe(plan.pts, plan.frame, n, { mat: m.name, color: m.color });
@@ -6080,7 +6280,7 @@
       }
       const made = create(`lathe-${shortId()}`, mesh);
       lathePlan = null;
-      emode = 'draw';
+      ui.edit.mode = 'draw';
       showBar();
       noteEdit(`lathe: ${n} segments, ${mesh.faces.length} faces`);
       redraw();
@@ -6149,7 +6349,7 @@
       if (!plane) return noteEdit('saw: put two or three points first (V)');
       const obj = editing;
       // the new faces get the material of the face that was sawn (the one the points were put on)
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       const src = obj.mesh.faces[plane.face];
       let cut;
       try {
@@ -6365,7 +6565,7 @@
       else selecting = { kind: 'box', pts: [], add: false };
       lastB = t;
       stage.classList.add('selecting');
-      const what = editing ? { vertex: 'points', edge: 'lines', face: 'faces' }[emode] : 'objects';
+      const what = editing ? { vertex: 'points', edge: 'lines', face: 'faces' }[ui.edit.mode] : 'objects';
       (editing ? noteEdit : noteObj)(selecting.kind === 'box' ? `B: drag a box round ${what} (Shift adds) · B again: lasso · Esc` : `B B: draw round ${what} with the lasso (Shift adds) · Esc`);
       drawSelect();
     };
@@ -6405,8 +6605,8 @@
         const sp = m.positions.map((q) => project(gcam, q));
         const isIn = (i) => sp[i].depth > 0 && insidePoly(poly, sp[i]);
         let items = [];
-        if (emode === 'vertex') items = m.positions.map((_, i) => i).filter(isIn);
-        else if (emode === 'edge') {
+        if (ui.edit.mode === 'vertex') items = m.positions.map((_, i) => i).filter(isIn);
+        else if (ui.edit.mode === 'edge') {
           const seen = new Set();
           const pairs = [...m.faces.flatMap((f) => f.v.map((a, i) => [a, f.v[(i + 1) % f.v.length]])), ...(editing.wire ?? [])];
           for (const [a, b] of pairs) {
@@ -6424,9 +6624,9 @@
               return pr.depth > 0 && insidePoly(poly, pr);
             })
             .map((f) => faceKey(f));
-        const keep = sh.add && sel.kind === emode ? sel.items : [];
+        const keep = sh.add && sel.kind === ui.edit.mode ? sel.items : [];
         const have = new Set(keep.map(itemKey));
-        sel = { kind: emode, items: [...keep, ...items.filter((it) => !have.has(itemKey(it)))] };
+        sel = { kind: ui.edit.mode, items: [...keep, ...items.filter((it) => !have.has(itemKey(it)))] };
         noteEdit(sel.items.length ? `${sel.items.length} selected` : '');
         return redraw();
       }
@@ -6500,7 +6700,7 @@
         x.changed = true;
         x.obj.mesh = r.mesh;
         sel = { kind: 'edge', items: r.cuts };
-        emode = 'edge';
+        ui.edit.mode = 'edge';
         rebuild();
         barNote = `loop cut · ${n} cut${n > 1 ? 's' : ''}${typed === null ? '' : '_'} · slide ${Math.round(slide * 100)}% · type a number, move along the line, ⏎ ok, Esc cancels`;
         showBar();
@@ -6747,14 +6947,14 @@
       if (nOut[0] * (cOut[0] - mid[0]) + nOut[1] * (cOut[1] - mid[1]) + nOut[2] * (cOut[2] - mid[2]) < 0) order = order.reverse();
       const set = new Set(ids);
       const near = editing.mesh.faces.find((f) => f.v.filter((i) => set.has(i)).length >= 2);
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       const face = { v: order, color: near?.color ?? m.color, mat: near?.mat ?? m.name };
       const orig = editing.mesh;
       const obj = editing;
       change(obj, { ...orig, faces: [...orig.faces, face] });
       history.push(() => has(obj) && change(obj, orig));
       sel = emptySel();
-      emode = 'face';
+      ui.edit.mode = 'face';
       noteEdit(`filled ${order.length} points`);
       redraw();
     };
@@ -6824,7 +7024,7 @@
       let wire = wire0.map((w) => [...w]);
       const made = [];
       const fix = [];
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       for (const it of sel.items) {
         if (sel.kind === 'vertex') {
           const n = dup(it);
@@ -6872,7 +7072,7 @@
         return P.length - 1;
       };
       const mid = P.reduce((t, q) => t.map((v, k) => v + q[k] / P.length), [0, 0, 0]);
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       const faces = [...orig.faces];
       const wire = origWire.map((w) => [...w]);
       const made = [];
@@ -6907,7 +7107,7 @@
         obj.lines = [];
         history.push(() => (obj.lines = was));
       });
-      if (made.length) ((emode = 'face'), (sel = { kind: 'face', items: made }));
+      if (made.length) ((ui.edit.mode = 'face'), (sel = { kind: 'face', items: made }));
       sketchFrom = null;
       noteEdit(`sketch: ${made.length} face${made.length === 1 ? '' : 's'}, ${lineCount} line${lineCount === 1 ? '' : 's'}`);
       redraw();
@@ -7089,7 +7289,7 @@
     // the sideways wheel: the whole view turns round the vertical line through the point under the cursor (like A / D round a
     // target, but no target is needed); that point stays under the cursor. Over empty space it turns round the middle of the view.
     const orbitPointer = (a) => {
-      if (frozen || !a) return;
+      if (ui.view.frozen || !a) return;
       travel = null;
       const pivot = hit?.point ?? fit.center;
       const cs = Math.cos(a);
@@ -7146,9 +7346,10 @@
     const showPose = (pose) => {
       const p = posing;
       p.pose = pose;
-      p.lift = poseLift(p.bind, p.rig, pose); // the feet stay on the floor the figure stands on
-      p.bones = boneMatrices(p.rig, pose, { move: [0, p.lift, 0] });
-      p.joints = posedJoints(p.rig, pose, { move: [0, p.lift, 0] });
+      const bent = (p.bent = p.turn ? mc.compose.turnedPose(pose, p.turn) : pose); // (a turned modular character: the pose seen from it)
+      p.lift = poseLift(p.bind, p.rig, bent); // the feet stay on the floor the figure stands on
+      p.bones = boneMatrices(p.rig, bent, { move: [0, p.lift, 0] });
+      p.joints = posedJoints(p.rig, bent, { move: [0, p.lift, 0] });
       p.objs = p.objs.map((o) => live(o) ?? o); // a db snapshot hands out new instances
       if (skinned()) {
         // the GPU bends the figure: the objects keep their bind meshes, nothing is rebuilt
@@ -7165,13 +7366,13 @@
     // the CPU's bent meshes (the SVG view, and what Enter keeps)
     const posedMesh = (i) => {
       const p = posing;
-      if (p.cpu?.pose !== p.pose) p.cpu = { pose: p.pose, meshes: posed(p.bind, p.rig, p.pose, { move: [0, p.lift, 0] }) };
+      if (p.cpu?.pose !== p.bent) p.cpu = { pose: p.bent, meshes: posed(p.bind, p.rig, p.bent, { move: [0, p.lift, 0] }) };
       return p.cpu.meshes[i];
     };
     const poseTick = (now) => {
       const p = posing;
       if (!p?.anim) return;
-      if (!frozen) {
+      if (!ui.view.frozen) {
         const run = p.anim === 'run';
         p.phase = (p.phase + (now - p.last) / (run ? 700 : 1100)) % 1;
         showPose(walkPose(p.phase, run ? { run: true, stride: 0.9 } : {}));
@@ -7184,15 +7385,34 @@
       if (editing || xf) return hintPose('J poses a figure: leave edit mode (Q) first');
       const body = pointedObject();
       if (!body) return hintPose('J poses a figure: put the cross on it, or target it (T), first');
-      if (body.character) return hintPose('a character: stand, sit or walk are set in the character builder (char, then apply)');
-      const objs = figureOf(body);
-      let rig;
-      try {
-        rig = humanoidRig(objs.map((o) => o.mesh));
-      } catch (err) {
-        return hintPose(`J: ${String(err?.message ?? err)}`);
+      if (body.character) return hintPose('a character of the old builder: it stands, sits or walks as it was made');
+      let objs, rig, turn = 0;
+      if (body.modular) {
+        // a modular character (the character panel): the library's skeleton for its body, its members as the meshes
+        if (!mc) {
+          hintPose('J: loading the modular character library…');
+          return void mcReady().then(() => enterPose()).catch((e) => hintPose(`J: ${e.message}`));
+        }
+        const members = charMembers(body.modular.name);
+        if (!members.every((o) => o.inst)) return hintPose('J: this character was posed or edited since it was made: apply it in the character panel (char) first, then J');
+        try {
+          const fr = charFrame(members);
+          const sc = mc.compose.characterScene(mc.lib, body.modular.spec, { at: fr.at, yaw: fr.yaw, scale: fr.scale });
+          objs = sc.objects.map((o) => members.find((m) => m.inst.key === o.proto));
+          if (objs.some((o) => !o) || objs.length !== members.length) throw new Error('its parts do not match its selection');
+          ({ turn, ...rig } = mc.compose.characterRig(mc.lib, sc));
+        } catch (err) {
+          return hintPose(`J: ${String(err?.message ?? err)}`);
+        }
+      } else {
+        objs = figureOf(body);
+        try {
+          rig = humanoidRig(objs.map((o) => o.mesh));
+        } catch (err) {
+          return hintPose(`J: ${String(err?.message ?? err)}`);
+        }
       }
-      posing = { objs, ids: new Set(objs.map((o) => o.id)), bind: objs.map((o) => o.mesh), rig, name: 'bind', pose: HUMANOID_POSES.bind ?? {}, lift: 0, bones: null, cpu: null, skinScene: -1, anim: null, phase: 0, last: 0, joints: rig.joints.map((j) => j.at) };
+      posing = { turn, objs, ids: new Set(objs.map((o) => o.id)), bind: objs.map((o) => o.mesh), rig, name: 'bind', pose: HUMANOID_POSES.bind ?? {}, lift: 0, bones: null, cpu: null, skinScene: -1, anim: null, phase: 0, last: 0, joints: rig.joints.map((j) => j.at) };
       document.body.classList.add('posing');
       showPose(posing.pose);
       hintPose('');
@@ -7333,7 +7553,7 @@
 
     // ---- walking characters: one GPU skin, the bones turned and moved to where each one walks this frame
     const charT0 = performance.now();
-    const walkersOn = () => !frozen && mode === 'gpu' && Boolean(gpu) && !posing && !vr && !storySkin;
+    const walkersOn = () => !ui.view.frozen && ui.render.mode === 'gpu' && Boolean(gpu) && !posing && !vr && !storySkin;
     const walkerIds = () => new Set(allObjects().filter((o) => o.character?.pose === 'walk').slice(0, CHAR_SKIN_MAX).map((o) => o.id));
     const walkFrame = (now) => {
       if (!walkersOn()) return null;
@@ -7395,19 +7615,7 @@
       redraw();
     };
 
-    // ---- the builder panel
-    const charPanelEl = document.getElementById('charPanel');
-    const charViewEl = document.getElementById('charView');
-    const charNoteEl = document.getElementById('charNote');
-    let charSpec = normalizeCharacter(CHARACTER_PRESETS.mechanic);
-    let charPose = 'stand';
-    let charView = { yaw: -0.5, pitch: 0.12, drag: null };
-    let charTarget = null; // the placed character being edited (its id)
-    let charVaryN = 1;
-    const CHAR_LABELS = { height: 'height (m)', build: 'build', shoulders: 'shoulders', head: 'head size', jaw: 'jaw', nose: 'nose' };
-    const charControls = document.getElementById('charControls');
-    // a material choice: the group first (skins, hair, cloth), then every other palette entry; the character materials are
-    // added to the palette when missing, so a palette edit restyles every character made of it
+    // the palette entries of the old builder's figures (a scene that still holds one: charRead)
     const charMats = () => {
       let added = false;
       for (const m of characterPalette()) {
@@ -7418,73 +7626,60 @@
       }
       if (added) syncPalette();
     };
-    const CHAR_GROUPS = { skin: CHARACTER_SKINS, hairMat: CHARACTER_HAIRS, main: CHARACTER_CLOTHS, second: CHARACTER_CLOTHS };
-    const matPick = (key, title) => `<span class="matpick" title="${title}"><i></i><select data-mat="${key}"></select></span>`;
-    const charMatOptions = () => {
-      for (const sel of charControls.querySelectorAll('select[data-mat]')) {
-        const group = CHAR_GROUPS[sel.dataset.mat];
-        const rest = materials.map((m) => m.name).filter((n) => !group.includes(n));
-        const opt = (n) => `<option value="${n}">${n}</option>`;
-        sel.innerHTML = `${group.map(opt).join('')}<optgroup label="palette">${rest.map(opt).join('')}</optgroup>`;
+
+    // ---- the character panel: modular characters (models/modular-characters/: library.json + compose.mjs). A character is a
+    // selection: one module per part slot (body, head, face, hair, accessory, top, bottom, shoes) and one colour set per colour
+    // slot (skin, hair colour, outfit). Placed, it is a GROUP of INSTANCES of the library's prototypes: one object per module,
+    // grouped under the character's name, so a crowd shares a few meshes. G / R / S / G G keep them instances (fitInst) and a
+    // save writes them as prototypes. Every member carries `modular`: { spec, name } (saved too), read back by edit selected.
+    const charPanelEl = document.getElementById('charPanel');
+    const charViewEl = document.getElementById('charView');
+    const charNoteEl = document.getElementById('charNote');
+    const charControls = document.getElementById('charControls');
+    const MC_BASE = './models/modular-characters/';
+    const MC_LIB_KEY = 'spider-modular-characters';
+    const MC_GROUPS = [['figure', [['body', 'body'], ['head', 'head'], ['face', 'face']]], ['hair', [['hair', 'style'], ['hairColor', 'colour'], ['accessory', 'extra']]], ['clothes', [['top', 'top'], ['bottom', 'bottom'], ['shoes', 'shoes'], ['outfit', 'colours']]], ['skin', [['skin', 'skin']]]];
+    let mc = null; // { lib, compose } once loaded
+    let mcLoad = null;
+    let charSpec = null;
+    const charView = { yaw: -0.4, pitch: 0.08, drag: null };
+    let charTarget = null; // the placed character being edited (its group name)
+    const charNote = (t) => (charNoteEl.textContent = t);
+    const mcReady = () =>
+      (mcLoad ??= Promise.all([import(MC_BASE + 'compose.mjs'), fetch(MC_BASE + 'library.json').then((r) => (r.ok ? r.json() : Promise.reject(Error(`library.json: HTTP ${r.status}`))))])
+        .then(([compose, lib]) => {
+          mc = { compose, lib };
+          charSpec ??= { ...lib.defaults };
+          return mc;
+        })
+        .catch((e) => {
+          mcLoad = null;
+          throw e;
+        }));
+    // the library's materials go into the palette when missing (a palette edit restyles every character made of them)
+    const mcMats = () => {
+      let added = false;
+      for (const m of mc.lib.palette) {
+        if (materials.some((x) => x.name === m.name)) continue;
+        materials.push({ ...m });
+        saveMaterial(materials[materials.length - 1]);
+        added = true;
       }
+      if (added) syncPalette();
     };
-    const pickSel = (key, list) => `<select data-key="${key}">${list.map((v) => `<option value="${v}">${v}</option>`).join('')}</select>`;
-    const slider = (key) => {
-      const [lo, hi] = CHARACTER_RANGES[key];
-      return `<label class="slider"><span>${CHAR_LABELS[key]}</span><input type="range" data-key="${key}" min="${lo}" max="${hi}" step="${key === 'height' ? 0.01 : 0.05}"><em data-out="${key}"></em></label>`;
+    const isRobot = (spec) => String(spec.body).startsWith('robot');
+    const mcBuild = () => {
+      const { lib } = mc;
+      charControls.innerHTML = MC_GROUPS.map(([title, slots]) => `<div class="cgroup"><b>${title}</b>${slots.map(([key, label]) => `<span class="lab">${label}</span><select data-key="${key}">${lib.options[key].map((o) => `<option value="${o.id}">${o.label ?? o.id}</option>`).join('')}</select>`).join('')}</div>`).join('');
     };
-    charControls.innerHTML = `
-      <div class="cgroup"><b>body</b>${pickSel('base', ['female', 'male'])}${slider('height')}${slider('build')}${slider('shoulders')}${slider('head')}</div>
-      <div class="cgroup"><b>face</b>${pickSel('shape', FACE_SHAPES)}${slider('jaw')}${slider('nose')}<span class="lab">skin</span>${matPick('skin', 'the skin material (palette)')}</div>
-      <div class="cgroup"><b>hair</b>${pickSel('hair', HAIR_STYLES)}<span class="lab">hair</span>${matPick('hairMat', 'the hair material (palette), the beard and brows too')}<label class="tick"><input type="checkbox" data-key="glasses"> glasses</label><span class="lab">beard</span>${pickSel('beard', BEARD_STYLES)}</div>
-      <div class="cgroup"><b>outfit</b>${pickSel('outfit', OUTFITS)}<span class="lab">main</span>${matPick('main', 'the coat, jacket, overall or suit (palette)')}<span class="lab">second</span>${matPick('second', 'the trousers, the shirt under an overall, a suit\'s joints and gloves (palette)')}<label class="tick"><input type="checkbox" data-key="helmet"> helmet (astronaut)</label><span class="lab">prop</span><span>${pickSel('prop', CHAR_PROPS)}</span></div>`;
-    // the spec <-> the controls
     const charToControls = () => {
-      const s = charSpec;
-      const q = (k) => charControls.querySelector(`[data-key="${k}"]`);
-      const set = (k, v) => { const el = q(k); if (el) el.value = v; const out = charControls.querySelector(`[data-out="${k}"]`); if (out) out.textContent = Number(v).toFixed(2); };
-      set('base', s.base); set('height', s.body.height); set('build', s.body.build); set('shoulders', s.body.shoulders); set('head', s.body.head);
-      set('shape', s.face.shape); set('jaw', s.face.jaw); set('nose', s.face.nose);
-      set('hair', s.hair.style); set('beard', s.beard); set('outfit', s.outfit.kind); set('prop', s.prop);
-      q('glasses').checked = s.glasses;
-      q('helmet').checked = s.outfit.helmet;
-      q('helmet').parentElement.hidden = s.outfit.kind !== 'astronaut';
-      const val = { skin: s.face.skin, hairMat: s.hair.mat, main: s.outfit.main, second: s.outfit.second };
-      for (const sel of charControls.querySelectorAll('select[data-mat]')) {
-        const v = val[sel.dataset.mat];
-        if (![...sel.options].some((o) => o.value === v)) sel.add(new Option(`${v} (not in the palette)`, v));
-        sel.value = v;
-        sel.previousElementSibling.style.background = paletteMap[v]?.color ?? '#888';
-      }
+      for (const sel of charControls.querySelectorAll('select[data-key]')) sel.value = charSpec[sel.dataset.key];
     };
-    const charEdit = (k, v) => {
-      const s = structuredClone(charSpec);
-      const n = Number(v);
-      if (k === 'base') s.base = v;
-      else if (k in s.body) s.body[k] = n;
-      else if (k === 'shape') s.face.shape = v;
-      else if (k === 'jaw' || k === 'nose') s.face[k] = n;
-      else if (k === 'skin') s.face.skin = v;
-      else if (k === 'hair') s.hair.style = v;
-      else if (k === 'hairMat') s.hair.mat = v;
-      else if (k === 'glasses') s.glasses = Boolean(v);
-      else if (k === 'helmet') s.outfit.helmet = Boolean(v);
-      else if (k === 'beard') s.beard = v;
-      else if (k === 'outfit') s.outfit.kind = v;
-      else if (k === 'main' || k === 'second') s.outfit[k] = v;
-      else if (k === 'prop') s.prop = v;
-      charSpec = normalizeCharacter(s);
-      charToControls();
-      charShow();
+    // the selection as one mesh (the preview), standing at the origin
+    const mcMesh = (spec, place = {}) => {
+      const sc = mc.compose.characterScene(mc.lib, spec, place);
+      return { sc, mesh: merge(...sc.objects.map((o) => instantiate(sc.prototypes[o.proto].lods[0], placement(o)))) };
     };
-    charControls.addEventListener('input', (e) => {
-      const el = e.target;
-      if (el.dataset.key) charEdit(el.dataset.key, el.type === 'checkbox' ? el.checked : el.value);
-      else if (el.dataset.mat) charEdit(el.dataset.mat, el.value);
-    });
-    // the preview: a WebGL2 view of the figure in studio light, no edges, turned by a drag (the SVG view, unstroked, until
-    // WebGL2 is up or where there is none); the walk plays while it is chosen
-    let charAnim = 0;
     const charGl = { canvas: document.createElement('canvas'), gl: null, tried: false };
     const charGlReady = () => {
       if (!charGl.tried) {
@@ -7494,57 +7689,69 @@
       return charGl.gl;
     };
     const charShow = () => {
-      if (charPanelEl.hidden) return;
-      const c = charOf(charSpec);
-      const t = charPose === 'walk' ? ((performance.now() - charT0) / 1100) % 1 : 0.12;
-      const mesh = charLocal(charSpec, charPose, t);
-      const H = c.height;
-      const sit = charPose === 'sit';
+      if (charPanelEl.hidden || !mc || !charSpec) return;
+      let mesh;
+      try {
+        mesh = mcMesh(charSpec).mesh;
+      } catch (e) {
+        return charNote(e.message);
+      }
+      const H = mc.lib.reference.height;
       const size = Math.round(Math.max(200, Math.min(charViewEl.clientWidth || 380, charViewEl.clientHeight || 340)));
-      const charFit = { center: [0, sit ? H * 0.36 : H * 0.5, sit ? H * 0.12 : 0], radius: H * 0.5 };
+      const view = orbitView({ yaw: charView.yaw, pitch: charView.pitch });
+      const charFit = { center: [0, H * 0.5, 0], radius: H * 0.52 };
       const g = charGlReady();
       if (g) {
-        g.render(mesh, orbitView({ yaw: charView.yaw, pitch: charView.pitch }), { size, palette: paletteMap, smooth: 40, studio: true, background: [0.106, 0.11, 0.09], fit: charFit });
+        g.render(mesh, view, { size, palette: paletteMap, studio: true, background: [0.106, 0.11, 0.09], fit: charFit });
         charGl.canvas.style.width = charGl.canvas.style.height = `${size}px`;
         if (charGl.canvas.parentNode !== charViewEl) charViewEl.replaceChildren(charGl.canvas);
-      } else charViewEl.innerHTML = renderView(mesh, orbitView({ yaw: charView.yaw, pitch: charView.pitch }), { palette: paletteMap, points: false, occlude: true, stroke: 'none', background: '#1b1c17', size, fit: charFit });
-      for (const b of document.querySelectorAll('#charPoseRow button')) b.classList.toggle('on', b.dataset.pose === charPose);
-      const target = charTarget && allObjects().find((o) => o.id === charTarget && o.character);
+      } else charViewEl.innerHTML = renderView(mesh, view, { palette: paletteMap, points: false, occlude: true, stroke: 'none', background: '#1b1c17', size, fit: charFit });
+      const target = charTarget && charMembers(charTarget).length;
       document.getElementById('charApply').disabled = !target;
-      document.getElementById('charApply').textContent = target ? `apply to ${target.name}` : 'apply to selected';
-      cancelAnimationFrame(charAnim);
-      if (charPose === 'walk') charAnim = requestAnimationFrame(() => setTimeout(charShow, 60));
+      document.getElementById('charApply').textContent = target ? `apply to ${charTarget}` : 'apply to selected';
     };
+    const charChoose = (spec) => {
+      charSpec = mc.compose.selectionOf(mc.lib, spec);
+      charToControls();
+      charShow();
+    };
+    charControls.addEventListener('input', (e) => {
+      const k = e.target.dataset.key;
+      if (k && mc) charChoose({ ...charSpec, [k]: e.target.value });
+    });
+    // random: every slot at random, humans with human parts and robots with robot parts (the library's options name them robot-…)
+    document.getElementById('charRandom').addEventListener('click', () => {
+      if (!mc) return;
+      const robot = Math.random() < 0.25;
+      const pick = (key) => {
+        const all = mc.lib.options[key].map((o) => o.id);
+        const robotish = (id) => /^robot|^(led-pair|scanner|mono-eye|antenna|aerials|shell|armour|open-frame|actuators|armoured-legs|magnetic|split-foot)$/.test(id);
+        const fit = ['skin', 'hairColor', 'accessory'].includes(key) ? all.filter((id) => !robot || key !== 'accessory' || id === 'none') : all.filter((id) => (key === 'outfit' ? id.startsWith('robot') === robot : key === 'hair' && robot ? ['bald', 'antenna', 'aerials'].includes(id) : robotish(id) === robot || (robot && id === 'bald')));
+        const list = fit.length ? fit : all;
+        return list[Math.floor(Math.random() * list.length)];
+      };
+      const spec = Object.fromEntries(Object.keys(mc.lib.defaults).map((k) => [k, pick(k)]));
+      try {
+        charChoose(spec);
+      } catch {
+        charChoose(mc.lib.defaults);
+      }
+      charNameEl.value = '';
+    });
+    document.getElementById('charDesigner').addEventListener('click', () => window.open(MC_BASE, '_blank', 'noopener'));
     charViewEl.addEventListener('pointerdown', (e) => ((charView.drag = { x: e.clientX, y: e.clientY, yaw: charView.yaw, pitch: charView.pitch }), charViewEl.setPointerCapture(e.pointerId)));
     charViewEl.addEventListener('pointermove', (e) => {
       const d = charView.drag;
       if (!d) return;
       charView.yaw = d.yaw - (e.clientX - d.x) * 0.012;
       charView.pitch = Math.max(-0.6, Math.min(1.2, d.pitch + (e.clientY - d.y) * 0.008));
-      if (charPose !== 'walk') charShow();
+      charShow();
     });
     charViewEl.addEventListener('pointerup', () => (charView.drag = null));
-    document.getElementById('charPoseRow').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-pose]');
-      if (b) ((charPose = b.dataset.pose), charShow());
-    });
-    document.getElementById('charPresets').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-preset]');
-      if (!b) return;
-      charSpec = normalizeCharacter(CHARACTER_PRESETS[b.dataset.preset]);
-      charToControls();
-      charShow();
-    });
-    document.getElementById('charVary').addEventListener('click', () => {
-      charSpec = variateCharacter(charSpec, (charSpec.seed * 31 + charVaryN++ * 7919) % 2147483647 || 1);
-      charToControls();
-      charShow();
-    });
-    const charNote = (t) => (charNoteEl.textContent = t);
-    // the library: named characters in this browser
+    // the library: named selections in this browser
     const charLib = () => {
       try {
-        return JSON.parse(localStorage.getItem(CHAR_LIB_KEY) ?? '{}') ?? {};
+        return JSON.parse(localStorage.getItem(MC_LIB_KEY) ?? '{}') ?? {};
       } catch {
         return {};
       }
@@ -7556,11 +7763,12 @@
     };
     const charNameEl = document.getElementById('charName');
     document.getElementById('charSave').addEventListener('click', () => {
-      const name = charNameEl.value.trim() || `${charSpec.role ?? charSpec.base}-${charSpec.seed}`;
+      if (!charSpec) return;
+      const name = charNameEl.value.trim() || `character-${shortId()}`;
       const lib = charLib();
-      lib[name] = { ...charRecord(charSpec, charPose, { at: [0, 0, 0], yaw: 0, scale: 1 }), name, frame: undefined };
+      lib[name] = { spec: charSpec };
       try {
-        localStorage.setItem(CHAR_LIB_KEY, JSON.stringify(lib));
+        localStorage.setItem(MC_LIB_KEY, JSON.stringify(lib));
         charNameEl.value = name;
         charNote(`saved “${name}”`);
       } catch (err) {
@@ -7569,28 +7777,49 @@
       charLibShow();
     });
     charLibEl.addEventListener('change', () => {
-      const rec = charRead(charLib()[charLibEl.value]);
-      if (!rec) return;
-      charSpec = rec.spec;
-      charPose = rec.pose;
-      charNameEl.value = charLibEl.value;
+      const rec = charLib()[charLibEl.value];
+      if (!rec?.spec || !mc) return;
+      try {
+        charChoose(rec.spec);
+        charNameEl.value = charLibEl.value;
+        charNote(`opened “${charLibEl.value}”`);
+      } catch (e) {
+        charNote(e.message);
+      }
       charLibEl.value = '';
-      charToControls();
-      charShow();
-      charNote(`opened “${charNameEl.value}”`);
     });
     document.getElementById('charForget').addEventListener('click', () => {
       const lib = charLib();
       const name = charNameEl.value.trim();
       if (!(name in lib)) return charNote('type the name of a saved character to forget it');
       delete lib[name];
-      localStorage.setItem(CHAR_LIB_KEY, JSON.stringify(lib));
+      localStorage.setItem(MC_LIB_KEY, JSON.stringify(lib));
       charLibShow();
       charNote(`forgot “${name}”`);
     });
-    // place: a new object at the cross (on the surface under it), facing the eye; one undo step
-    const placeCharacter = (spec = charSpec, pose = charPose, at = null, yaw = null) => {
-      charMats();
+    // the members of a placed character (its group); the frame (foot, yaw, size) of a placed character, from its body instance
+    const charMembers = (group) => allObjects().filter((o) => o.modular && o.group === group);
+    const charFrame = (members) => {
+      const i = members.find((o) => o.inst)?.inst;
+      if (i) return { at: [...i.at], yaw: i.rot?.[1] ?? 0, scale: i.scale };
+      return { at: baseCentre(merge(...members.map((o) => o.mesh))), yaw: 0, scale: 1 };
+    };
+    // the objects of a character: one instance per module, grouped under `group` (no undo step of its own: in asOneStep)
+    const mcCreate = (spec, group, frame) => {
+      mcMats();
+      const sc = mc.compose.characterScene(mc.lib, spec, { at: frame.at.map((v) => +v.toFixed(5)), yaw: +frame.yaw.toFixed(5), scale: frame.scale });
+      return sc.objects.map((o) => {
+        const made = create(`${group}.${o.name.split('/')[1]}`, instantiate(sc.prototypes[o.proto].lods[0], placement(o)));
+        Object.assign(live(made) ?? made, { group, modular: { spec: sc.metadata.modularCharacter.spec, name: group }, inst: { ...o, key: o.proto, proto: sc.prototypes[o.proto], level: 0 } });
+        return live(made) ?? made;
+      });
+    };
+    const charGroupName = () => {
+      const base = (charNameEl.value.trim() || 'character').replace(/\s+/g, '-').toLowerCase();
+      return `${base}-${shortId()}`;
+    };
+    // place: a new character at the cross (on the surface under it), facing the eye; one undo step
+    const placeCharacter = (spec = charSpec, at = null, yaw = null, name = null) => {
       let foot = at;
       if (!foot) {
         foot = hit ? [...hit.point] : null;
@@ -7602,65 +7831,75 @@
       }
       const eye = eyeNow();
       const face = yaw ?? Math.atan2(eye[0] - foot[0], eye[2] - foot[2]);
-      const record = charRecord(spec, pose, { at: foot.map((v) => +v.toFixed(5)), yaw: +face.toFixed(5), scale: 1 });
-      const name = `${(charNameEl.value.trim() || record.spec.role || 'character').replace(/\s+/g, '-')}-${shortId()}`;
-      const made = create(name, charMesh(record));
-      (live(made) ?? made).character = record;
-      walkSkin = null;
-      rebuild();
+      const group = name ?? charGroupName();
+      const members = asOneStep(() => mcCreate(mc.compose.selectionOf(mc.lib, spec), group, { at: foot, yaw: face, scale: 1 }));
       redraw();
-      charTarget = made.id;
+      charTarget = group;
       charShow();
-      return made;
+      return { group, members };
     };
-    // place: in an empty scene it stands at the origin; otherwise it floats in place mode (as G G), a click sticks it to a
-    // surface, Enter keeps it, Esc takes it away
+    // place: in an empty scene it stands at the origin; otherwise it floats in place mode (as G G), a click stands it on a surface,
+    // Enter keeps it, Esc takes it away
     document.getElementById('charPlace').addEventListener('click', () => {
+      if (!mc || !charSpec) return;
       const empty = !allObjects().some((x) => x.pickable !== false && !x.skyLine);
-      const o = placeCharacter(charSpec, charPose, empty ? [0, 0, 0] : null);
-      const walk = charPose === 'walk' ? ' (walks to and fro; freeze stops it)' : '';
-      if (empty || !gcam) return charNote(`placed ${o.name} at 0, 0, 0${walk} · U takes it back`);
-      const foot = baseCentre(o.mesh);
-      startPlace(live(o) ?? o, { foot, n: [0, 1, 0], dist: Math.max(0.05, Math.hypot(...vsub(foot, gcam.eye))), created: true });
+      const { group, members } = placeCharacter(charSpec, empty ? [0, 0, 0] : null);
+      if (empty || !gcam) return charNote(`placed ${group} at 0, 0, 0 (${members.length} instances) · U takes it back`);
+      const g = groupObj(members);
+      const foot = baseCentre(g.mesh);
+      startPlace(g, { foot, n: [0, 1, 0], dist: Math.max(0.05, Math.hypot(...vsub(foot, gcam.eye))), created: true });
       document.activeElement?.blur?.(); // the keys (Enter, Esc, G R S) go to the view, not the place button
-      charNote(`${o.name} floats under the pointer: click a surface to stand it there, Enter keeps it, Esc takes it away${walk}`);
+      charNote(`${group} floats under the pointer: click a surface to stand it there, Enter keeps it, Esc takes it away`);
     });
-    // edit a placed one: its spec into the builder; apply: only that object changes (one undo step)
+    // edit a placed one: its selection into the panel; apply: that character is rebuilt in place (one undo step)
     const charEditPlaced = (o = pointedObject()) => {
-      if (!o?.character) return charNote('put the cross on a placed character (or target it, T), then edit');
-      charTarget = o.id;
-      charSpec = normalizeCharacter(o.character.spec);
-      charPose = o.character.pose;
-      charToControls();
-      charShow();
-      charNote(`editing ${o.name}: change it, then apply`);
+      if (!o?.modular) return charNote('put the cross on a placed character (or target it, T), then edit');
+      charTarget = o.modular.name;
+      try {
+        charChoose(o.modular.spec);
+      } catch (e) {
+        return charNote(e.message);
+      }
+      charNameEl.value = charTarget.replace(/-[a-z0-9]{4}$/, '');
+      charNote(`editing ${charTarget}: change it, then apply`);
     };
     document.getElementById('charPick').addEventListener('click', () => charEditPlaced());
-    const charApplyTo = (o, spec = charSpec, pose = charPose) => {
-      const obj = live(o);
-      if (!obj?.character) return;
-      const before = { record: obj.character, mesh: obj.mesh };
-      charSet(obj, charRecord(spec, pose, obj.character.frame));
-      history.push(() => has(obj) && charSet(obj, before.record, before.mesh));
+    const charApplyTo = (group, spec = charSpec) => {
+      const old = charMembers(group);
+      if (!old.length) return false;
+      const frame = charFrame(old);
+      asOneStep(() => {
+        for (const o of old) {
+          erase(o);
+          history.push(() => has(o) || restore(o));
+        }
+        mcCreate(mc.compose.selectionOf(mc.lib, spec), group, frame);
+      });
       redraw();
+      return true;
     };
     document.getElementById('charApply').addEventListener('click', () => {
-      const o = allObjects().find((x) => x.id === charTarget);
-      if (o) (charApplyTo(o), charNote(`${o.name} changed · U takes it back`));
+      if (charTarget && charApplyTo(charTarget)) charNote(`${charTarget} changed · U takes it back`);
     });
     const openCharacters = () => {
       openSide(charPanelEl);
-      if (charPanelEl.hidden) return void cancelAnimationFrame(charAnim);
-      const o = pointedObject();
-      if (o?.character && o.id !== charTarget) charEditPlaced(o);
-      charMats();
-      charMatOptions();
-      charToControls();
+      if (charPanelEl.hidden) return;
       charLibShow();
-      requestAnimationFrame(charShow);
+      charNote(mc ? '' : 'loading the modular character library…');
+      mcReady()
+        .then(() => {
+          if (!charControls.children.length) mcBuild();
+          mcMats();
+          const o = pointedObject();
+          if (o?.modular && o.modular.name !== charTarget) charEditPlaced(o);
+          else charNote('');
+          charToControls();
+          requestAnimationFrame(charShow);
+        })
+        .catch((e) => charNote(`no modular character library here (${e.message})`));
     };
     document.getElementById('charBtn').addEventListener('click', openCharacters);
-    document.getElementById('charClose').addEventListener('click', () => (closeSide(), cancelAnimationFrame(charAnim)));
+    document.getElementById('charClose').addEventListener('click', () => closeSide());
     charHooks.follow = charFollow;
     charHooks.tick = charTick;
     charHooks.read = charRead;
@@ -7944,7 +8183,7 @@
         return void buildLathe(n);
       }
       if (!job || !text) return;
-      const m = materials[current];
+      const m = materials[ui.paint.current];
       if (job.fix) {
         const o = live(job.fix) ?? job.fix;
         const before = { mesh: o.mesh, text: o.text };
@@ -7956,6 +8195,46 @@
         Object.assign(live(made) ?? made, { text, textFrame: job.frame });
       }
       redraw();
+    };
+    // Y (and /text) outside edit mode: text where you look. Over a face the first letter starts at the cross, on that face
+    // and in its direction (the side you see); over empty space the text stands in front of the camera, facing it, a
+    // standard distance along the cursor's ray. The letters are TEXT_PX screen pixels high where they are made (whatever
+    // the zoom or the scene's size). The same text model as T in edit mode (a double click fixes the words).
+    const TEXT_PX = 28;
+    const textFrameHere = () => {
+      if (!cam) return null;
+      const cr = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+      const unit = (a) => { const l = Math.hypot(...a) || 1; return a.map((c) => c / l); };
+      const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+      const at = cam.at ?? { x: innerWidth / 2, y: innerHeight / 2 };
+      const { origin, dir } = ray(cam, at.x, at.y);
+      // the angle TEXT_PX pixels make on screen there: the letter height is that angle times the distance
+      const px = Math.acos(Math.min(1, dot(dir, ray(cam, at.x, at.y - TEXT_PX).dir)));
+      if (hit && scene.faces?.[hit.face] && !aim) {
+        const ff = faceFrame(scene, hit.face);
+        const back = dot(ff.normal, dir) > 0; // (seen from behind: the text goes on the side you see)
+        const normal = back ? ff.normal.map((c) => -c) : ff.normal;
+        const dist = Math.hypot(...hit.point.map((c, i) => c - origin[i]));
+        // a floor or a ceiling: the letters stand up away from you (the view's direction laid on the face), so they read
+        const along = dir.map((c, i) => c - normal[i] * dot(dir, normal));
+        const up = Math.abs(normal[1]) > 0.9 && Math.hypot(...along) > 1e-3 ? unit(along) : ff.up;
+        return { origin: [...hit.point], right: unit(cr(up, normal)), up, normal, height: Math.max(1e-4, px * dist) };
+      }
+      const d = orbitDist(fit.radius) * 0.5;
+      const normal = dir.map((c) => -c); // facing the eye
+      let up = cam.u.map((c, i) => c - normal[i] * dot(cam.u, normal));
+      up = unit(Math.hypot(...up) < 1e-6 ? [0, 1, 0] : up);
+      return { origin: origin.map((c, i) => c + dir[i] * d), right: unit(cr(up, normal)), up, normal, height: Math.max(1e-4, px * d) };
+    };
+    const startTextHere = (words = '') => {
+      if (editing) return startText();
+      const frame = textFrameHere();
+      if (!frame) return;
+      if (words.trim()) {
+        askText({ frame, text: words });
+        return putText();
+      }
+      askText({ frame, text: '' });
     };
     textBox.addEventListener('keydown', (e) => {
       e.stopPropagation(); // typing words is not a command
@@ -7972,7 +8251,7 @@
         // B in edit mode: a box (B B: a lasso) round points, lines or faces, whichever 1 2 3 is on
         e.preventDefault();
         if (e.repeat) return true;
-        if (!['vertex', 'edge', 'face'].includes(emode)) return (noteEdit('B selects points, lines or faces: press 1, 2 or 3 first'), true);
+        if (!['vertex', 'edge', 'face'].includes(ui.edit.mode)) return (noteEdit('B selects points, lines or faces: press 1, 2 or 3 first'), true);
         startSelect();
         return true;
       }
@@ -7994,7 +8273,7 @@
       if (editing && !xf && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'm' || e.key === 'M')) {
         e.preventDefault();
         if (e.repeat) return true;
-        if (!['vertex', 'edge', 'face'].includes(emode) || !sel.items.length) return (noteEdit('M mirrors what is selected: select points, lines or faces (1 2 3) first'), true);
+        if (!['vertex', 'edge', 'face'].includes(ui.edit.mode) || !sel.items.length) return (noteEdit('M mirrors what is selected: select points, lines or faces (1 2 3) first'), true);
         mirrorWait = { neg: false };
         noteEdit('mirror: X, Y or Z (- first: to the minus side) · Esc');
         return true;
@@ -8079,7 +8358,7 @@
       if (k === 'g' || k === 's' || k === 'e') {
         e.preventDefault();
         if (e.repeat) return true;
-        if (!['vertex', 'edge', 'face'].includes(emode) && !(k === 'e' && emode === 'face')) return (noteEdit('select with 1 (points), 2 (lines) or 3 (faces) first'), true);
+        if (!['vertex', 'edge', 'face'].includes(ui.edit.mode) && !(k === 'e' && ui.edit.mode === 'face')) return (noteEdit('select with 1 (points), 2 (lines) or 3 (faces) first'), true);
         if (k === 'e') extrude(false);
         else startXf(k === 'g' ? 'grab' : 'scale');
         return true;
@@ -8087,7 +8366,7 @@
       if (k === 'r') {
         e.preventDefault();
         if (e.repeat) return true;
-        if (!['vertex', 'edge', 'face'].includes(emode)) return (noteEdit('select with 1 (points), 2 (lines) or 3 (faces) first'), true);
+        if (!['vertex', 'edge', 'face'].includes(ui.edit.mode)) return (noteEdit('select with 1 (points), 2 (lines) or 3 (faces) first'), true);
         startRotate();
         return true;
       }
@@ -8147,11 +8426,11 @@
         lastCtrlPaint = t;
         return paintFace();
       }
-      if (editing && ['vertex', 'edge', 'face'].includes(emode)) {
+      if (editing && ['vertex', 'edge', 'face'].includes(ui.edit.mode)) {
         // selecting (1 points, 2 lines, 3 faces): a click picks one, Shift+click adds it or takes it away
         const add = e.shiftKey || shiftOn;
-        const item = emode === 'vertex' ? (snapV >= 0 ? snapV : null) : emode === 'edge' ? (snapE ? [...snapE].sort((a, b) => a - b) : null) : snapF >= 0 && editing.mesh.faces[snapF] ? faceKey(editing.mesh.faces[snapF]) : null;
-        if (item !== null) toggleSel(emode, item, add);
+        const item = ui.edit.mode === 'vertex' ? (snapV >= 0 ? snapV : null) : ui.edit.mode === 'edge' ? (snapE ? [...snapE].sort((a, b) => a - b) : null) : snapF >= 0 && editing.mesh.faces[snapF] ? faceKey(editing.mesh.faces[snapF]) : null;
+        if (item !== null) toggleSel(ui.edit.mode, item, add);
         else if (!add) clearOnUp = { x: e.clientX, y: e.clientY }; // an empty press may start an orbit: the selection goes only when the pointer did not travel
         redraw();
       }
@@ -8201,7 +8480,7 @@
     const carryEnd = (e, drop) => {
       if (!carry) return false;
       carry = null;
-      if (!carryFrozen && frozen) toggleFreeze();
+      if (!carryFrozen && ui.view.frozen) toggleFreeze();
       stage.classList.remove('drag');
       parent.postMessage({ type: drop ? 'drag-end' : 'drag-cancel', x: e.clientX, y: e.clientY }, location.origin);
       return true;
@@ -8275,7 +8554,7 @@
       light: { run: () => turnLight() },
       target: { run: () => travelTo(), once: true },
       gizmo: { run: () => toggleGizmo(), once: true },
-      clean: { run: () => (stage.classList.toggle('clean'), syncLines(), redraw()) },
+      clean: { run: () => (ui.view.edges = !ui.view.edges) },
       undo: { run: () => undo() },
       delete: { run: () => remove() },
       pose: { run: () => enterPose(), once: true, plain: true },
@@ -8370,7 +8649,7 @@
         };
         for (const [k, a] of Object.entries(doc.keys ?? { c: 'helm' })) bindKey(k, a);
         gameBtn.hidden = false;
-        if (mode !== 'gpu') setMode('gpu');
+        if (ui.render.mode !== 'gpu') setMode('gpu');
         setGameMode(doc.start?.mode === 'walk' ? 'walk' : 'ship');
         sceneNote(`${doc.title ?? name}: C switches between the helm and walking on the bridge`);
       });
@@ -8627,7 +8906,7 @@
       const dt = Math.min(0.05, jointLast ? (now - jointLast) / 1000 : 0);
       jointLast = now;
       if (jdrag) jointDragUpdate();
-      if (frozen || !dt) return;
+      if (ui.view.frozen || !dt) return;
       const busy = new Set([...(xf?.group?.map((g) => g.obj.id) ?? []), ...(xf?.obj?.id ? [xf.obj.id] : []), ...(jdrag ? jdrag.moved.map((m) => m.obj.id) : [])]);
       let any = false;
       for (const j of liveJoints()) {
@@ -8668,6 +8947,12 @@
     document.addEventListener('keydown', (e) => {
       if (e.target instanceof HTMLTextAreaElement) return; // the error text can be selected and copied
       if (e.target instanceof HTMLButtonElement) return; // Space and Enter belong to a focused button
+      // typing in a field (a panel's number, a name, a list) is not a command; Esc leaves the field, the next Esc is a command again
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target?.isContentEditable) {
+        if (e.key === 'Escape') e.target.blur();
+        return;
+      }
+      if (e.key === 'Enter' && e.shiftKey && !e.ctrlKey && !e.metaKey && findBox.hidden && !xf && !posing && !vr) return void (e.preventDefault(), openFind(true)); // Shift+Enter: the Enter box, in Q too
       if (vr && e.key === 'Escape') {
         e.preventDefault();
         return void toggleVr(false);
@@ -8773,6 +9058,9 @@
       } else if (e.key === 'm' || e.key === 'M') {
         e.preventDefault();
         if (!e.repeat) place();
+      } else if ((e.key === 'y' || e.key === 'Y') && !editing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        if (!e.repeat) startTextHere();
       } else if (boolPair && /^[1-5]$/.test(e.key)) {
         e.preventDefault();
         if (e.key === '5') closeBool(), redraw();
@@ -8791,16 +9079,16 @@
         if (!e.repeat) editing ? leaveEdit() : enterEdit();
       } else if (editing && e.key === 'Enter') {
         e.preventDefault();
-        if (emode === 'saw') applySaw();
-        else if (emode === 'draw') buildSketch();
-        else if (emode === 'lathe') latheEnter();
+        if (ui.edit.mode === 'saw') applySaw();
+        else if (ui.edit.mode === 'draw') buildSketch();
+        else if (ui.edit.mode === 'lathe') latheEnter();
       } else if (editing && e.key === '6') {
         e.preventDefault();
         if (!e.repeat) startLathe();
       } else if (editing && /^[12345]$/.test(e.key)) {
         e.preventDefault();
-        if (e.key === '5' && emode === 'draw' && editing.lines?.length) return void buildSketch(); // 5 again builds what is drawn
-        emode = ['vertex', 'edge', 'face', 'saw', 'draw'][e.key - 1];
+        if (e.key === '5' && ui.edit.mode === 'draw' && editing.lines?.length) return void buildSketch(); // 5 again builds what is drawn
+        ui.edit.mode = ['vertex', 'edge', 'face', 'saw', 'draw'][e.key - 1];
         sel = emptySel();
         sawPts = [];
         sketchFrom = null;
@@ -8809,11 +9097,11 @@
         redraw();
       } else if (editing && e.key === 'Escape') {
         if (sawPts.length) ((sawPts = []), noteEdit(''), redraw());
-        else if (emode === 'lathe') {
+        else if (ui.edit.mode === 'lathe') {
           if (lathePlan?.pts.length) ((lathePlan.pts = lathePlan.pts.slice(0, -1)), redraw());
-          else ((lathePlan = null), (emode = 'draw'), showBar(), redraw());
+          else ((lathePlan = null), (ui.edit.mode = 'draw'), showBar(), redraw());
         } else if (sketchFrom) ((sketchFrom = null), redraw());
-        else if (emode !== 'draw') ((emode = 'draw'), (sel = emptySel()), showBar(), redraw());
+        else if (ui.edit.mode !== 'draw') ((ui.edit.mode = 'draw'), (sel = emptySel()), showBar(), redraw());
         else leaveEdit();
       } else if (e.key === 'x') {
         e.preventDefault(); // x alone does nothing: delete is Shift+X
@@ -8822,11 +9110,11 @@
       } else if (e.key === 'v' || e.key === 'V') {
         e.preventDefault();
         if (!e.repeat) {
-          if (editing && emode === 'lathe') addLathePoint();
-          else if (editing && emode === 'saw') addSawPoint(); // only in the saw mode (4) does V saw
+          if (editing && ui.edit.mode === 'lathe') addLathePoint();
+          else if (editing && ui.edit.mode === 'saw') addSawPoint(); // only in the saw mode (4) does V saw
           else if (editing) {
             // any other mode: V sketches a line (nothing is selected, nothing moves)
-            if (emode !== 'draw') ((emode = 'draw'), (sel = emptySel()), showBar());
+            if (ui.edit.mode !== 'draw') ((ui.edit.mode = 'draw'), (sel = emptySel()), showBar());
             sketch();
           } else if (space() && !drive()) skyLine(); // a star map: V joins two objects' centres
           else spider();
@@ -9028,7 +9316,7 @@
     const setApp = (on) => {
       document.body.classList.toggle('pwa', on);
       document.getElementById('palHint').hidden = on; // no help text on the palette in the app
-      stage.classList.toggle('clean', on); // no E button on the pad: start without the edge and point clutter
+      if (on) ui.view.edges = false; // no E button on the pad: start without the edge and point clutter
       if (on && !appBuilt) ((appBuilt = true), buildApp());
       redraw();
     };
@@ -9036,10 +9324,7 @@
     setApp(isApp || narrow.matches);
     narrow.addEventListener('change', () => setApp(isApp || narrow.matches));
     const linesBtn = document.getElementById('lines');
-    const syncLines = () => linesBtn.classList.toggle('on', !stage.classList.contains('clean'));
-    linesBtn.addEventListener('click', () => (stage.classList.toggle('clean'), syncLines(), redraw()));
-    stage.classList.add('clean'); // the edges and points start off
-    syncLines();
+    linesBtn.addEventListener('click', () => (ui.view.edges = !ui.view.edges)); // (the edges and points start off: ui.view.edges)
     // ?: the key explainer, a keyboard drawn from data. Hover or tap a key to read it, press a real key to see it light up,
     // "run" does what the key does. Colours: teal = target / look, red = editing and making, cream = flying and viewing, slate = system.
     const KEYS = {
@@ -9074,8 +9359,9 @@
       ';': { cap: ';', sub: 'freeze', title: '; (é on a Hungarian keyboard)', cat: 'teal', text: 'Freeze: everything that moves stands still (flying, orbiting, dragging the view), so the cursor can work. The speed is kept; the key again carries on with it.' },
       k: { cap: 'K', sub: 'studio', cat: 'teal', text: 'Studio light: key, fill and rim light that follow the camera.' },
       l: { cap: 'L', sub: 'light', cat: 'teal', text: 'Light on / off. Off: no light in the scene at all, only emitting surfaces and the edge lines show.', edit: 'Loop: a selected line (2) takes the lines of its loop, a selected face (3) the faces of its loop (L again: the other way round). The light switch stays on its button.' },
-      enter: { cap: 'Enter', sub: 'find', cat: 'teal', w: 2.2, title: 'Enter', text: 'Find: a box in the middle of the screen, type a name, Enter targets it.', edit: 'Saw: cuts along the marked plane.' },
+      enter: { cap: 'Enter', sub: 'find', cat: 'teal', w: 2.2, title: 'Enter', text: 'Find: a box in the middle of the screen, type a name, Enter targets it. / starts a command: /l (load) searches the scene list.', edit: 'Saw: cuts along the marked plane. Shift+Enter: the find / command box in the edit mode too.' },
       shift: { cap: 'Shift', sub: 'paint', cat: 'slate', w: 2.4, title: 'Shift', text: 'Shift+Tab: previous target. Painting is Ctrl+click (Cmd on a Mac).', edit: 'Shift+click adds to the selection or takes from it. Shift+W A S D R F fly (plain, they are edit keys).', run: false },
+      y: { cap: 'Y', sub: 'text', cat: 'red', text: 'Text: type words, Enter puts them down: on the face under the cross (the first letter at the cross), or in front of the camera over empty space.', edit: 'T makes text in edit mode (on the selected face).' },
       z: { cap: 'Z', sub: 'zen', cat: 'slate', text: 'Zen: hide everything but the model. Z or Esc brings the panels back.' },
       x: { cap: 'X', sub: 'del', cat: 'red', text: 'Shift+X deletes the object under the cross, in every mode (U brings it back). Alone, during G / S / R, X locks the axis to x.', edit: 'Shift+X deletes the selected points, lines or faces (a point takes its faces, a line the faces on it); with nothing selected, the object under the cross. During G / S: locks the axis to x.' },
       c: { cap: 'C', sub: 'glow', cat: 'teal', text: 'Glow: emitting materials light their surroundings as local lights (no shadows). With the light off, only they light the scene.' },
@@ -9202,7 +9488,7 @@
     document.getElementById('skyOrbit').addEventListener('click', (e) => (setSky('orbit', !skyShow.orbit), e.currentTarget.blur()));
     document.getElementById('skyIau').addEventListener('click', (e) => (setSky('iau', !skyShow.iau), e.currentTarget.blur()));
     document.getElementById('freeze').addEventListener('click', toggleFreeze);
-    document.getElementById('filmic').classList.toggle('on', filmic);
+    document.getElementById('filmic').classList.toggle('on', ui.view.glow);
     document.getElementById('smooth').addEventListener('click', toggleSmooth);
     document.getElementById('smooth').classList.add('on');
     document.getElementById('studio').addEventListener('click', toggleStudio);
@@ -9222,17 +9508,38 @@
     const nameEl = document.getElementById('sceneName');
     // The scene file: { format: '3draft-scene', version: 1, name, palette: [the materials the faces use], objects: [{ name, mesh, wire? }] }.
     // The same shape as an example scene, so it loads through the same door: the list holds the examples and what was saved here.
-    const sceneFile = (name) => {
+    // the scene as a file. Instances that are still instances (fitInst) are written as scene format v2: the shape once in
+    // `prototypes`, one short record per object; { plain: true } writes every object as a mesh (v1, for the workshop's MCP).
+    const sceneFile = (name, { plain = false } = {}) => {
       const used = new Set(allObjects().flatMap((o) => o.mesh.faces.map((f) => f.mat)).filter(Boolean));
+      const protos = new Map(); // key -> prototype
+      const instOut = (o) => {
+        const i = o.inst;
+        if (plain || !i?.proto || typeof i.key !== 'string') return null;
+        const now = i.level === -2 ? i : fitInst(i, o.mesh);
+        if (!now) return null;
+        let key = now.key;
+        for (let n = 2; protos.has(key) && protos.get(key) !== now.proto; n++) key = `${now.key}~${n}`; // (two scenes, one key)
+        protos.set(key, now.proto);
+        const { proto: _p, key: _k, level: _l, mesh: _m, ...rest } = now;
+        return { ...rest, name: o.name, proto: key };
+      };
+      const objects = allObjects().map((o) => {
+        const extra = { ...(o.pickable === false ? { pickable: false } : {}), ...(o.group ? { group: o.group } : {}), ...(o.modular ? { modular: o.modular } : {}) };
+        const inst = instOut(o);
+        if (inst) return { ...inst, ...extra };
+        return { name: o.name, mesh: o.mesh, ...(o.wire?.length ? { wire: o.wire } : {}), ...textPart(o), ...(o.skyLine ? { skyLine: o.skyLine } : {}), ...(o.character ? { character: o.character } : {}), ...extra };
+      });
       return {
         format: '3draft-scene',
-        version: 1,
+        version: protos.size ? 2 : 1,
         name,
         ...(sceneBackdrop ? { backdrop: sceneBackdrop } : {}),
         palette: materials.filter((m) => used.has(m.name)).map((m) => ({ ...m })),
         view: viewOf(),
         ...(vehicle ? { vehicle } : {}),
-        objects: allObjects().map((o) => ({ name: o.name, mesh: o.mesh, ...(o.wire?.length ? { wire: o.wire } : {}), ...textPart(o), ...(o.pickable === false ? { pickable: false } : {}), ...(o.skyLine ? { skyLine: o.skyLine } : {}), ...(o.character ? { character: o.character } : {}), ...(o.group ? { group: o.group } : {}) })),
+        ...(protos.size ? { prototypes: Object.fromEntries(protos) } : {}),
+        objects,
         ...(jointsOut().length ? { joints: jointsOut() } : {}),
         ...(skyFigures.length ? { figures: skyFigures.map(({ id, name, en, lines }) => ({ id, name, en, lines })) } : {}),
         ...(skyMine.length ? { skyLines: skyMine.map((l) => [l.a, l.b]) } : {}),
@@ -9489,6 +9796,257 @@
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     });
+    // ---- svg export (the svg button): the view as one SVG picture, or an animated SVG: a turntable round the middle (from / to
+    // in degrees), or a part of the loaded story's timeline (from / to in seconds). Every frame is drawn by renderView, as
+    // the SVG view mode draws; src/svg-anim.js joins the frames (SMIL: it plays in a browser without script). The MCP has
+    // the same as the export_svg tool.
+    const svgPanelEl = document.getElementById('svgPanel');
+    const svgEl = (id) => document.getElementById(id);
+    const SVG_MAX_BYTES = 60e6; // an animated SVG stops growing here (a browser still opens it)
+    const svgNote = (t) => (svgEl('svgNote').textContent = t);
+    const svgNum = (id, lo, hi, d) => {
+      const v = Number(svgEl(id).value);
+      return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d;
+    };
+    // The part of the drawing square that is on screen (the square covers the stage and is cut at its sides): the export shows
+    // the same, `width` is the picture's width, the square is drawn larger behind it and cut with the viewBox.
+    const svgVisible = () => {
+      const f = frame.getBoundingClientRect(), st = stage.getBoundingClientRect();
+      if (!f.width || !f.height) return [0, 0, 1, 1];
+      const x0 = Math.max(0, (st.left - f.left) / f.width), y0 = Math.max(0, (st.top - f.top) / f.height);
+      const x1 = Math.min(1, (st.right - f.left) / f.width), y1 = Math.min(1, (st.bottom - f.top) / f.height);
+      return x1 - x0 > 0.05 && y1 - y0 > 0.05 ? [x0, y0, x1 - x0, y1 - y0] : [0, 0, 1, 1];
+    };
+    const svgLook = () => {
+      const width = Math.round(svgNum('svgSize', 128, 2400, 800));
+      const vis = svgVisible();
+      const size = Math.min(4096, Math.round(width / vis[2])); // the drawing square
+      return {
+        width,
+        size,
+        crop: vis.map((v) => v * size),
+        colors: svgEl('svgColors').value,
+        background: svgBackground(svgEl('svgBg').value),
+        ...(svgEl('svgEdges').value === 'off' ? { stroke: 'none' } : {}),
+      };
+    };
+    const svgCut = (svg, look) => (look.crop ? cropSvg(svg, look.crop) : svg);
+    // the GPU frame behind the lit colours: its own WebGL2 canvas off screen, the view's light switches, no edges, no marks
+    const svgGpu = { canvas: document.createElement('canvas'), g: null, tried: null };
+    const svgGpuReady = () => (svgGpu.tried ??= createGl(svgGpu.canvas).then((g) => (svgGpu.g = g)).catch(() => null));
+    let svgLitCount = { lit: 0, kept: 0, flat: false };
+    const svgShade = async (svg, mesh, view, fitArg, look, palette) => {
+      const g = await svgGpuReady();
+      if (!g || !mesh.positions.length) return ((svgLitCount.flat = !g), svg);
+      const a = lightAngle;
+      const img = await g.pixels(mesh, view, {
+        size: look.size, dpr: 1, fit: fitArg, palette, background: [0, 0, 0],
+        smooth: ui.view.smooth ? 40 : 0, studio: ui.view.studio, unlit: !ui.view.light, glow: false, edges: false,
+        material: sceneMaterial, light: { direction: [Math.sin(a) * 0.6, 0.8, Math.cos(a) * 0.6] },
+      });
+      const r = litSvg(svg, img, { scale: img.width / look.size });
+      svgLitCount.lit += r.lit;
+      svgLitCount.kept += r.kept;
+      return r.svg;
+    };
+    const svgDraw = async (mesh, view, fitArg, look, palette = paletteMap) => {
+      const svg = renderView(mesh, { ...view, name: '' }, { size: look.size, fit: fitArg, occlude: true, points: false, palette, background: look.background, ...(look.stroke ? { stroke: look.stroke } : {}) });
+      return look.colors === 'lit' ? svgShade(svg, mesh, view, fitArg, look, palette) : svg;
+    };
+    const svgLitNote = (look) => (look.colors !== 'lit' ? '' : svgLitCount.flat ? ' · no GPU here: flat colours' : ' · lit colours from the GPU');
+    const svgName = () => (nameEl.value.trim() || story?.doc.metadata?.title || 'spi3der').replace(/[^\w.-]+/g, '-');
+    const svgDownload = (text, file) => {
+      const url = URL.createObjectURL(new Blob([text], { type: 'image/svg+xml' }));
+      const a = Object.assign(document.createElement('a'), { href: url, download: file });
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    const svgKB = (n) => (n > 2e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+    // the motion's from / to: degrees for a turntable, seconds of the story
+    const svgKindShow = (reset = false) => {
+      const st = svgEl('svgKind').value === 'story';
+      svgEl('svgFromLab').textContent = st ? 'from (s)' : 'from (°)';
+      svgEl('svgToLab').textContent = st ? 'to (s)' : 'to (°)';
+      svgEl('svgStoryRow').hidden = !st;
+      if (!reset) return;
+      if (st && story) {
+        const d = story.doc.timeline.durationMs / 1000;
+        svgEl('svgFrom').value = '0';
+        svgEl('svgTo').value = String(+d.toFixed(2));
+        svgEl('svgSeconds').value = String(+Math.max(0.1, d).toFixed(2));
+        svgEl('svgFrames').value = String(Math.max(2, Math.min(240, Math.round(d * 10))));
+        svgEl('svgLoop').value = '0';
+      } else if (!st) {
+        svgEl('svgFrom').value = '0';
+        svgEl('svgTo').value = '360';
+        svgEl('svgFrames').value = '36';
+        svgEl('svgSeconds').value = '4';
+        svgEl('svgLoop').value = '1';
+      }
+    };
+    svgEl('svgKind').addEventListener('change', () => {
+      if (svgEl('svgKind').value === 'story' && !story) svgNote('no story is loaded: open one in the Stories panel (or the + scene list), then come back');
+      svgKindShow(true);
+    });
+    svgEl('svgFromNow').addEventListener('click', () => story && (svgEl('svgFrom').value = String(+(story.t / 1000).toFixed(3))));
+    svgEl('svgToNow').addEventListener('click', () => story && (svgEl('svgTo').value = String(+(story.t / 1000).toFixed(3))));
+    svgEl('svgWhole').addEventListener('click', () => svgKindShow(true));
+    svgEl('svgBtn').addEventListener('click', () => {
+      openSide(svgPanelEl);
+      if (svgPanelEl.hidden) return;
+      if (svgEl('svgKind').value === 'story' && !story) svgEl('svgKind').value = 'turntable';
+      svgKindShow(false);
+      svgNote(story ? `story loaded: ${story.doc.metadata?.title ?? 'untitled'} (${(story.doc.timeline.durationMs / 1000).toFixed(1)} s)` : '');
+    });
+    svgEl('svgClose').addEventListener('click', () => closeSide());
+    svgEl('stSvg').addEventListener('click', () => {
+      // from the story bar: the panel on the story's timeline (the whole story to begin with)
+      const was = svgEl('svgKind').value;
+      svgEl('svgKind').value = 'story';
+      if (svgPanelEl.hidden) svgEl('svgBtn').click();
+      else closeSide();
+      if (was !== 'story') svgKindShow(true);
+    });
+    // one picture: the view now
+    const svgPicture = async (look = svgLook()) => {
+      if (!svgCam || !scene.positions.length) throw new Error('nothing to draw: the view is empty');
+      svgLitCount = { lit: 0, kept: 0, flat: false };
+      return svgCut(titledSvg(await svgDraw(scene, orbit_({ yaw: svgCam.yaw, pitch: svgCam.pitch }), svgCam.fit, look), svgName()), look);
+    };
+    svgEl('svgSave').addEventListener('click', async () => {
+      try {
+        const look = svgLook();
+        const text = await svgPicture(look);
+        svgDownload(text, `${svgName()}.svg`);
+        svgNote(`saved ${svgName()}.svg (${svgKB(text.length)})${svgLitNote(look)}`);
+      } catch (e) {
+        svgNote(e.message);
+      }
+    });
+    // the frames of a motion: a turntable round the view's middle, or the story's moments (its own camera when the Stories
+    // panel's camera is on, as the player shows it)
+    const svgShots = async ({ kind, from, to, frames, loop }, shoot, progress = () => {}) => {
+      if (kind === 'story') {
+        if (!story) throw new Error('no story is loaded (Stories panel)');
+        const doc = story.doc;
+        const d = doc.timeline.durationMs;
+        const pal = { ...Object.fromEntries((doc.scene.palette ?? []).map(({ name, ...m }) => [name, m])), ...paletteMap };
+        const ownCam = stOn('stCam') && !story.cutaway && !story.focus;
+        const v = doc.presentation?.views?.find((x) => x.id === story.focus);
+        for (const [k, t] of spread(Math.max(0, Math.min(d, from * 1000)), Math.max(0, Math.min(d, to * 1000)), frames).entries()) {
+          let objects = storyFormat.sceneAt(doc, t);
+          if (story.cutaway) objects = objects.filter((o) => !stMatch(o.name, doc.presentation?.cutaway?.excludePrefixes));
+          if (v) objects = objects.filter((o) => stMatch(o.name, v.includePrefixes) && !stMatch(o.name, v.excludePrefixes));
+          const cam = ownCam ? storyView(storyFormat.cameraAt(doc, t), { orbit: orbitView, makeCamera }) : { view: orbit_({ yaw: svgCam.yaw, pitch: svgCam.pitch }), fit: svgCam.fit };
+          await shoot(objects.length ? merge(...objects.map((o) => o.mesh)) : { positions: [], faces: [] }, cam.view, cam.fit, pal);
+          progress(k + 1);
+          await new Promise((r) => setTimeout(r, 0)); // (the page stays alive between frames)
+        }
+        return;
+      }
+      if (!svgCam || !scene.positions.length) throw new Error('nothing to draw: the view is empty');
+      const full = loop && Math.abs(to - from) % 360 < 1e-9 && to !== from; // a whole turn: the last frame would be the first again
+      for (const [k, deg] of spread(from, to, frames, full).entries()) {
+        await shoot(scene, orbit_({ yaw: svgCam.yaw + (deg * Math.PI) / 180, pitch: svgCam.pitch }), svgCam.fit, paletteMap);
+        progress(k + 1);
+        await new Promise((r) => setTimeout(r, 0));
+      }
+    };
+    const svgFrames = async ({ look, progress, ...motion }) => {
+      const out = [];
+      let bytes = 0;
+      await svgShots(motion, async (mesh, view, fitArg, pal) => {
+        const svg = await svgDraw(mesh, view, fitArg, look, pal);
+        out.push(svg);
+        bytes += svg.length;
+        if (bytes > SVG_MAX_BYTES) throw new Error(`more than ${svgKB(SVG_MAX_BYTES)} after ${out.length} frames: fewer frames, a smaller size, or a shorter part`);
+      }, progress);
+      return out;
+    };
+    // the same motion as an animated GIF: GPU frames on a see-through background, cut to where the model is (all frames
+    // together) plus a little room; the width is about the picture's (the drawing square is the svg's)
+    const GIF_MAX_PIXELS = 1.2e8;
+    const gifOf = async ({ look, progress, seconds, ...motion }) => {
+      const g = await svgGpuReady();
+      if (!g) throw new Error('no GPU here (WebGL2): a GIF needs one');
+      const a = lightAngle;
+      const shots = [];
+      await svgShots(motion, async (mesh, view, fitArg, pal) => {
+        if (shots.length && shots.length * look.size * look.size > GIF_MAX_PIXELS) throw new Error('too many pixels: fewer frames or a smaller size');
+        const img = await g.pixels(mesh, view, {
+          size: look.size, dpr: 1, fit: fitArg, palette: pal, transparent: true, background: [0, 0, 0],
+          smooth: ui.view.smooth ? 40 : 0, studio: ui.view.studio, unlit: !ui.view.light, glow: false, edges: look.stroke !== 'none',
+          material: sceneMaterial, light: { direction: [Math.sin(a) * 0.6, 0.8, Math.cos(a) * 0.6] },
+        });
+        shots.push(img);
+      }, progress);
+      const box0 = visibleBox(shots, 0);
+      if (!box0) throw new Error('nothing visible in the frames');
+      const box = visibleBox(shots, Math.max(6, Math.round(Math.max(box0.w, box0.h) * 0.06)));
+      return encodeGif(shots, { box, delay: seconds / shots.length, loop: motion.loop, premultiplied: true });
+    };
+    let svgBusy = false;
+    svgEl('svgAnim').addEventListener('click', async () => {
+      if (svgBusy) return;
+      const kind = svgEl('svgKind').value;
+      const opts = {
+        kind,
+        from: svgNum('svgFrom', -1e6, 1e6, 0),
+        to: svgNum('svgTo', -1e6, 1e6, kind === 'story' ? 0 : 360),
+        frames: Math.round(svgNum('svgFrames', 2, 240, 36)),
+        loop: svgEl('svgLoop').value === '1',
+        look: svgLook(),
+      };
+      svgBusy = true;
+      svgEl('svgAnim').disabled = true;
+      try {
+        svgLitCount = { lit: 0, kept: 0, flat: false };
+        const frames = await svgFrames({ ...opts, progress: (k) => svgNote(`drawing frame ${k} / ${opts.frames}…`) });
+        const text = svgCut(animatedSvg(frames, { size: opts.look.size, seconds: svgNum('svgSeconds', 0.1, 600, 4), loop: opts.loop, title: svgName() }), opts.look);
+        const file = `${svgName()}-${kind}.svg`;
+        svgDownload(text, file);
+        svgNote(`saved ${file}: ${frames.length} frames, ${svgKB(text.length)}${svgLitNote(opts.look)}`);
+      } catch (e) {
+        svgNote(e.message);
+      } finally {
+        svgBusy = false;
+        svgEl('svgAnim').disabled = false;
+      }
+    });
+    svgEl('svgGif').addEventListener('click', async () => {
+      if (svgBusy) return;
+      const kind = svgEl('svgKind').value;
+      const opts = {
+        kind,
+        from: svgNum('svgFrom', -1e6, 1e6, 0),
+        to: svgNum('svgTo', -1e6, 1e6, kind === 'story' ? 0 : 360),
+        frames: Math.round(svgNum('svgFrames', 2, 240, 36)),
+        loop: svgEl('svgLoop').value === '1',
+        seconds: svgNum('svgSeconds', 0.1, 600, 4),
+        look: svgLook(),
+      };
+      svgBusy = true;
+      svgEl('svgAnim').disabled = svgEl('svgGif').disabled = true;
+      try {
+        const bytes = await gifOf({ ...opts, progress: (k) => svgNote(`drawing frame ${k} / ${opts.frames}…`) });
+        const file = `${svgName()}-${kind}.gif`;
+        const url = URL.createObjectURL(new Blob([bytes], { type: 'image/gif' }));
+        const el = Object.assign(document.createElement('a'), { href: url, download: file });
+        document.body.append(el);
+        el.click();
+        el.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        const w = bytes[6] | (bytes[7] << 8), h = bytes[8] | (bytes[9] << 8);
+        svgNote(`saved ${file}: ${opts.frames} frames, ${w}×${h}, ${svgKB(bytes.length)}`);
+      } catch (e) {
+        svgNote(e.message);
+      } finally {
+        svgBusy = false;
+        svgEl('svgAnim').disabled = svgEl('svgGif').disabled = false;
+      }
+    });
     const sceneFileEl = document.getElementById('sceneFile');
     document.getElementById('sceneOpen').addEventListener('click', () => sceneFileEl.click());
     sceneFileEl.addEventListener('change', async () => {
@@ -9554,7 +10112,7 @@
       story.t = Math.max(0, Math.min(t, doc.timeline.durationMs));
       const index = storyFormat.constructionIndexAtTime(doc, story.t);
       const key = `${index}|${story.cutaway}|${story.focus}`;
-      const cpuAnimation = doc.tracks.animation && (mode !== 'gpu' || !gpu);
+      const cpuAnimation = doc.tracks.animation && (ui.render.mode !== 'gpu' || !gpu);
       if (force || key !== story.loadedKey || cpuAnimation) {
         let objects = storyFormat.constructionAt(doc, story.t);
         if (story.cutaway) objects = objects.filter((o) => !stMatch(o.name, doc.presentation?.cutaway?.excludePrefixes));
@@ -9785,14 +10343,7 @@
       true,
     );
     const mergeSw = document.getElementById('mergeSw');
-    mergeSw.classList.toggle('on', mergeOn);
-    mergeSw.addEventListener('click', () => {
-      mergeOn = !mergeOn;
-      mergeSw.classList.toggle('on', mergeOn);
-      try {
-        localStorage.setItem('3draft.merge', mergeOn ? '1' : '0');
-      } catch {}
-    });
+    mergeSw.addEventListener('click', () => (ui.view.merge = !ui.view.merge)); // (kept in localStorage by uiRender)
     nameEl.addEventListener('keydown', (e) => e.stopPropagation()); // typing a name is not a command
     showSaved();
     // ?ply=name: a scene saved here under that name opens in zen at once, standing alone (nothing found: the page starts as usual)
@@ -9800,6 +10351,225 @@
       const n = new URLSearchParams(location.search).get('ply');
       return n && readSaved()[n] ? n : null;
     })();
+    // ---- The commands of the Enter box (UI-less: Enter, /, a word). Every one does what a button or a key already does.
+    {
+      const click = (id) => document.getElementById(id).click();
+      const said = () => liveEl.textContent;
+      const onOff = (key, label) => ({
+        names: [label],
+        hint: `${label} on / off`,
+        bare: 'switch it',
+        choices: () => [{ label: 'on', value: 'on', right: ui.view[key] ? 'now' : '' }, { label: 'off', value: 'off', right: ui.view[key] ? '' : 'now' }],
+        run: (a) => {
+          ui.view[key] = a === 'on' ? true : a === 'off' ? false : !ui.view[key];
+          return `${label}: ${ui.view[key] ? 'on' : 'off'}`;
+        },
+      });
+      // a button whose work ends in the svg panel's note: press it, wait for the note
+      const svgRun = async (id) => {
+        svgNote('');
+        cmdToast('busy', 'drawing…');
+        click(id);
+        const t0 = performance.now();
+        for (;;) {
+          await new Promise((r) => setTimeout(r, 120));
+          const n = svgEl('svgNote').textContent;
+          if (n && !n.startsWith('drawing') && !svgBusy) return n;
+          if (n.startsWith('drawing')) cmdToast('busy', n);
+          if (performance.now() - t0 > 180000) throw new Error('took too long');
+        }
+      };
+      const nums = (a) => (a.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+      const mat = () => materials[ui.paint.current];
+      const VIEWS = { front: [0, 0], back: [Math.PI, 0], right: [Math.PI / 2, 0], left: [-Math.PI / 2, 0], side: [Math.PI / 2, 0], top: [0, Math.PI / 2 - 1e-3], bottom: [0, -Math.PI / 2 + 1e-3], iso: [-Math.PI / 4, Math.atan(1 / Math.SQRT2)] };
+      let helpList = [];
+      FIND_CMDS.push(
+        { names: ['save', 's'], hint: 'save the scene here under a name', free: true, bare: 'save it (the name in the box, or a dated one)', choices: () => Object.keys(readSaved()).map((n) => ({ label: n, value: n, cat: 'saved here', right: 'overwrite' })), run: (a) => {
+          if (a) nameEl.value = a;
+          click('sceneSave');
+          return said();
+        } },
+        { names: ['cloud'], hint: 'save the scene online (the store) under a name', free: true, bare: 'save it online', run: (a) => {
+          if (a) nameEl.value = a;
+          click('sceneCloud');
+        } },
+        { names: ['download', 'dl'], hint: 'download the scene as a .3draft file', run: () => (click('sceneDown'), said()) },
+        { names: ['open'], hint: 'add a scene from a file (.json, .3draft)', run: () => click('sceneOpen') },
+        { names: ['new'], hint: 'empty the scene (U brings it back)', run: () => (click('clear'), 'the scene is empty (U brings it back)') },
+        { names: ['forget'], hint: 'forget a scene saved here', choices: () => Object.keys(readSaved()).map((n) => ({ label: n, value: n, cat: 'saved here', right: 'forget' })), run: (a) => {
+          nameEl.value = a;
+          click('sceneForget');
+          return said();
+        } },
+        { names: ['svg'], hint: 'save the view as an SVG picture (the svg panel\'s settings; a number: the width)', run: async (a) => {
+          const [w] = nums(a);
+          if (w) svgEl('svgSize').value = String(Math.round(w));
+          return svgRun('svgSave');
+        } },
+        { names: ['gif'], hint: 'save the motion as an animated GIF (frames, seconds)', run: async (a) => {
+          const [frames, seconds] = nums(a);
+          if (frames) svgEl('svgFrames').value = String(Math.round(frames));
+          if (seconds) svgEl('svgSeconds').value = String(seconds);
+          return svgRun('svgGif');
+        } },
+        { names: ['anim'], hint: 'save the motion as an animated SVG (frames, seconds)', run: async (a) => {
+          const [frames, seconds] = nums(a);
+          if (frames) svgEl('svgFrames').value = String(Math.round(frames));
+          if (seconds) svgEl('svgSeconds').value = String(seconds);
+          return svgRun('svgAnim');
+        } },
+        { names: ['png'], hint: 'save the view as a PNG: GPU light, see-through background, cut to the model (a number: its longer side, 1200)', run: async (a) => {
+          const g = await svgGpuReady();
+          if (!g) throw new Error('no GPU here (WebGL2)');
+          if (!svgCam || !scene.positions.length) throw new Error('nothing to draw: the view is empty');
+          const [w] = nums(a);
+          const want = Math.max(64, Math.min(4096, Math.round(w || 1200))); // the picture's longer side
+          const al = lightAngle;
+          const shot = (size) => g.pixels(scene, orbit_({ yaw: svgCam.yaw, pitch: svgCam.pitch }), {
+            size, dpr: 1, fit: svgCam.fit, palette: paletteMap, transparent: true, background: [0, 0, 0],
+            smooth: ui.view.smooth ? 40 : 0, studio: ui.view.studio, unlit: !ui.view.light, glow: false, edges: ui.view.edges,
+            material: sceneMaterial, light: { direction: [Math.sin(al) * 0.6, 0.8, Math.cos(al) * 0.6] },
+          });
+          let img = await shot(512);
+          let b0 = visibleBox([img]);
+          if (!b0) throw new Error('nothing visible');
+          img = await shot(Math.min(4096, Math.round((512 * want) / (Math.max(b0.w, b0.h) * 1.12)))); // (the model, with its room, about `want` wide)
+          b0 = visibleBox([img]);
+          if (!b0) throw new Error('nothing visible');
+          const b = visibleBox([img], Math.max(6, Math.round(Math.max(b0.w, b0.h) * 0.06)));
+          const cv = Object.assign(document.createElement('canvas'), { width: b.w, height: b.h });
+          const out = new ImageData(b.w, b.h);
+          for (let y = 0; y < b.h; y++)
+            for (let x = 0; x < b.w; x++) {
+              const i = ((y + b.y) * img.width + x + b.x) * 4, o = (y * b.w + x) * 4, al2 = img.data[i + 3];
+              const k = al2 ? 255 / al2 : 0; // (the GPU's colours are premultiplied)
+              out.data.set([Math.min(255, img.data[i] * k), Math.min(255, img.data[i + 1] * k), Math.min(255, img.data[i + 2] * k), al2], o);
+            }
+          cv.getContext('2d').putImageData(out, 0, 0);
+          const blob = await new Promise((r) => cv.toBlob(r, 'image/png'));
+          const file = `${svgName()}.png`;
+          const url = URL.createObjectURL(blob);
+          const el = Object.assign(document.createElement('a'), { href: url, download: file });
+          document.body.append(el);
+          el.click();
+          el.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          return `saved ${file}: ${b.w}×${b.h}, ${svgKB(blob.size)}`;
+        } },
+        onOff('edges', 'edges'),
+        onOff('light', 'light'),
+        onOff('studio', 'studio'),
+        onOff('smooth', 'smooth'),
+        onOff('glow', 'glow'),
+        onOff('frozen', 'freeze'),
+        { names: ['gpu', 'renderer'], hint: 'the renderer: webgpu, webgl or svg', choices: () => [['webgpu', 'gpu'], ['webgl', 'gl'], ['svg', 'svg']].map(([label, value]) => ({ label, value, right: (value === 'svg' ? ui.render.mode === 'svg' : ui.render.mode === 'gpu' && ui.render.kind === (value === 'gl' ? 'webgl2' : 'webgpu')) ? 'now' : '' })), run: async (a) => {
+          await setMode(a);
+          return `renderer: ${modeEl.textContent}`;
+        } },
+        { names: ['view'], hint: 'look from the front, back, left, right, top, bottom or iso', choices: () => Object.keys(VIEWS).map((v) => ({ label: v, value: v })), run: (a) => {
+          const v = VIEWS[a];
+          if (!v) throw new Error('front, back, left, right, top, bottom or iso');
+          focused = false;
+          roll = 0;
+          goTo({ ...overview(), yaw: v[0], pitch: v[1] });
+          return `view: ${a}`;
+        } },
+        { names: ['zen'], hint: 'only the model (Z)', run: () => toggleZen() },
+        { names: ['fit', 'reset'], hint: 'frame the scene again (the reset button)', run: () => reset() },
+        { names: ['mat', 'material'], hint: 'choose the material (M, the new shapes and painting use it)', choices: () => materials.map((m, i) => ({ label: m.name, value: i, sw: m.color, right: i === ui.paint.current ? 'now' : '' })), run: (a) => {
+          ui.paint.current = Number(a);
+          return `material: ${mat().name}`;
+        } },
+        { names: ['add'], hint: 'a shape at the cross, of the chosen material: it floats, a click sticks it, Enter keeps it', choices: () => ['prism', 'box', 'cylinder', 'cone', 'pyramid', 'sphere'].map((v) => ({ label: v, value: v, cat: v === 'prism' ? 'the M prism' : 'about a metre' })), run: (a) => {
+          if (a === 'prism') return void place();
+          const make = SHAPES[a];
+          if (!make) throw new Error('prism, box, cylinder, cone, pyramid or sphere');
+          placeBrush({ name: a, mesh: make({ color: mat()?.color ?? '#c8c8c8', mat: mat()?.name }) });
+          return `${a}: a click sticks it to a surface, Enter keeps it, Esc takes it back (M puts down more)`;
+        } },
+        { names: ['text'], hint: 'put words down: on the face under the cross, or in front of the camera (Y)', free: true, bare: 'type them in the text box', run: (a) => {
+          const words = (a ?? '').trim();
+          startTextHere(words);
+          return words ? `text: “${words}”` : '';
+        } },
+        { names: ['char', 'character'], hint: 'put a character down: random, or the one the panel shows', choices: () => [{ label: 'random', value: 'random', cat: 'a new one' }, { label: 'panel', value: 'panel', cat: 'the one set in the panel' }], bare: 'a random one', run: async (a) => {
+          if (!charControls.children.length) {
+            openCharacters();
+            for (let i = 0; i < 100 && !charControls.children.length; i++) await new Promise((r) => setTimeout(r, 100));
+            if (!charControls.children.length) throw new Error('the character library did not load');
+          }
+          if (a !== 'panel') click('charRandom');
+          closeSide();
+          click('charPlace');
+          return 'character: a click stands it on a surface, Enter keeps it, Esc takes it away';
+        } },
+        { names: ['bool'], hint: 'the boolean of the two selected objects (B selects)', choices: () => [['union', 'union'], ['subtract', 'A − B'], ['subtract-swap', 'B − A'], ['intersect', 'what both share']].map(([value, cat]) => ({ label: value, value, cat })), run: (a) => {
+          const two = pickedObjs();
+          if (two.length !== 2) throw new Error('select exactly two objects first (B, drag a box; Shift adds): the first is A');
+          boolPair = { a: two[0], b: two[1] };
+          runBool(a.replace('-swap', ''), a.endsWith('-swap'));
+        } },
+        { names: ['go'], hint: 'target an object by name, or fly to x y z', free: (a, hits) => /^-?\d/.test(a) || !hits, choices: () => allObjects().filter((o) => o.mesh.positions.length).slice(0, 2000).map((o) => ({ label: String(o.name ?? o.id), value: `#${o.id}`, cat: categoryOf(o) })), run: (a) => {
+          if (a.startsWith('#')) {
+            const o = allObjects().find((x) => `#${x.id}` === a);
+            if (!o) throw new Error('no such object');
+            return void takeFound(o);
+          }
+          const p = nums(a);
+          if (p.length !== 3) throw new Error('a name from the list, or three numbers: x y z');
+          lookFrom(p, (yaw * 180) / Math.PI, (pitch * 180) / Math.PI);
+          return `at ${p.join(' ')}`;
+        } },
+        { names: ['vehicle'], hint: 'how the camera moves: starship, car or none', choices: () => [['starship', 'starship'], ['car', 'car'], ['none', '']].map(([label, value]) => ({ label, value: value || 'none', right: vehicleEl.value === value ? 'now' : '' })), run: (a) => {
+          vehicleEl.value = a === 'none' ? '' : a;
+          vehicleEl.dispatchEvent(new Event('change'));
+          return `vehicle: ${a}`;
+        } },
+        { names: ['play'], hint: 'the story: play / pause', run: () => {
+          if (!story) throw new Error('no story is loaded (/l story)');
+          stPlay();
+        } },
+        { names: ['seek'], hint: 'the story: go to a moment (seconds)', run: (a) => {
+          if (!story) throw new Error('no story is loaded (/l story)');
+          const [t] = nums(a);
+          if (t === undefined) throw new Error('the moment in seconds, e.g. /seek 12');
+          stSeek(t * 1000);
+          return `story at ${t} s`;
+        } },
+        { names: ['rec'], hint: 'record (or stop recording) every move into a JSON file (the rec button)', run: () => click('rec') },
+        { names: ['help', 'h'], hint: 'search the help', choices: () => {
+          if (!helpLoaded) {
+            ensureHelp().then(() => !findBox.hidden && findShow());
+            return [];
+          }
+          // every section's blocks (help/*.md), the sections' titles first when no word is typed yet
+          helpList = [{ file: 'index.md', title: 'Help' }, ...helpIndex].flatMap(({ file, title }) => helpBlocks(helpMd[file] ?? '').map((b) => ({ ...b, file, title })));
+          const q = fold(findInput.value.replace(/^\s*\/\S+\s*/, '').trim());
+          return helpList.flatMap((b, i) => {
+            if (!q && helpList.findIndex((x) => x.file === b.file) !== i) return []; // (no word yet: one row a section, its title)
+            const at = q ? Math.max(0, fold(b.text).indexOf(q)) : 0;
+            const from = Math.max(0, at - 24);
+            const label = (from ? '…' : '') + b.text.slice(from, from + 64) + (b.text.length > from + 64 ? '…' : '');
+            return [{ label, value: i, cat: b.title }];
+          });
+        }, run: (a) => {
+          const b = helpList[Number(a)];
+          if (!b) return;
+          openSide(helpEl, true);
+          showHelp(b.file, b.id);
+          // the block itself: the first element under the heading that holds its words
+          const key = b.text.slice(0, 40);
+          const el = [...helpDoc.querySelectorAll('h1, h2, h3, h4, p, li, tr, pre')].find((e) => e.textContent.replace(/\s+/g, ' ').includes(key.replace(/\s+/g, ' ')));
+          if (!el) return;
+          el.scrollIntoView({ block: 'center' });
+          el.classList.add('found');
+          setTimeout(() => el.classList.remove('found'), 2500);
+          globalThis.__helpFound = { file: b.file, text: key }; // (the terminal's help view goes to the same place)
+        } },
+        { names: ['keys'], hint: 'the keyboard map', run: () => toggleKeys(true) },
+        { names: ['ver', 'version'], hint: 'the running version', run: () => buildEl.textContent.trim() || 'the version is not known here' },
+      );
+    }
     document.getElementById('undo').addEventListener('click', undo);
     document.getElementById('reset').addEventListener('click', reset);
     new ResizeObserver(redraw).observe(stage);
@@ -9814,7 +10584,7 @@
         pickFault: () => (picker.worker?.postMessage({ type: 'pick', ver: picker.ver, cam: null, x: 0, y: 0, cull: true, key: 'fault' }), Boolean(picker.worker)), // (a test: a broken question)
         story: () => (story ? { title: story.doc.metadata.title, t: story.t, durationMs: story.doc.timeline.durationMs, index: story.index, total: story.doc.tracks.construction.steps.length, objects: story.count, playing: story.playing, cutaway: story.cutaway, focus: story.focus, animationChannels: story.doc.tracks.animation?.channels.length ?? 0, bones: storySkin ? Array.from(storySkin.bones) : null } : null),
         openStory: (data) => openStory(data),
-        xrFly: (pads, dt = 0.1, now = performance.now()) => (xrFly(pads, dt, now), { yaw, pitch: +pitch.toFixed(4), roll: +roll.toFixed(4), level: { ...level }, locked: lockedObject()?.name ?? null, frozen, pointed: xrState.hands?.pointed?.obj?.name ?? null, stick: xrState.hands?.stick ?? null, orbit: orbit?.phase ?? null }), // (the Quest mapping, with made-up pads)
+        xrFly: (pads, dt = 0.1, now = performance.now()) => (xrFly(pads, dt, now), { yaw, pitch: +pitch.toFixed(4), roll: +roll.toFixed(4), level: { ...level }, locked: lockedObject()?.name ?? null, frozen: ui.view.frozen, pointed: xrState.hands?.pointed?.obj?.name ?? null, stick: xrState.hands?.stick ?? null, orbit: orbit?.phase ?? null }), // (the Quest mapping, with made-up pads)
         type: () => xrState.ws?.type && { phase: xrState.ws.type.phase, text: xrState.ws.type.text, keys: xrState.ws.type.phase === 'keys' ? typeKeysAt(xrState.ws.type).map((k) => ({ key: k.key, at: k.at })) : null, obj: xrState.ws.type.obj?.name ?? null },
         build: () => ({ slot: xrState.ws?.build?.slot ?? null, panels: allObjects().filter((o) => /^panel-/.test(o.name ?? '')).map((o) => ({ name: o.name, c: bounds(o.mesh).center.map((x) => +x.toFixed(3)) })), walk: xrState.walk && { origin: xrState.walk.origin.map((x) => +x.toFixed(3)), forward: xrState.walk.forward.map((x) => +x.toFixed(3)) }, moving: xrState.ws?.moving ?? null, walkV: xrState.ws?.walkV ?? null, note: xrState.ws?.note }),
         backdrop: (name) => (name !== undefined && (sceneBackdrop = name), { name: sceneBackdrop, points: backdropData.pts ? backdropData.pts.length / 8 : 0 }),
@@ -9836,16 +10606,21 @@
         placeBrush: (name, mesh) => placeBrush({ name, mesh }), // like gg on a model in the store
         select: (names) => ((picked = allObjects().filter((o) => names.includes(o.name)).map((o) => o.id)), redraw(), picked.length), // like B round those objects
         place: () => placing && { phase: placing.phase, steps: placing.steps.length, kind: xf?.kind, foot: placing.foot.map((v) => +v.toFixed(3)), n: placing.n.map((v) => +v.toFixed(3)), name: placing.name }, // like opening a scene file: its palette (screens, scene screens) comes too
-        screens: () => ({ mode, gpu: Boolean(gpu), kind: activeKind, iframes: screenFrames.size, spots: [...sceneSpots].map(([addr, s]) => ({ addr, ready: s.ready, error: s.error })) }),
-        // the character builder: place(spec | preset name, pose, at, yaw), the placed ones, apply(name, spec, pose), the walk skin
+        screens: () => ({ mode: ui.render.mode, gpu: Boolean(gpu), kind: ui.render.kind, iframes: screenFrames.size, spots: [...sceneSpots].map(([addr, s]) => ({ addr, ready: s.ready, error: s.error })) }),
+        // the character panel (modular characters): place(selection | example id, at, yaw, name) -> its group name, the placed
+        // ones, apply(group, selection), open; ready() loads the library
+        ui: () => plain(ui), // the UI state (src/state.js)
+        svg: { picture: (look) => svgPicture({ ...svgLook(), ...look }), gif: (o = {}) => gifOf({ kind: 'turntable', from: 0, to: 360, frames: 12, loop: true, seconds: 2, look: svgLook(), ...o }), lit: () => ({ ...svgLitCount }), cam: () => svgCam && { ...svgCam, gcam: gcam && { eye: gcam.eye, f: gcam.f, k: gcam.k, size: gcam.size } } },
         chars: {
-          place: (spec, pose = 'stand', at = null, yaw = null) => placeCharacter(normalizeCharacter(typeof spec === 'string' ? CHARACTER_PRESETS[spec] : spec), pose, at, yaw).name,
-          list: () => allObjects().filter((o) => o.character).map((o) => ({ name: o.name, pose: o.character.pose, frame: o.character.frame, role: o.character.spec.role ?? null, base: o.character.spec.base, faces: o.mesh.faces.length, walking: walkHidden.has(o.id) })),
-          apply: (name, spec, pose) => { const o = allObjects().find((x) => x.name === name); if (o) charApplyTo(o, normalizeCharacter(spec ?? o.character.spec), pose ?? o.character.pose); return Boolean(o); },
+          ready: () => mcReady().then(() => mc.lib.examples.map((x) => x.id)),
+          place: async (spec, at = null, yaw = null, name = null) => { await mcReady(); const ex = typeof spec === 'string' ? mc.lib.examples.find((x) => x.id === spec) : null; return placeCharacter(ex ? ex.spec : spec ?? charSpec, at, yaw, name).group; },
+          list: () => [...new Set(allObjects().filter((o) => o.modular).map((o) => o.modular.name))].map((g) => { const m = charMembers(g); return { name: g, spec: m[0].modular.spec, frame: charFrame(m), members: m.length, instances: m.filter((o) => o.inst).length }; }),
+          apply: async (group, spec) => (await mcReady(), charApplyTo(group, spec)),
           open: () => openCharacters(),
-          // a rigid move as G / R / S make it (through change()): the frame must follow
-          move: (name, d = [0, 0, 0], yaw = 0, s = 1) => { const o = allObjects().find((x) => x.name === name); if (!o) return null; const b = baseCentre(o.mesh); change(o, { ...o.mesh, positions: o.mesh.positions.map((q) => yawTurn(vsub(q, b), yaw, s).map((c, i) => c + b[i] + d[i])) }); return o.character?.frame ?? null; },
-          state: () => ({ spec: charSpec, pose: charPose, target: charTarget, skin: walkSkin ? walkSkin.figs.length : 0 }),
+          // a rigid move of the whole character as G / R / S make it (through change()): its members stay instances
+          move: (group, d = [0, 0, 0], yaw = 0, s = 1) => { const m = charMembers(group); if (!m.length) return null; const b = baseCentre(merge(...m.map((o) => o.mesh))); asOneStep(() => m.forEach((o) => { const before = o.mesh; change(o, { ...o.mesh, positions: o.mesh.positions.map((q) => yawTurn(vsub(q, b), yaw, s).map((c, i) => c + b[i] + d[i])) }); history.push(() => has(o) && change(o, before)); })); redraw(); return { frame: charFrame(charMembers(group)), instances: charMembers(group).filter((o) => o.inst).length }; },
+          target: (group) => { const o = charMembers(group).find((m) => m.inst?.key?.startsWith('body/')) ?? charMembers(group)[0]; locked = o?.id ?? null; redraw(); return o?.name ?? null; }, // as T on it
+          state: () => ({ spec: charSpec, target: charTarget, loaded: Boolean(mc) }),
         },
         pose: () => (posing ? { name: posing.name, anim: posing.anim, objects: posing.objs.map((o) => o.name), joints: posing.joints, skinned: skinned(), rigPx: rigPixels(posing.joints), sceneFaces: scene.faces.length } : null),
         hint: () => poseHint,
@@ -9856,7 +10631,7 @@
           for (const q of o.mesh.positions) q.forEach((c, i) => ((lo[i] = Math.min(lo[i], c)), (hi[i] = Math.max(hi[i], c))));
           return { name: o.name, faces: o.mesh.faces.map((f) => [f.color, f.mat]), lo, hi, nf: o.mesh.faces.length };
         }),
-        edit: () => ({ mode: emode, sel: { kind: sel.kind, n: sel.items.length }, xf: xf ? { kind: xf.kind, lock: xf.lock, typed: xf.typed, place: Boolean(xf.place) } : null, editing: editing?.name ?? null, bench: Boolean(bench), wire: editing?.wire?.length ?? 0, lines: editing?.lines?.length ?? 0 }),
+        edit: () => ({ mode: ui.edit.mode, sel: { kind: sel.kind, n: sel.items.length }, xf: xf ? { kind: xf.kind, lock: xf.lock, typed: xf.typed, place: Boolean(xf.place) } : null, editing: editing?.name ?? null, bench: Boolean(bench), wire: editing?.wire?.length ?? 0, lines: editing?.lines?.length ?? 0 }),
         // screen position (stage pixels) of a point on the edited object: its face centre / vertex / edge middle
         screen: (kind, i) => {
           const m = editing.mesh;
@@ -9989,7 +10764,7 @@
         if (events.readyState !== EventSource.OPEN) return;
         const deg = (a) => +((a * 180) / Math.PI).toFixed(2);
         const t = lockedObject();
-        const state = { vehicle: vehicle ?? 'none', eye: eyeNow().map((v) => +v.toFixed(4)), yaw: deg(yaw), pitch: deg(pitch), roll: deg(roll), target: t ? t.name ?? t.id : null, speed: space() ? +(Math.hypot(pace(level.f), pace(level.r), pace(level.u)) * unitNow() * throttle).toFixed(3) : null, orbit: orbit?.phase ?? null, objects: allObjects().length, scene: startScene ?? null, view: mode };
+        const state = { vehicle: vehicle ?? 'none', eye: eyeNow().map((v) => +v.toFixed(4)), yaw: deg(yaw), pitch: deg(pitch), roll: deg(roll), target: t ? t.name ?? t.id : null, speed: space() ? +(Math.hypot(pace(level.f), pace(level.r), pace(level.u)) * unitNow() * throttle).toFixed(3) : null, orbit: orbit?.phase ?? null, objects: allObjects().length, scene: startScene ?? null, view: ui.render.mode };
         fetch('/viewer-state', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(state) }).catch(() => {});
       };
       setInterval(reportView, 2000);
@@ -10020,7 +10795,7 @@
             const docs = snap.docs.map((d) => ({ name: d.id, ...d.data() })).filter((m) => typeof m.color === 'string');
             if (!docs.length) return; // nothing stored yet: the built-in materials stay
             materials = docs.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map(({ order, ...m }) => ({ metal: 0, rough: 0.7, alpha: 1, emit: 0, soft: 0, ...m }));
-            current = Math.min(current, materials.length - 1);
+            ui.paint.current = Math.min(ui.paint.current, materials.length - 1);
             if (!paletteEl.hidden) showPalette();
             syncPalette();
           },
@@ -10066,7 +10841,7 @@
         };
       };
       const realRandom = Math.random;
-      const toggles = () => ({ frozen, smooth, studio, filmic });
+      const toggles = () => ({ frozen: ui.view.frozen, smooth: ui.view.smooth, studio: ui.view.studio, filmic: ui.view.glow });
       const wait = (ms) => new Promise((r) => setTimeout(r, ms));
       const sceneHasObjects = () => allObjects().length > 0;
       // the same start every time: an empty scene, the palette of the recording, the home view
@@ -10082,15 +10857,15 @@
         history.length = 0;
         if (start?.materials) {
           materials = start.materials.map((m) => ({ ...m }));
-          current = Math.min(start.current ?? 0, materials.length - 1);
+          ui.paint.current = Math.min(start.current ?? 0, materials.length - 1);
           syncPalette();
           if (!paletteEl.hidden) showPalette();
         }
         const want = start?.toggles ?? {};
-        if (want.frozen !== undefined && want.frozen !== frozen) toggleFreeze();
-        if (want.smooth !== undefined && want.smooth !== smooth) toggleSmooth();
-        if (want.studio !== undefined && want.studio !== studio) toggleStudio();
-        if (want.filmic !== undefined && want.filmic !== filmic) toggleFilmic();
+        if (want.frozen !== undefined && want.frozen !== ui.view.frozen) toggleFreeze();
+        if (want.smooth !== undefined && want.smooth !== ui.view.smooth) toggleSmooth();
+        if (want.studio !== undefined && want.studio !== ui.view.studio) toggleStudio();
+        if (want.filmic !== undefined && want.filmic !== ui.view.glow) toggleFilmic();
         reset();
         await wait(900); // the turn of the reset view finishes before anything is recorded or played
       };
@@ -10163,7 +10938,7 @@
         if (ask && sceneHasObjects() && !confirm('Recording starts from an empty scene: the current scene is removed (it cannot be undone). Continue?')) return;
         recBtn.disabled = true;
         const seed = (Math.random() * 2 ** 32) >>> 0;
-        const start = { materials: materials.map((m) => ({ ...m })), current, toggles: toggles() };
+        const start = { materials: materials.map((m) => ({ ...m })), current: ui.paint.current, toggles: toggles() };
         await prepare(start);
         Math.random = seeded(seed);
         rec = { seed, start, events: [], t0: performance.now(), lastMove: -99, lastButtons: 0 };
@@ -10731,7 +11506,7 @@
       };
       const ry = -ty;
       if (!ty) delete rep.ry, (hands.hold = 0);
-      else if (!frozen) {
+      else if (!ui.view.frozen) {
         const f = level.f;
         const inSmooth = Math.abs(f) < 1 - 1e-9 || (f * ty < 0 && Math.abs(f) <= 1 + 1e-9);
         if (inSmooth && now >= (hands.hold ?? 0)) {
@@ -10776,14 +11551,14 @@
 
       // the throttle (right stick up / down): smooth within level ±1, the exponential levels beyond
       if (!xrState.ws?.shipOn) xrThrottle(-dz(ry), now, dt); // (stick forward: positive; the hands' ship function has its own)
-      if (!frozen && space() && dz(rx)) roll = wrapPitch(roll + dz(rx) * ROLL_RATE * dt); // (the right stick sideways: roll)
+      if (!ui.view.frozen && space() && dz(rx)) roll = wrapPitch(roll + dz(rx) * ROLL_RATE * dt); // (the right stick sideways: roll)
 
       if (cockpit) {
         // the flight stick (left grip held)
         const gripOn = Boolean(L.buttons[1]);
         if (gripOn && !hands.grab) ((hands.grab = { m: Float32Array.from(L.grip) }), L.buzz(0.3, 30), (hands.pts = []));
         if (!gripOn && hands.grab) ((hands.grab = null), (hands.stick = null));
-        if (hands.grab && !frozen) {
+        if (hands.grab && !ui.view.frozen) {
           const g = hands.grab.m, m = L.grip;
           const rv = turnBetweenPoses(g, m); // the turn since the grip, in the reference space (x right, y up, −z ahead)
           const nod = band(-rv[0], XR_TILT); // forward: the top goes ahead
@@ -11220,7 +11995,7 @@
       {
         // with a target in space: the ship goes round it on the sphere of its distance, nose on the target; else it turns
         const tg = space() && locked && lockedObject();
-        if ((S.side || S.nod) && !frozen) tg ? swingRound(tg, S.side * XR_HAND_SWING * dt, S.nod * XR_HAND_SWING * dt) : turn(S.side * XR_HAND_YAW * dt, S.nod * XR_HAND_NOD * dt);
+        if ((S.side || S.nod) && !ui.view.frozen) tg ? swingRound(tg, S.side * XR_HAND_SWING * dt, S.nod * XR_HAND_SWING * dt) : turn(S.side * XR_HAND_YAW * dt, S.nod * XR_HAND_NOD * dt);
       }
       // the right fist, held flat: the throttle (how far it went ahead since it closed)
       if (rh && R?.fist && R.back[1] > 0.5) {
@@ -11472,7 +12247,7 @@
         ws.build.slot = slot;
         ws.build.ray = [g.rayFrom, R2S.back(fromGrid(grid, slot.hit))];
         if (clicked && slot.ok && slot.centre) {
-          const mt = materials[current] ?? materials[0];
+          const mt = materials[ui.paint.current] ?? materials[0];
           const o = WS.create(`panel-${slot.axis === 'v' ? (slot.centre[1] > 0 ? 'ceiling' : 'floor') : 'wall'}-${shortId()}`, panelMesh(grid, slot, mt));
           if (!ws.grid) ws.grid = grid; // (the first panel fixes the grid)
           ws.piece = o.id;
@@ -11555,7 +12330,7 @@
     // left pinch starts a new outline. While an outline is open, a right fist takes its last point back.
     const GRAF_LIFT = 0.002, GRAF_CLOSE = 0.025;
     const grafPrism = (ring, n, h) => {
-      const mt = materials[current] ?? materials[0];
+      const mt = materials[ui.paint.current] ?? materials[0];
       const face = (v) => ({ v, color: mt.color, mat: mt.name });
       const k = ring.length;
       if (Math.abs(h) < 0.001) return { positions: ring.map((q) => [...q]), faces: [face(ring.map((_, i) => i))] };
@@ -11673,7 +12448,7 @@
         } else if (bd > 0.04) T.latch[side] = null;
       }
       if (!pressed.length) return;
-      const mt = materials[current] ?? materials[0];
+      const mt = materials[ui.paint.current] ?? materials[0];
       for (const key of pressed) {
         if (key === 'exit') {
           T.obj = null;
@@ -11708,7 +12483,7 @@
       const dt = ws.blockAt ? Math.min(0.1, (now - ws.blockAt) / 1000) : 0;
       ws.blockAt = now;
       const pl = L?.palm, pr = R?.palm;
-      const mt = materials[current] ?? materials[0];
+      const mt = materials[ui.paint.current] ?? materials[0];
       const mk = ws.make;
       const blockMesh = (frame) => {
         const loc = [pl, pr].map((p) => [v3.dot(p, frame.x), v3.dot(p, frame.y), v3.dot(p, frame.z)]);
@@ -11778,7 +12553,7 @@
         if (o && o.mesh !== c.mesh0) (history.push(() => WS.has(o) && WS.change(o, c.mesh0)), done());
       };
       if (R.fn?.kind !== 'saw' || !g?.fist) return void endCarve();
-      const mt = materials[current] ?? materials[0];
+      const mt = materials[ui.paint.current] ?? materials[0];
       const at = R2S.p(g.palm);
       const plane = { point: at, n: v3.unit(R2S.d(g.back)) };
       const segs = (o, pl) => {
@@ -12010,7 +12785,7 @@
           scene: sceneFile(nameEl.value || 'vr'),
           rig: { origin: [...r.origin], forward: [...r.forward], right: [...r.right] },
           tsh: tsh ? { left: tsh.fn('left')?.id ?? null, right: tsh.fn('right')?.id ?? null } : null,
-          current,
+          current: ui.paint.current,
         };
       };
       const send = (o) => {
@@ -12136,7 +12911,7 @@
         tsh = createTsh(tshFunctions());
         if (head.tsh?.left) tsh.choose('left', head.tsh.left);
         if (head.tsh?.right) tsh.choose('right', head.tsh.right);
-        if (Number.isInteger(head.current)) current = head.current;
+        if (Number.isInteger(head.current)) ui.paint.current = head.current;
         const ghost = create('vr-ghost', { positions: [], faces: [] });
         history.pop(); // (the ghost is no step to undo)
         Object.assign(P, { on: true, queue: file ? [...file] : [], file, base: 0, clock: performance.now(), ghost });
@@ -12295,7 +13070,7 @@
       ws.st = st;
       const done = () => ((ws.used = true), (ws.dirtyAt = performance.now()));
       for (const e of st.events) if (e.type === 'choose') wsNote(ws, `${e.side} hand: ${e.fn.label ?? e.fn.id}`);
-      const matOf = (fn) => materials[fn?.kind === 'material' ? fn.data : current] ?? materials[0];
+      const matOf = (fn) => materials[fn?.kind === 'material' ? fn.data : ui.paint.current] ?? materials[0];
 
       // grab (either hand with that function): a fist or a pinch on an object (or within 4 cm of it) takes it; it moves and
       // turns with that wrist until let go
@@ -12326,7 +13101,7 @@
       const L = st.left, lh = hands.left;
       // a material: the left index fingertip poked into a block paints all of it (once, until the finger comes out)
       if (L.fn?.kind === 'material' && lh) {
-        current = L.fn.data;
+        ui.paint.current = L.fn.data;
         const tip = R2S.p(lh.joints['index-finger-tip']);
         const o = WS.workable().find((x) => touches(x, tip, 0.006));
         if (o && ws.painted !== o.id) {
@@ -12348,7 +13123,7 @@
           const roomAt = v3.sub(L.g.palm, v3.mul(L.g.back, 0.045));
           const fw = head ? v3.unit([-head[8], 0, -head[10]]) : [0, 0, -1];
           const right = v3.unit(R2S.d(v3.cross(fw, [0, 1, 0]))), up = v3.unit(R2S.d([0, 1, 0]));
-          const mt = materials[current] ?? materials[0];
+          const mt = materials[ui.paint.current] ?? materials[0];
           const solid = box({ size: [TSH_CUBE, TSH_CUBE, TSH_CUBE], at: R2S.p(roomAt), axes: [right, up, v3.cross(right, up)], color: mt.color });
           const o = WS.create(`cube-${shortId()}`, { ...solid, faces: solid.faces.map((f) => ({ ...f, mat: mt.name })) });
           ws.piece = o.id;
@@ -13012,8 +13787,8 @@
     };
     // a panel's texture: draw(ctx, w, h) paints it; `key` says when it has to be painted again
     const xrPanelTex = (gl, id, w, h, key, draw) => {
-      const ui = xrUi(gl);
-      let p = ui.panels[id];
+      const xg = xrUi(gl);
+      let p = xg.panels[id];
       if (!p) {
         const tex = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -13024,7 +13799,7 @@
         const canvas = document.createElement('canvas');
         canvas.width = w;
         canvas.height = h;
-        p = ui.panels[id] = { tex, canvas, key: null };
+        p = xg.panels[id] = { tex, canvas, key: null };
       }
       if (p.key !== key) {
         p.key = key;
@@ -13052,29 +13827,29 @@
     };
     // a quad of half size [hw, hh] metres, placed by M (eye from the quad's own frame)
     const xrQuad = (gl, P, M, tex, hw, hh) => {
-      const ui = xrUi(gl);
+      const xg = xrUi(gl);
       xrOverlayState(gl, true);
-      gl.useProgram(ui.quad);
-      gl.uniformMatrix4fv(ui.Q.uP, false, P);
-      gl.uniformMatrix4fv(ui.Q.uM, false, M);
-      gl.uniform2f(ui.Q.uHalf, hw, hh);
+      gl.useProgram(xg.quad);
+      gl.uniformMatrix4fv(xg.Q.uP, false, P);
+      gl.uniformMatrix4fv(xg.Q.uM, false, M);
+      gl.uniform2f(xg.Q.uHalf, hw, hh);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.uniform1i(ui.Q.uT, 0);
-      gl.bindVertexArray(ui.qVao);
+      gl.uniform1i(xg.Q.uT, 0);
+      gl.bindVertexArray(xg.qVao);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
       xrOverlayState(gl, false);
     };
     // lines: [x, y, z, r, g, b, a] per point, two points a line, in the reference space (V: the eye's view matrix)
     const xrLines = (gl, P, V, pts) => {
       if (!pts.length) return;
-      const ui = xrUi(gl);
+      const xg = xrUi(gl);
       xrOverlayState(gl, true);
-      gl.useProgram(ui.line);
-      gl.uniformMatrix4fv(ui.Ln.uP, false, P);
-      gl.uniformMatrix4fv(ui.Ln.uV, false, V);
-      gl.bindVertexArray(ui.lVao);
-      gl.bindBuffer(gl.ARRAY_BUFFER, ui.lBuf);
+      gl.useProgram(xg.line);
+      gl.uniformMatrix4fv(xg.Ln.uP, false, P);
+      gl.uniformMatrix4fv(xg.Ln.uV, false, V);
+      gl.bindVertexArray(xg.lVao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, xg.lBuf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pts), gl.DYNAMIC_DRAW);
       gl.drawArrays(gl.LINES, 0, pts.length / 7);
       xrOverlayState(gl, false);
@@ -13090,7 +13865,7 @@
         levels: `speed ${xrLevel(level.f)}   side ${xrLevel(level.r)}   up ${xrLevel(level.u)}`,
         target: t ? `◎ ${t.name ?? t.id}` : '',
         stick: st ? `stick ${['nod', 'side', 'lift', 'twist'].map((k) => `${k[0]}${Math.round(st[k] * 9)}`).join(' ')}` : '',
-        frozen,
+        frozen: ui.view.frozen,
       };
     };
     const xrHudDraw = (gl, P, eyeFromHead) => {
@@ -13521,7 +14296,7 @@
         report = {
           format: '3draft-debug', version: 1, at: new Date().toISOString(), engine: displayVersion(version), ua: navigator.userAgent,
           scene: nameEl.value || null, objects: allObjects().length, space: space(), drive: drive(), vehicle,
-          flight: { yaw: r4(yaw), pitch: r4(pitch), roll: r4(roll), level: { ...level }, locked, orbit: Boolean(orbit), frozen, skyZoom: skyZoom() },
+          flight: { yaw: r4(yaw), pitch: r4(pitch), roll: r4(roll), level: { ...level }, locked, orbit: Boolean(orbit), frozen: ui.view.frozen, skyZoom: skyZoom() },
           game: game ? { title: game.doc.title, mode: game.mode, helm: game.helm, ship: game.doc.ship?.scene, meshFaces: game.mesh?.faces.length } : null,
           rig: { origin: r4(rig.origin), forward: r4(rig.forward), right: r4(rig.right), up: r4(rig.up), scale: rig.scale },
           pilot: xrState.pilot, walk: xrState.walk, head: d.head ? r4(d.head) : null, headInShip: null,
@@ -13676,16 +14451,16 @@
         return xrSay(`could not start VR: ${err?.message ?? err}`);
       }
       xrLog(`session created (${Math.round(performance.now() - t0)} ms after the click) · blend ${session.environmentBlendMode} · visibility ${session.visibilityState}`);
-      if (mode !== 'gpu' || activeKind !== 'webgl2') {
-        xrState.prevMode = mode !== 'gpu' ? 'svg' : 'gpu';
+      if (ui.render.mode !== 'gpu' || ui.render.kind !== 'webgl2') {
+        xrState.prevMode = ui.render.mode !== 'gpu' ? 'svg' : 'gpu';
         const t1 = performance.now();
         if (xrWebGlWarmup) await xrWebGlWarmup;
         await setMode('gl');
         xrLog(`the view switched to WebGL2 in ${Math.round(performance.now() - t1)} ms`);
       }
       const gl = gpu?.context;
-      if (activeKind !== 'webgl2' || !gl) {
-        xrLog(`no WebGL2 context (view ${activeKind})`, true);
+      if (ui.render.kind !== 'webgl2' || !gl) {
+        xrLog(`no WebGL2 context (view ${ui.render.kind})`, true);
         session.end();
         return xrSay('WebGL2 is not available');
       }

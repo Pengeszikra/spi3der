@@ -1,0 +1,5 @@
+**/*.vsix
+**/.DS_Store
+test/**
+test.mjs
+.vscode/**

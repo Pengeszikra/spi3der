@@ -2,8 +2,8 @@
 # One-time, keyless GitHub Actions -> Google Cloud Run authorization for spi3der.
 # Run as a GCP project IAM admin with gcloud and an authenticated gh CLI.
 set -euo pipefail
+cd "$(dirname "$0")/.." # package.json names the repository and the branch
 
-REPO="Pengeszikra/spi3der"
 SERVICE="spi3der"
 REGION="europe-west1"
 POOL="spi3der-github"
@@ -13,6 +13,10 @@ DEPLOY_ACCOUNT="spi3der-deploy"
 command -v gcloud >/dev/null || { echo "Install and log in to the Google Cloud CLI first." >&2; exit 1; }
 command -v gh >/dev/null || { echo "Install and log in to the GitHub CLI (gh) first." >&2; exit 1; }
 gh auth status >/dev/null
+# The repository and branch come from package.json "brand"; GitHub's own spelling of the name is what the OIDC token carries
+# (a renamed repo answers to the old name, but its tokens say the new one, case included).
+REPO="$(gh repo view "$(node -p "require('./package.json').brand.repo")" --json nameWithOwner --jq .nameWithOwner)"
+BRANCH="$(node -p "require('./package.json').brand.branch || 'main'")"
 if [[ $# -gt 0 ]]; then
   PROJECT_ID="$1"
 else
@@ -44,13 +48,13 @@ if ! gcloud iam workload-identity-pools describe "$POOL" --project "$PROJECT_ID"
     --display-name "spi3der GitHub Actions"
 fi
 
-# Only tokens issued to this repository's main branch may authenticate.
-CONDITION="assertion.repository == 'Pengeszikra/spi3der' && assertion.ref == 'refs/heads/main'"
+# Only tokens issued to this repository's release branch may authenticate.
+CONDITION="assertion.repository == '$REPO' && assertion.ref == 'refs/heads/$BRANCH'"
 if ! gcloud iam workload-identity-pools providers describe "$PROVIDER" --project "$PROJECT_ID" \
   --location global --workload-identity-pool "$POOL" >/dev/null 2>&1; then
   gcloud iam workload-identity-pools providers create-oidc "$PROVIDER" \
     --project "$PROJECT_ID" --location global --workload-identity-pool "$POOL" \
-    --display-name "spi3der main branch" \
+    --display-name "spi3der $BRANCH branch" \
     --issuer-uri "https://token.actions.githubusercontent.com" \
     --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository" \
     --attribute-condition "$CONDITION"
@@ -84,6 +88,11 @@ BUILDER_SA="$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member "serviceAccount:$BUILDER_SA" --role roles/run.builder \
   --condition=None --quiet >/dev/null
+# The deployer starts that build, so it must be able to act as the builder too (when the service runs as another account,
+# the runtime binding above does not cover it).
+gcloud iam service-accounts add-iam-policy-binding "$BUILDER_SA" --project "$PROJECT_ID" \
+  --member "serviceAccount:$DEPLOY_SA" --role roles/iam.serviceAccountUser \
+  --quiet >/dev/null
 
 PROVIDER_RESOURCE="$(gcloud iam workload-identity-pools providers describe "$PROVIDER" \
   --project "$PROJECT_ID" --location global --workload-identity-pool "$POOL" \
@@ -100,5 +109,5 @@ echo "  project: $PROJECT_ID"
 echo "  provider: $PROVIDER_RESOURCE"
 echo "  service account: $DEPLOY_SA"
 echo "  runtime service account: $RUNTIME_SA"
-echo "GitHub Actions -> Deploy spi3der to Cloud Run will deploy after successful main CI."
+echo "GitHub Actions -> Deploy spi3der to Cloud Run will deploy after successful $BRANCH CI."
 echo "Trigger a manual workflow run once to verify live /api/version, or push another commit."

@@ -25,11 +25,15 @@
   "type": "module",
   "bin": {
     "spi3der": "./bin/spi3der.mjs",
-    "spi3der-workshop-mcp": "./bin/workshop-mcp.mjs"
+    "spi3der-workshop-mcp": "./bin/workshop-mcp.mjs",
+    "spi3der-term": "./bin/spider-term.mjs",
+    "spider-md": "./bin/spider-md.mjs"
   },
   "scripts": {
     "start": "node bin/spi3der.mjs",
-    "test": "node tests/math.mjs && node tests/smoke.mjs && node tests/instance.mjs",
+    "term": "node bin/spider-term.mjs",
+    "docs": "node scripts/docs-page.mjs",
+    "test": "node tests/math.mjs && node tests/smoke.mjs && node tests/instance.mjs && node tests/materials.mjs && node tests/svg-export.mjs && node tests/state.mjs && node tests/term.mjs && node vscode/test.mjs && node tests/md.mjs",
     "test:all": "node scripts/test-all.mjs",
     "bump": "node scripts/bump.mjs",
     "workshop": "node bin/workshop.mjs",
@@ -57,7 +61,7 @@
     "xr-test.html",
     "xr-compare.html",
     "sky.md",
-    "help.md",
+    "help",
     "PLAYER.md",
     "APP.md",
     "MCP.md",

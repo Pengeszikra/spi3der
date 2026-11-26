@@ -52,16 +52,85 @@ npx spi3der
 
 Open http://localhost:5173. No application build system is needed.
 
+### In a terminal
+
+```sh
+npm run term -- bridge         # a scene name (default: the app's start scene)
+npx spi3der-term deepsky
+node bin/spider-term.mjs globe --native     # the terminal's own renderer (no Chrome needed)
+node bin/spider-term.mjs lark-4 --once --cols 100 --rows 30 > frame.ans
+```
+
+**The app way (the default when a Chrome / Chromium / Edge is found; `CHROME_PATH` names one):** the real spi3der runs
+in a headless Chrome from this checkout (`bin/term-app.mjs`, the DevTools protocol over node's own WebSocket, node 22+), so
+**every key and mode works** as in the browser: flying (W A S D R F, Space), T, Tab, M, X, G, B, P, Q and the edit keys,
+J, E, L, N, K, C, 9, Z… The picture is the app's own view in half blocks (rough, that is fine). Under it: **an info line**
+with the HUD's important bits (EDIT, speed, the target, the object under the cross, fps; a command's answer for a moment)
+and **the Enter line**, lighter while the Enter box is open (focused): what you type goes into the app's box, its list (the
+targets, `/l` scenes, `/mat`, `/help`…) covers the bottom of the view, ↑↓ / Tab / Enter / Esc and a click on a row work
+as in the app; in the edit mode (Q), where Enter builds, cuts or turns, **Shift+Enter** opens the box (the terminal is asked
+for the kitty keyboard protocol so that it can tell Shift+Enter apart; **Alt+Enter** does the same in every terminal).
+The text box (Y, or T in Q) is typed on the same bottom line (`text › …`). **The palette (P)** is a text panel on the
+right over the picture: ↑↓ (or the wheel) chooses the material, Tab chooses metal / rough / alpha / emit / soft and ← →
+change it (Shift: five steps), a click takes a material or a place on a value's bar, ✕ / P / Esc close it; Ctrl+click on
+the picture still paints. **`/q`** (`/quit`) in the box leaves. The mouse is the app's (the cross follows it, drag turns, the wheel zooms; Shift / Option + drag selects
+terminal text). Ctrl+C quits. On WSL: install a Chrome or Chromium inside Ubuntu, or the native viewer starts.
+
+A scene **file** (`.json`, `.3draft`, a sky catalogue, a story) is packed into the page's address, as an MCP link is, and
+**loaded again whenever the file is saved** — edit the JSON in one window, watch it in the other.
+
+### In VS Code
+
+`vscode/` is a VS Code extension: the app itself in a webview tab (sharp, every key). Commands: **spi3der: Open**,
+**Open a scene from the list…**, **Show this scene file in 3D** (the editor's `.json` / `.3draft` beside it, reloaded on
+every save; also a button in the editor's title bar). Try it from the checkout: open the `vscode` folder in VS Code and
+press F5 (it uses the checkout's app), or build a `.vsix` (`cd vscode && npm run package`, then
+`code --install-extension spi3der-*.vsix`); the *VS Code extension (.vsix)* workflow builds one on every push.
+
+### The help and the markdown reader
+
+The in-app help is the `help/` folder: `index.md` lists the sections, one markdown file each. `src/md/` reads them
+(no dependencies, its own tests in `tests/md.mjs`, ready to live in a repository of its own): `markdown.js` turns the
+blocks into the smallest HTML or into terminal lines, `highlight.js` colours code blocks and does not stop where the
+languages nest — an ```html block's `<script>` is JavaScript, its `/** jsDoc */` gets its tags, names and `{TypeScript
+types}` coloured, a `<style>` is CSS. The page's help panel and the terminal's help view (`?` in the app view, `/help
+[word]` in the native one) show the same files with the same colours.
+
+The same files as one web page: `npm run docs -- --out help.html` (or `--template page.html`, which puts the page
+into a site's own header and footer). The Tüskék és Gyökerek docs page ([`dist/spider-docs.html`](https://github.com/Pengeszikra/tuskek-es-gyokerek/blob/main/dist/spider-docs.html))
+is generated this way, by that site's `spider-docs` workflow, from the current `master`.
+
+Markdown in colour on the console, with the same reader: `spi3der -md file.md` (or `spider-md file.md`,
+`npx spider-md README.md`; `-` reads stdin, `--width N`, `--page` through `less -R`, `--plain` without colours). A code
+file (`.js`, `.html`, `.json`, `.rs`, `.sh`…) is shown as one coloured block. Pictures in the markdown (`![alt](file.png)`, a path
+beside the file or `https://…`) are drawn the way the 3D view is: half blocks, two pixels a cell (`--image-rows N`,
+`--no-images`). PNG and GIF are read in node; JPEG, SVG and WebP go through a headless Chrome when there is one.
+
+**The native viewer (`--native`, or when there is no Chrome):** The scene is drawn with 24-bit colour half blocks (two pixels a character cell), a depth buffer and one shaded colour a
+face (`src/term-render.js`, pure: no node, no DOM), with dark outlines at the silhouettes, folds and depth jumps in place of
+the GPU's light play (`/outline` or `--flat` turns them off). The model fills the window. It is zen: only the picture. The mouse belongs to the program (the
+terminal does not select the picture; Shift / Option + drag still selects): **drag** turns, the **wheel** zooms, the object
+under the pointer lights up, a **click** turns the view round it (empty space: the whole scene). **Enter** opens a command
+line under the picture: `/l scene`, `/view front|top|iso…`, `/spin`, `/outline`, `/fit`, `/zoom n`, `/ls`, `/q`, `/help`, or a name to
+turn round that object; Esc closes it. Ctrl+C quits. Only the changed lines are written, inside synchronised output
+(less flicker where the terminal knows it); mouse reports are gathered into at most one frame every 33 ms, so a big
+scene does not fall behind the pointer. If a killed run leaves the terminal odd, `reset` brings it back.
+A sky scene (deepsky, stars, a sky catalogue: a starship scene) is not meshes here but points seen from the scene's start:
+stars, planets, black holes, galaxies (the biggest-looking as a small smudge) and the dust band, brightness by how big they
+look. Drag turns the view, the wheel zooms (the field of view), the name of the star under the pointer shows under the
+picture, a click or a typed name (`sirius`) turns the view to it. `--once` (or a pipe) prints one frame. The terminal needs 24-bit colour and
+mouse reporting (iTerm2, WezTerm, kitty, Ghostty, Windows Terminal, VS Code; not macOS Terminal.app).
+
 ## Project boundaries and deployments
 
-- **spi3der** (`Pengeszikra/spi3der`) is deployed to Cloud Run only, at `spi3der.run.app`, and has the `spi3der` npm package. There is no spi3der Vercel deployment.
+- **spi3der** (`Pengeszikra/spi3der`) is deployed to Cloud Run (`.github/workflows/cloud-run-deploy.yml`) and has the `spi3der` npm package.
 - **3Draft** (`Pengeszikra/3Draft`) is the separate 3D engine repository and npm module.
 
 The product name is always lowercase **spi3der**. The app header can retain **3Draft** as a quiet engine attribution.
 
 ## Cloud Run (browser app + MCP)
 
-**Cloud Run deployment is automated in GitHub Actions** (once keyless Google Cloud IAM/WIF setup is completed). Push to `main` → `spi3der MCP App` CI must succeed → `Deploy spi3der to Cloud Run` builds and deploys that tested SHA. The deployment checks the service's `/api/version` response against the expected commit. See [the setup and verification guide](docs/cloud-run-ci.md), or run `bash scripts/setup-cloud-run-oidc.sh PROJECT_ID` once with authorized `gcloud` and `gh` credentials. **Without that setup, the workflow is present but cannot deploy.** Agents must follow the deployment rules in [AGENTS.md](AGENTS.md).
+**Cloud Run deployment is automated in GitHub Actions** (once keyless Google Cloud IAM/WIF setup is completed). Push to the release branch (`brand.branch` in package.json) → `spi3der MCP App` CI must succeed → `Deploy spi3der to Cloud Run` builds and deploys that tested SHA. The deployment checks the service's `/api/version` response against the expected commit. See [the setup and verification guide](docs/cloud-run-ci.md), or run `bash scripts/setup-cloud-run-oidc.sh PROJECT_ID` once with authorized `gcloud` and `gh` credentials. **Without that setup, the workflow is present but cannot deploy.** Agents must follow the deployment rules in [AGENTS.md](AGENTS.md).
 
 
 The Dockerfile now starts `bin/cloud-run.mjs` with Node.js on the Cloud Run `PORT`.
